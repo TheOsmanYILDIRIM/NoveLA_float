@@ -615,9 +615,9 @@ private fun FloatingTtsMiniPlayer(
                             awaitEachGesture {
                                 var isPinch = false
                                 var wasDrag = false
+                                var lastTapPos: Offset? = null
 
                                 val released = withTimeoutOrNull(1200L) {
-                                    var firstPos: Offset? = null
                                     while (true) {
                                         val event = awaitPointerEvent()
                                         val pressed = event.changes.filter { it.pressed }
@@ -627,9 +627,9 @@ private fun FloatingTtsMiniPlayer(
                                         }
                                         if (pressed.isEmpty()) break
 
-                                        if (firstPos == null) {
-                                            firstPos = pressed.first().position
-                                        } else if ((pressed.first().position - firstPos!!).getDistance() > 20f) {
+                                        if (lastTapPos == null) {
+                                            lastTapPos = pressed.first().position
+                                        } else if ((pressed.first().position - lastTapPos!!).getDistance() > 20f) {
                                             wasDrag = true
                                             break
                                         }
@@ -671,9 +671,9 @@ private fun FloatingTtsMiniPlayer(
                                         lastTapTime.longValue = 0L
                                     } else {
                                         lastTapTime.longValue = now
-                                        val tapPos = firstPos
+                                        val tapPos = lastTapPos
                                         if (tapPos != null) {
-                                            if (tapPos.x < size.width * 0.35f) {
+                                            if (tapPos.x < size.width.toFloat() * 0.35f) {
                                                 state.playPreviousItem()
                                             } else {
                                                 state.playNextItem()
