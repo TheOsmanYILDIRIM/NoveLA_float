@@ -45,11 +45,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "my.novela"
+        applicationId = "my.novela.float"
         versionCode = 35
-        versionName = "1.4.0"
-        base.archivesName.set("NoveLA_v$versionName")
-        manifestPlaceholders["appLabel"] = "NoveLA"
+        versionName = "1.4.0-float"
+        base.archivesName.set("NoveLA_Float_v$versionName")
+        manifestPlaceholders["appLabel"] = "NoveLA Float"
     }
 
     signingConfigs {
@@ -66,7 +66,7 @@ android {
         named("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appLabel"] = "NoveLA Debug"
+            manifestPlaceholders["appLabel"] = "NoveLA Float"
         }
 
         named("release") {
