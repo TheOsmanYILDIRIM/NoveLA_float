@@ -52,9 +52,9 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         const val ACTION_STOP = "my.noveldokusha.features.reader.services.FloatingTtsService.ACTION_STOP"
 
         var ttsState = mutableStateOf<TextToSpeechSettingData?>(null)
-        var showText = mutableStateOf(false)
+        var showText = mutableStateOf(true)
         var showOutsideApp = mutableStateOf(true)
-        var opacity = mutableFloatStateOf(0.6f)
+        var opacity = mutableFloatStateOf(0.90f)
         var panelWidth by mutableFloatStateOf(300f)
         var paragraphMode by mutableStateOf("tts")
         var ttsHighlightEnabled = mutableStateOf(false)
@@ -63,7 +63,7 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         var menuHidden = mutableStateOf(false)
         var activityWindowToken: IBinder? = null
 
-        private var isExpanded = mutableStateOf(false)
+        var isExpanded = mutableStateOf(true)
         private var bubblePosX = mutableFloatStateOf(0f)
         private var bubblePosY = mutableFloatStateOf(0f)
         private var panelPosX = mutableFloatStateOf(0f)
@@ -161,6 +161,12 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         loadSavedState()
 
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+        if (ttsState.value == null) {
+            val session = readerManager.session
+            if (session != null) {
+                ttsState.value = session.readerTextToSpeech.state
+            }
+        }
         if (ttsState.value != null) {
             showOverlay()
             appPreferences.FLOATING_TTS_ENABLED.value = true
@@ -169,10 +175,16 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, createNotification())
-        // Защита: сервис запущен без живой сессии (процесс перезапущен) — не держим
-        // зомби-оверлей, сразу останавливаемся.
+        if (ttsState.value == null) {
+            val session = readerManager.session
+            if (session != null) {
+                ttsState.value = session.readerTextToSpeech.state
+            }
+        }
         if (ttsState.value == null) {
             stopSelf()
+        } else if (composeView == null) {
+            showOverlay()
         }
         return START_NOT_STICKY
     }

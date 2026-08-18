@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.clickable
@@ -91,9 +92,9 @@ private fun FloatingBubble(
 ) {
     Box(
         modifier = Modifier
-            .size(32.dp)
+            .size(36.dp)
             .clip(CircleShape)
-            .alpha(0.5f)
+            .alpha(0.85f)
             .background(MaterialTheme.colorScheme.primary)
             .clickable(onClick = onClick)
             .pointerInput(Unit) {
@@ -115,13 +116,13 @@ private fun FloatingBubble(
                 true -> Icon(
                     Icons.Filled.Pause,
                     contentDescription = stringResource(R.string.media_control_pause),
-tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    false -> Icon(
-                        Icons.Filled.PlayArrow,
-                        contentDescription = stringResource(R.string.media_control_play),
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+                false -> Icon(
+                    Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = stringResource(R.string.float_mode),
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp)
                 )
             }

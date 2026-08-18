@@ -1,10 +1,12 @@
 package my.noveldokusha.features.reader.ui
 
+import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.outlined.ColorLens
+import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.Rule
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.AlertDialog
@@ -141,6 +144,29 @@ internal fun ReaderScreen(
     }
 
 
+    var showOverlayPermissionDialog by remember { mutableStateOf(false) }
+
+    val overlayPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (Settings.canDrawOverlays(context)) {
+            val ttsData = state.settings.textToSpeech
+            state.settings.floatingTts.isEnabled.value = true
+            state.settings.floatingTts.showOutsideApp.value = true
+            FloatingTtsService.showText.value = true
+            FloatingTtsService.showOutsideApp.value = true
+            FloatingTtsService.isExpanded.value = true
+            FloatingTtsService.activityWindowToken = windowToken
+            FloatingTtsService.ttsState.value = ttsData
+            if (!ttsData.isThereActiveItem.value) {
+                ttsData.playFirstVisibleItem()
+            }
+            FloatingTtsService.start(context)
+            FloatingTtsService.recreateOverlay()
+            Toast.makeText(context, context.getString(R.string.float_mode_opened), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // Capture back action when viewing info
     BackHandler(enabled = showReaderInfo) {
         state.showReaderInfo.value = false
@@ -217,6 +243,37 @@ internal fun ReaderScreen(
                                 IconButton(onClick = { toggleOrSet(Type.More) }, modifier = Modifier.size(36.dp)) {
                                     Icon(Icons.Filled.Build, stringResource(R.string.more), modifier = Modifier.size(20.dp), tint = if (selectedSetting == Type.More) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                                 }
+                                IconButton(
+                                    onClick = {
+                                        val hasOverlay = Settings.canDrawOverlays(context)
+                                        if (!hasOverlay) {
+                                            showOverlayPermissionDialog = true
+                                        } else {
+                                            val ttsData = state.settings.textToSpeech
+                                            state.settings.floatingTts.isEnabled.value = true
+                                            state.settings.floatingTts.showOutsideApp.value = true
+                                            FloatingTtsService.showText.value = true
+                                            FloatingTtsService.showOutsideApp.value = true
+                                            FloatingTtsService.isExpanded.value = true
+                                            FloatingTtsService.activityWindowToken = windowToken
+                                            FloatingTtsService.ttsState.value = ttsData
+                                            if (!ttsData.isThereActiveItem.value) {
+                                                ttsData.playFirstVisibleItem()
+                                            }
+                                            FloatingTtsService.start(context)
+                                            FloatingTtsService.recreateOverlay()
+                                            Toast.makeText(context, context.getString(R.string.float_mode_opened), Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.PictureInPictureAlt,
+                                        stringResource(R.string.float_mode),
+                                        modifier = Modifier.size(20.dp),
+                                        tint = if (state.settings.floatingTts.isEnabled.value && state.settings.floatingTts.showOutsideApp.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                                 IconButton(onClick = onOpenChapterInWeb, modifier = Modifier.size(36.dp)) {
                                     Icon(Icons.Filled.Public, stringResource(R.string.open_in_browser), modifier = Modifier.size(20.dp))
                                 }
@@ -291,24 +348,6 @@ internal fun ReaderScreen(
             }
         }
         )
-
-        var showOverlayPermissionDialog by remember { mutableStateOf(false) }
-
-        val overlayPermissionLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartActivityForResult()
-        ) {
-            if (Settings.canDrawOverlays(context)) {
-                my.noveldokusha.features.reader.services.FloatingTtsService.activityWindowToken =
-                    windowToken
-                my.noveldokusha.features.reader.services.FloatingTtsService.ttsState.value =
-                    state.settings.textToSpeech
-                my.noveldokusha.features.reader.services.FloatingTtsService.showOutsideApp.value =
-                    state.settings.floatingTts.showOutsideApp.value
-                my.noveldokusha.features.reader.services.FloatingTtsService.opacity.value =
-                    state.settings.floatingTts.opacity.value
-                my.noveldokusha.features.reader.services.FloatingTtsService.start(context)
-            }
-        }
 
         if (showOverlayPermissionDialog) {
             AlertDialog(

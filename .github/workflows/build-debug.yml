@@ -1,0 +1,70 @@
+name: Build Debug APK
+
+on:
+  push:
+    branches:
+      - default
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'screenshots/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Remove local Java home from gradle.properties
+        run: sed -i '/org\.gradle\.java\.home/d' gradle.properties
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Set app version
+        run: |
+          echo "APP_VERSION=$(sed -n 's/^[[:space:]]*versionName = "\(.*\)"$/\1/p' app/build.gradle.kts | head -n 1)" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - name: Collect Debug APKs
+        run: |
+          mkdir -p build-artifacts
+          find app/build/outputs/apk/debug -maxdepth 2 -name '*.apk' \
+            -exec cp {} build-artifacts/ \;
+          ls -lah build-artifacts
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoveLA-v${{ env.APP_VERSION }}-debug-${{ env.SHORT_SHA }}
+          path: build-artifacts/*.apk
+          retention-days: 30
+
+      - name: Create/Update Debug Pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NoveLA Debug v${{ env.APP_VERSION }} (${{ env.SHORT_SHA }})
+          tag_name: debug-build
+          prerelease: true
+          draft: false
+          body: |
+            ## NoveLA Debug Build (${{ env.SHORT_SHA }})
+            - Otomatik derlenmis Debug APK (Kayan Pencere / Float Mode entegreli)
+          files: build-artifacts/*.apk

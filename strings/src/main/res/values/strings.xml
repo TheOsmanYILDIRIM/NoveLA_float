@@ -236,6 +236,9 @@
     <string name="tts_floating_overlay_permission_title">Overlay permission</string>
     <string name="tts_floating_overlay_permission_message">Floating player needs permission to display over other apps.</string>
     <string name="tts_floating_open_settings">Open settings</string>
+    <string name="float_mode">Float Mode</string>
+    <string name="float_mode_desc">Floating window reader for multitasking</string>
+    <string name="float_mode_opened">Float mode activated</string>
     <string name="delete">Delete</string>
     <string name="english">English</string>
     <string name="filter_title">Title</string>

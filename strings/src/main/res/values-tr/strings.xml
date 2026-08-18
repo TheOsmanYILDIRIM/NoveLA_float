@@ -190,6 +190,9 @@
     <string name="tts_floating_overlay_permission_title">Kaplama izni</string>
     <string name="tts_floating_overlay_permission_message">Yüzen oynatıcının diğer uygulamaların üzerinde görüntülenmek için izne ihtiyacı var.</string>
     <string name="tts_floating_open_settings">Ayarları aç</string>
+    <string name="float_mode">Kayan Pencere</string>
+    <string name="float_mode_desc">Termux ve diğer uygulamalar üzerinde okumak için kayan pencere modu</string>
+    <string name="float_mode_opened">Kayan pencere modu açıldı</string>
     <string name="delete">Sil</string>
     <string name="english">İngilizce</string>
     <string name="filter_title">Başlık</string>

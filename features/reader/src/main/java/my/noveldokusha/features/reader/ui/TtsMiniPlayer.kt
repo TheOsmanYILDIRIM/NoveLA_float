@@ -671,6 +671,14 @@ private fun FloatingTtsMiniPlayer(
                                         lastTapTime.longValue = 0L
                                     } else {
                                         lastTapTime.longValue = now
+                                        val tapPos = firstPos
+                                        if (tapPos != null) {
+                                            if (tapPos.x < size.width * 0.35f) {
+                                                state.playPreviousItem()
+                                            } else {
+                                                state.playNextItem()
+                                            }
+                                        }
                                     }
                                 }
                             }
