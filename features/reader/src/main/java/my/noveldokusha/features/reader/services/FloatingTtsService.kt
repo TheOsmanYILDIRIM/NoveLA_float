@@ -63,6 +63,8 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         var menuHidden = mutableStateOf(false)
         var activityWindowToken: IBinder? = null
 
+        var fontSize = mutableFloatStateOf(18f)
+
         var isExpanded = mutableStateOf(true)
         private var bubblePosX = mutableFloatStateOf(0f)
         private var bubblePosY = mutableFloatStateOf(0f)
@@ -161,13 +163,7 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         loadSavedState()
 
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
-        if (ttsState.value == null) {
-            val session = readerManager.session
-            if (session != null) {
-                ttsState.value = session.readerTextToSpeech.state
-            }
-        }
-        if (ttsState.value != null) {
+        if (readerManager.session != null || ttsState.value != null) {
             showOverlay()
             appPreferences.FLOATING_TTS_ENABLED.value = true
         }
@@ -175,13 +171,7 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, createNotification())
-        if (ttsState.value == null) {
-            val session = readerManager.session
-            if (session != null) {
-                ttsState.value = session.readerTextToSpeech.state
-            }
-        }
-        if (ttsState.value == null) {
+        if (readerManager.session == null && ttsState.value == null) {
             stopSelf()
         } else if (composeView == null) {
             showOverlay()
@@ -196,14 +186,15 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         instance = null
         removeOverlay()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
-        if (!wasExplicit) {
-            runCatching { appPreferences.FLOATING_TTS_ENABLED.value = false }
-            runCatching { readerManager.session?.requestTtsStop() }
-        }
         super.onDestroy()
     }
 
     private fun loadSavedState() {
+        val savedOpacity = appPreferences.FLOATING_TTS_OPACITY.value
+        opacity.floatValue = if (savedOpacity > 0f) savedOpacity else 0.95f
+        fontSize.floatValue = appPreferences.READER_FONT_SIZE.value
+        showOutsideApp.value = appPreferences.FLOATING_TTS_SHOW_OUTSIDE.value
+
         val savedBubbleX = appPreferences.FLOATING_TTS_POS_X.value
         val savedBubbleY = appPreferences.FLOATING_TTS_POS_Y.value
         val savedPanelX = appPreferences.FLOATING_TTS_PANEL_POS_X.value
@@ -211,7 +202,7 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         panelWidth = appPreferences.FLOATING_TTS_PANEL_WIDTH.value
         glowMode = appPreferences.FLOATING_TTS_GLOW_MODE.value
 
-        val bubbleSizePx = (32 * displayDensity).toInt()
+        val bubbleSizePx = (52 * displayDensity).toInt()
         val marginPx = (16 * displayDensity).toInt()
         val panelSizePx = (panelWidth * displayDensity).toInt()
 
@@ -251,23 +242,33 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
 
     @SuppressLint("ClickableViewAccessibility")
     private fun showOverlay() {
-        val startPosX = if (isExpanded.value) panelPosX.floatValue else bubblePosX.floatValue
-        val startPosY = if (isExpanded.value) panelPosY.floatValue else bubblePosY.floatValue
-
-        val initialWidth = if (isExpanded.value) (panelWidth * displayDensity).toInt()
-        else (32 * displayDensity).toInt()
-
-        val layoutParams = WindowManager.LayoutParams(
-            initialWidth,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.LEFT
-            x = startPosX.toInt()
-            y = startPosY.toInt()
+        val bubbleSizePx = (52 * displayDensity).toInt()
+        val layoutParams = if (isExpanded.value) {
+            WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = 0
+                y = 0
+            }
+        } else {
+            WindowManager.LayoutParams(
+                bubbleSizePx,
+                bubbleSizePx,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = bubblePosX.floatValue.toInt()
+                y = bubblePosY.floatValue.toInt()
+            }
         }
         currentLayoutParams = layoutParams
 
@@ -280,8 +281,6 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
                 val scope = rememberCoroutineScope()
                 val darkModeState = remember { appPreferences.THEME_DARK_MODE.state(scope) }
                 val appThemeState = remember { appPreferences.APP_THEME.state(scope) }
-
-                val state = ttsState.value ?: return@setContent
 
                 val darkModeStr by darkModeState
                 val appThemeStr by appThemeState
@@ -300,71 +299,37 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
                     isAmoled = darkMode == DarkMode.BLACK
                 ) {
                     FloatingTtsOverlayContent(
-                        state = state,
-                        showText = showText.value,
+                        session = readerManager.session,
                         opacity = opacity.floatValue,
+                        onOpacityChange = { newOpacity ->
+                            opacity.floatValue = newOpacity
+                            appPreferences.FLOATING_TTS_OPACITY.value = newOpacity
+                        },
+                        fontSize = fontSize.floatValue,
+                        onFontSizeChange = { newSize ->
+                            fontSize.floatValue = newSize
+                            appPreferences.READER_FONT_SIZE.value = newSize
+                        },
                         onClose = {
-                            menuHidden.value = false
-                            isExpanded.value = false
-                            val lp = currentLayoutParams ?: return@FloatingTtsOverlayContent
-                            lp.width = (32 * displayDensity).toInt()
-                            val bubbleW = lp.width
-                            lp.x = bubblePosX.floatValue
-                                .coerceIn(0f, (displayWidth - bubbleW).coerceAtLeast(0).toFloat())
-                                .toInt()
-                            lp.y = bubblePosY.floatValue
-                                .coerceIn(0f, (displayHeight - bubbleW).coerceAtLeast(0).toFloat())
-                                .toInt()
-                            try {
-                                windowManager?.updateViewLayout(composeView, lp)
-                            } catch (_: Exception) {}
+                            stop(this@FloatingTtsService)
                         },
                         onToggleExpand = {
                             val wasExpanded = isExpanded.value
                             isExpanded.value = !wasExpanded
-                            if (wasExpanded) menuHidden.value = false
                             val lp = currentLayoutParams ?: return@FloatingTtsOverlayContent
                             if (!wasExpanded) {
-                                lp.width = (panelWidth * displayDensity).toInt()
-                                val panelW = lp.width
-                                lp.x = panelPosX.floatValue
-                                    .coerceIn(0f, (displayWidth - panelW).coerceAtLeast(0).toFloat())
-                                    .toInt()
-                                lp.y = panelPosY.floatValue
-                                    .coerceIn(0f, (displayHeight - 150).coerceAtLeast(0).toFloat())
-                                    .toInt()
+                                lp.width = WindowManager.LayoutParams.MATCH_PARENT
+                                lp.height = WindowManager.LayoutParams.MATCH_PARENT
+                                lp.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                                lp.x = 0
+                                lp.y = 0
                             } else {
-                                lp.width = (32 * displayDensity).toInt()
-                                val bubbleW = lp.width
-                                lp.x = bubblePosX.floatValue
-                                    .coerceIn(0f, (displayWidth - bubbleW).coerceAtLeast(0).toFloat())
-                                    .toInt()
-                                lp.y = bubblePosY.floatValue
-                                    .coerceIn(0f, (displayHeight - bubbleW).coerceAtLeast(0).toFloat())
-                                    .toInt()
-                            }
-                            try {
-                                windowManager?.updateViewLayout(composeView, lp)
-                            } catch (_: Exception) {}
-                        },
-                        isExpanded = isExpanded.value,
-                        onDrag = { dx, dy ->
-                            val lp = currentLayoutParams ?: return@FloatingTtsOverlayContent
-                            if (isExpanded.value) {
-                                val panelW = (panelWidth * displayDensity).toInt()
-                                panelPosX.floatValue = (panelPosX.floatValue + dx)
-                                    .coerceIn(0f, (displayWidth - panelW).coerceAtLeast(0).toFloat())
-                                panelPosY.floatValue = (panelPosY.floatValue + dy)
-                                    .coerceIn(0f, (displayHeight - 150).coerceAtLeast(0).toFloat())
-                                lp.x = panelPosX.floatValue.toInt()
-                                lp.y = panelPosY.floatValue.toInt()
-                            } else {
-                                lp.width = (32 * displayDensity).toInt()
-                                val bubbleW = lp.width
-                                bubblePosX.floatValue = (bubblePosX.floatValue + dx)
-                                    .coerceIn(0f, (displayWidth - bubbleW).coerceAtLeast(0).toFloat())
-                                bubblePosY.floatValue = (bubblePosY.floatValue + dy)
-                                    .coerceIn(0f, (displayHeight - bubbleW).coerceAtLeast(0).toFloat())
+                                val bSize = (52 * displayDensity).toInt()
+                                lp.width = bSize
+                                lp.height = bSize
+                                lp.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                                 lp.x = bubblePosX.floatValue.toInt()
                                 lp.y = bubblePosY.floatValue.toInt()
                             }
@@ -372,51 +337,27 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
                                 windowManager?.updateViewLayout(composeView, lp)
                             } catch (_: Exception) {}
                         },
-                        onDragEnd = {
-                            if (isExpanded.value) {
-                                appPreferences.FLOATING_TTS_PANEL_POS_X.value = panelPosX.floatValue
-                                appPreferences.FLOATING_TTS_PANEL_POS_Y.value = panelPosY.floatValue
-                            } else {
-                                appPreferences.FLOATING_TTS_POS_X.value = bubblePosX.floatValue
-                                appPreferences.FLOATING_TTS_POS_Y.value = bubblePosY.floatValue
-                            }
-                        },
-                        panelWidth = panelWidth,
-                        onPanelWidthChange = { newWidth ->
-                            panelWidth = newWidth
-                            appPreferences.FLOATING_TTS_PANEL_WIDTH.value = newWidth
-                            val lp = currentLayoutParams
-                            if (lp != null) {
-                                lp.width = (newWidth * displayDensity).toInt()
+                        isExpanded = isExpanded.value,
+                        onDrag = { dx, dy ->
+                            if (!isExpanded.value) {
+                                val lp = currentLayoutParams ?: return@FloatingTtsOverlayContent
+                                val bSize = (52 * displayDensity).toInt()
+                                bubblePosX.floatValue = (bubblePosX.floatValue + dx)
+                                    .coerceIn(0f, (displayWidth - bSize).coerceAtLeast(0).toFloat())
+                                bubblePosY.floatValue = (bubblePosY.floatValue + dy)
+                                    .coerceIn(0f, (displayHeight - bSize).coerceAtLeast(0).toFloat())
+                                lp.x = bubblePosX.floatValue.toInt()
+                                lp.y = bubblePosY.floatValue.toInt()
                                 try {
                                     windowManager?.updateViewLayout(composeView, lp)
                                 } catch (_: Exception) {}
                             }
                         },
-                        opacityValue = opacity.floatValue,
-                        onOpacityChange = { newOpacity ->
-                            opacity.floatValue = newOpacity
-                            appPreferences.FLOATING_TTS_OPACITY.value = newOpacity
-                        },
-                        showTextToggle = showText.value,
-                        onShowTextToggle = {
-                            showText.value = !showText.value
-                        },
-                        paragraphMode = paragraphMode,
-                        onParagraphModeChange = { newMode ->
-                            paragraphMode = newMode
-                            appPreferences.FLOATING_TTS_PARAGRAPH_MODE.value = newMode
-                        },
-                        ttsHighlightEnabled = ttsHighlightEnabled.value,
-                        ttsHighlightColor = ttsHighlightColor.value,
-                        menuHidden = menuHidden.value,
-                        onToggleMenuHidden = {
-                            menuHidden.value = !menuHidden.value
-                        },
-                        glowMode = glowMode,
-                        onGlowModeChange = { newMode ->
-                            glowMode = newMode
-                            appPreferences.FLOATING_TTS_GLOW_MODE.value = newMode
+                        onDragEnd = {
+                            if (!isExpanded.value) {
+                                appPreferences.FLOATING_TTS_POS_X.value = bubblePosX.floatValue
+                                appPreferences.FLOATING_TTS_POS_Y.value = bubblePosY.floatValue
+                            }
                         },
                     )
                 }
@@ -434,20 +375,33 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
 
         try { wm.removeView(view) } catch (_: Exception) {}
 
-        val currentWidth = if (isExpanded.value) (panelWidth * displayDensity).toInt()
-        else (32 * displayDensity).toInt()
-
-        val lp = WindowManager.LayoutParams(
-            currentWidth,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.LEFT
-            x = if (isExpanded.value) panelPosX.floatValue.toInt() else bubblePosX.floatValue.toInt()
-            y = if (isExpanded.value) panelPosY.floatValue.toInt() else bubblePosY.floatValue.toInt()
+        val bubbleSizePx = (52 * displayDensity).toInt()
+        val lp = if (isExpanded.value) {
+            WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = 0
+                y = 0
+            }
+        } else {
+            WindowManager.LayoutParams(
+                bubbleSizePx,
+                bubbleSizePx,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = bubblePosX.floatValue.toInt()
+                y = bubblePosY.floatValue.toInt()
+            }
         }
         currentLayoutParams = lp
 

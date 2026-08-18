@@ -150,17 +150,7 @@ internal fun ReaderScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
         if (Settings.canDrawOverlays(context)) {
-            val ttsData = state.settings.textToSpeech
-            state.settings.floatingTts.isEnabled.value = true
-            state.settings.floatingTts.showOutsideApp.value = true
-            FloatingTtsService.showText.value = true
-            FloatingTtsService.showOutsideApp.value = true
             FloatingTtsService.isExpanded.value = true
-            FloatingTtsService.activityWindowToken = windowToken
-            FloatingTtsService.ttsState.value = ttsData
-            if (!ttsData.isThereActiveItem.value) {
-                ttsData.playFirstVisibleItem()
-            }
             FloatingTtsService.start(context)
             FloatingTtsService.recreateOverlay()
             Toast.makeText(context, context.getString(R.string.float_mode_opened), Toast.LENGTH_SHORT).show()
@@ -249,17 +239,7 @@ internal fun ReaderScreen(
                                         if (!hasOverlay) {
                                             showOverlayPermissionDialog = true
                                         } else {
-                                            val ttsData = state.settings.textToSpeech
-                                            state.settings.floatingTts.isEnabled.value = true
-                                            state.settings.floatingTts.showOutsideApp.value = true
-                                            FloatingTtsService.showText.value = true
-                                            FloatingTtsService.showOutsideApp.value = true
                                             FloatingTtsService.isExpanded.value = true
-                                            FloatingTtsService.activityWindowToken = windowToken
-                                            FloatingTtsService.ttsState.value = ttsData
-                                            if (!ttsData.isThereActiveItem.value) {
-                                                ttsData.playFirstVisibleItem()
-                                            }
                                             FloatingTtsService.start(context)
                                             FloatingTtsService.recreateOverlay()
                                             Toast.makeText(context, context.getString(R.string.float_mode_opened), Toast.LENGTH_SHORT).show()
@@ -271,7 +251,7 @@ internal fun ReaderScreen(
                                         Icons.Outlined.PictureInPictureAlt,
                                         stringResource(R.string.float_mode),
                                         modifier = Modifier.size(20.dp),
-                                        tint = if (state.settings.floatingTts.isEnabled.value && state.settings.floatingTts.showOutsideApp.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        tint = if (FloatingTtsService.isRunning(context)) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 IconButton(onClick = onOpenChapterInWeb, modifier = Modifier.size(36.dp)) {
