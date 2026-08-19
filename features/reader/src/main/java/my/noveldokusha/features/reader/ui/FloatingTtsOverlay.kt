@@ -137,9 +137,7 @@ internal fun FloatingFullReaderView(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        val chapterTitle = session?.currentChapter?.chapterUrl?.let { url ->
-                            session.orderedChapters.find { it.url == url }?.name
-                        } ?: ""
+                        val chapterTitle = session?.readingStats?.value?.chapterTitle ?: ""
                         if (chapterTitle.isNotBlank()) {
                             Text(
                                 text = chapterTitle,

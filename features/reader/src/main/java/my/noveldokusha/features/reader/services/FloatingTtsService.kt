@@ -193,7 +193,7 @@ internal class FloatingTtsService : Service(), LifecycleOwner, SavedStateRegistr
         val savedOpacity = appPreferences.FLOATING_TTS_OPACITY.value
         opacity.floatValue = if (savedOpacity > 0f) savedOpacity else 0.95f
         fontSize.floatValue = appPreferences.READER_FONT_SIZE.value
-        showOutsideApp.value = appPreferences.FLOATING_TTS_SHOW_OUTSIDE.value
+        showOutsideApp.value = appPreferences.FLOATING_TTS_SHOW_OUTSIDE_APP.value
 
         val savedBubbleX = appPreferences.FLOATING_TTS_POS_X.value
         val savedBubbleY = appPreferences.FLOATING_TTS_POS_Y.value
