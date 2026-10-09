@@ -18,6 +18,13 @@ if datafile.exists():
     for x in d["tests"]:
         a,b=x["scores"]["ours"],x["scores"]["web"]
         lines.append(f"| {x['id']} | {a['snr_db']:.3f} dB | {b['snr_db']:.3f} dB | {a['rmse']:.8f} | {b['rmse']:.8f} |")
+    lines.extend(["", "## CPU inference (single measured run)", "",
+                  "| Example | Original PyTorch | Our Optimum | fr0stb1rd | Our RTF | fr0stb1rd RTF |",
+                  "|---|---:|---:|---:|---:|---:|"])
+    for x in d["tests"]:
+        tt=x["wall_seconds"]
+        dur=x["audio_seconds"]
+        lines.append(f"| {x['id']} | {tt['original']:.3f}s | {tt['ours']:.3f}s | {tt['web']:.3f}s | {tt['ours']/dur:.3f} | {tt['web']/dur:.3f} |")
     lines+=["","The same original EMA Turkish normalizer and seeded noise were used for both exports.","Numerical parity is not MOS, WER, or perceptual quality evidence.",""]
 else:
     lines+=["**No completed JSON report**. Inspect the GitHub Actions job log.",""]
