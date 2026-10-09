@@ -1,2 +1,2 @@
-EMA Optimum Community conversion — run 2
-Fix: genuine Optimum config requires NormalizedConfig.
+EMA Optimum Community conversion — run 3
+Use the actual ONNX Community pin optimum-onnx 0.1.0; remove unavailable dynamo flag.
