@@ -1,3 +1,2 @@
-EMA Optimum Community conversion and Turkish speech quality validation
-Request: 2026-10-10 run 1
-Source: original EMA Lightning 1.0.4, no third-party ONNX models.
+EMA Optimum Community conversion — run 2
+Fix: genuine Optimum config requires NormalizedConfig.
