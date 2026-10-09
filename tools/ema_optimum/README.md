@@ -7,7 +7,7 @@ script and not a copy of the third-party web conversion.
   stage-specific inputs, outputs, symbolic dimensions and example tensors.
 - `export.py`: loads **original** EMA Lightning 1.0.4 checkpoints from
   `canberkkkkkk/ema-lightning`, calls
-  `optimum.exporters.onnx.export(..., dynamo=True)` for each of the three
+  `optimum.exporters.onnx.export(...)` for each of the three
   original model stages, and checks additional ONNX Runtime shapes.
 - `quality.py`: uses EMA's **own Turkish Frontend, chunker, Engine, seeded
   noise and 48 kHz contextual-window decoder**. Compares the entire speech
@@ -17,7 +17,7 @@ script and not a copy of the third-party web conversion.
 
 ## Why not simply run optimum-cli?
 
-The ONNX Community Space uses Hugging Face Optimum for supported
+The ONNX Community Space pins `optimum[onnx]==2.1.0` and\n`optimum-onnx==0.1.0`. This export uses those same package versions and\ntheir actual exporter (which internally selects TorchScript rather than\nDynamo in this pinned release). The ONNX Community Space uses Optimum for supported
 Transformers/Diffusers model families. EMA Lightning 1.0.4 is neither: it
 provides a custom PyTorch acoustic model and vocoder. An unmodified
 `optimum-cli export onnx --model ...` cannot discover EMA's architecture.
