@@ -21,6 +21,7 @@ from optimum.exporters.onnx import export
 
 from ema_config import config_for, module_for
 from quality import verify_real_turkish_speech
+from symbolics import register_ema_symbolics
 
 MODEL_ID = "canberkkkkkk/ema-lightning"
 OUT = Path("dist/ema-optimum")
@@ -93,6 +94,7 @@ def main():
     from ema_lightning.model import load_acoustic
 
     OUT.mkdir(parents=True, exist_ok=True)
+    register_ema_symbolics(opset=18)
     torch.manual_seed(1729)
     torch.set_num_threads(min(4, torch.get_num_threads()))
     revision = os.environ.get("EMA_HF_REVISION") or HfApi().model_info(MODEL_ID).sha
