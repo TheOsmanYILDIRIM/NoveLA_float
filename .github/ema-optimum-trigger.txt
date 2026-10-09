@@ -1,2 +1,2 @@
-EMA Optimum Community conversion — run 3
-Use the actual ONNX Community pin optimum-onnx 0.1.0; remove unavailable dynamo flag.
+EMA Optimum Community conversion — run 4
+Add supported aten::expm1 -> Exp - 1 ONNX symbolic for legacy Optimum exporter.
