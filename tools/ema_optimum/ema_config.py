@@ -59,8 +59,8 @@ class EMAStageOnnxConfig(OnnxConfig):
         if framework not in ("pt", "np"):
             raise ValueError(f"Unsupported framework: {framework}")
         b, l, t = int(batch_size), int(sequence_length), int(nb_max_frames)
-        if min(b, l, t) < 2:
-            raise ValueError("Export dummy dimensions must be >= 2")
+        if b < 1 or l < 2 or t < 2:
+            raise ValueError("Export dimensions require batch >=1, letters >=2, frames >=2")
         g = torch.Generator(device="cpu").manual_seed(1729)
         if self.stage == "text_stage":
             # 1 is a known valid character ID; 0 is padding.
