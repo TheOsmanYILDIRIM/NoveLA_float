@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - tools/ema_onnx/**
+      - .github/ema-onnx-trigger.txt
       - .github/workflows/ema-onnx.yml
 permissions:
   contents: write
