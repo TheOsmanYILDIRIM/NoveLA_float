@@ -123,7 +123,7 @@ def main():
         start = time.perf_counter()
         export(
             model=wrapper, config=cfg, output=path,
-            opset=18, dynamo=True, device="cpu",
+            opset=18, device="cpu",
             input_shapes={"batch_size": 2, "sequence_length": 16, "nb_max_frames": 32},
             disable_dynamic_axes_fix=True,
         )
