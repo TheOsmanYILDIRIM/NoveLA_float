@@ -1,8 +1,265 @@
-[0;93m2026-10-09 23:26:46.676726221 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+[0;93m2026-10-09 23:28:48.582956498 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
 [OPTIMUM EXPORT] text_stage
+Torch IR graph at exception: graph(%input.1 : Long(*, *, strides=[16, 1], requires_grad=0, device=cpu),
+      %1 : Bool(*, *, strides=[16, 1], requires_grad=0, device=cpu),
+      %model.text.emb.weight : Float(49, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.text.conv.0.gamma : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.0.dw.weight : Float(224, 1, 7, strides=[7, 7, 1], requires_grad=0, device=cpu),
+      %model.text.conv.0.dw.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.0.norm.weight : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.0.norm.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.0.pw1.weight : Float(448, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.text.conv.0.pw1.bias : Float(448, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.0.pw2.weight : Float(224, 448, strides=[448, 1], requires_grad=0, device=cpu),
+      %model.text.conv.0.pw2.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.1.gamma : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.1.dw.weight : Float(224, 1, 7, strides=[7, 7, 1], requires_grad=0, device=cpu),
+      %model.text.conv.1.dw.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.1.norm.weight : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.1.norm.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.1.pw1.weight : Float(448, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.text.conv.1.pw1.bias : Float(448, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.1.pw2.weight : Float(224, 448, strides=[448, 1], requires_grad=0, device=cpu),
+      %model.text.conv.1.pw2.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.2.gamma : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.2.dw.weight : Float(224, 1, 7, strides=[7, 7, 1], requires_grad=0, device=cpu),
+      %model.text.conv.2.dw.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.2.norm.weight : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.2.norm.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.2.pw1.weight : Float(448, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.text.conv.2.pw1.bias : Float(448, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.2.pw2.weight : Float(224, 448, strides=[448, 1], requires_grad=0, device=cpu),
+      %model.text.conv.2.pw2.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.3.gamma : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.3.dw.weight : Float(224, 1, 7, strides=[7, 7, 1], requires_grad=0, device=cpu),
+      %model.text.conv.3.dw.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.3.norm.weight : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.3.norm.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.3.pw1.weight : Float(448, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.text.conv.3.pw1.bias : Float(448, strides=[1], requires_grad=0, device=cpu),
+      %model.text.conv.3.pw2.weight : Float(224, 448, strides=[448, 1], requires_grad=0, device=cpu),
+      %model.text.conv.3.pw2.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.norm.weight : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.text.norm.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.chardur.net.0.weight : Float(256, 224, 3, strides=[672, 3, 1], requires_grad=0, device=cpu),
+      %model.chardur.net.0.bias : Float(256, strides=[1], requires_grad=0, device=cpu),
+      %model.chardur.net.2.weight : Float(256, strides=[1], requires_grad=0, device=cpu),
+      %model.chardur.net.2.bias : Float(256, strides=[1], requires_grad=0, device=cpu),
+      %model.chardur.net.4.weight : Float(256, 256, 3, strides=[768, 3, 1], requires_grad=0, device=cpu),
+      %model.chardur.net.4.bias : Float(256, strides=[1], requires_grad=0, device=cpu),
+      %model.chardur.net.6.weight : Float(256, strides=[1], requires_grad=0, device=cpu),
+      %model.chardur.net.6.bias : Float(256, strides=[1], requires_grad=0, device=cpu),
+      %model.chardur.out.weight : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu),
+      %model.chardur.out.bias : Float(1, strides=[1], requires_grad=0, device=cpu),
+      %model.aligner.frame_q : Float(1, 1, 224, strides=[224, 224, 1], requires_grad=0, device=cpu),
+      %model.aligner.log_sigma : Float(4, strides=[1], requires_grad=0, device=cpu),
+      %model.aligner.bias_w : Float(4, strides=[1], requires_grad=0, device=cpu),
+      %model.aligner.log_temp : Float(requires_grad=0, device=cpu),
+      %model.aligner.q.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.aligner.k.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.aligner.v.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.aligner.o.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.in_proj.weight : Float(224, 64, strides=[64, 1], requires_grad=0, device=cpu),
+      %model.in_proj.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.t_embed.mlp.0.weight : Float(224, 256, strides=[256, 1], requires_grad=0, device=cpu),
+      %model.t_embed.mlp.0.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.t_embed.mlp.2.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.t_embed.mlp.2.bias : Float(224, strides=[1], requires_grad=0, device=cpu),
+      %model.ada_shared.1.weight : Float(1344, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.ada_shared.1.bias : Float(1344, strides=[1], requires_grad=0, device=cpu),
+      %model.blocks.0.ada_offset : Float(6, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.0.attn.qkv.weight : Float(672, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.0.attn.proj.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.0.ff.w1.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.0.ff.w3.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.0.ff.w2.weight : Float(224, 597, strides=[597, 1], requires_grad=0, device=cpu),
+      %model.blocks.1.ada_offset : Float(6, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.1.attn.qkv.weight : Float(672, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.1.attn.proj.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.1.ff.w1.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.1.ff.w3.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.1.ff.w2.weight : Float(224, 597, strides=[597, 1], requires_grad=0, device=cpu),
+      %model.blocks.2.ada_offset : Float(6, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.2.attn.qkv.weight : Float(672, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.2.attn.proj.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.2.ff.w1.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.2.ff.w3.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.2.ff.w2.weight : Float(224, 597, strides=[597, 1], requires_grad=0, device=cpu),
+      %model.blocks.3.ada_offset : Float(6, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.3.attn.qkv.weight : Float(672, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.3.attn.proj.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.3.ff.w1.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.3.ff.w3.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.3.ff.w2.weight : Float(224, 597, strides=[597, 1], requires_grad=0, device=cpu),
+      %model.blocks.4.ada_offset : Float(6, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.4.attn.qkv.weight : Float(672, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.4.attn.proj.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.4.ff.w1.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.4.ff.w3.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.4.ff.w2.weight : Float(224, 597, strides=[597, 1], requires_grad=0, device=cpu),
+      %model.blocks.5.ada_offset : Float(6, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.5.attn.qkv.weight : Float(672, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.5.attn.proj.weight : Float(224, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.5.ff.w1.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.5.ff.w3.weight : Float(597, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.blocks.5.ff.w2.weight : Float(224, 597, strides=[597, 1], requires_grad=0, device=cpu),
+      %model.ada_out.1.weight : Float(448, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.ada_out.1.bias : Float(448, strides=[1], requires_grad=0, device=cpu),
+      %model.out_proj.weight : Float(64, 224, strides=[224, 1], requires_grad=0, device=cpu),
+      %model.out_proj.bias : Float(64, strides=[1], requires_grad=0, device=cpu)):
+  %1638 : Long(device=cpu) = prim::Constant[value={0}](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/torch.nn.modules.sparse.Embedding::emb
+  %1639 : Bool(device=cpu) = prim::Constant[value={0}](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/torch.nn.modules.sparse.Embedding::emb
+  %1206 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::embedding(%model.text.emb.weight, %input.1, %1638, %1639, %1639), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/torch.nn.modules.sparse.Embedding::emb # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2621:0
+  %1640 : Long(device=cpu) = prim::Constant[value={2}](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0
+  %1208 : Bool(2, 16, 1, strides=[16, 1, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%1, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1209 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%1206, %1208), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1641 : Long(device=cpu) = prim::Constant[value={1}](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0
+  %input.3 : Float(2, 224, 16, strides=[3584, 1, 224], requires_grad=0, device=cpu) = aten::transpose(%1209, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1599 : int[] = prim::Constant[value=[1]]()
+  %1600 : int[] = prim::Constant[value=[3]]()
+  %1602 : int[] = prim::Constant[value=[0]]()
+  %1642 : Long(device=cpu) = prim::Constant[value={224}](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0/torch.nn.modules.conv.Conv1d::dw
+  %1643 : Bool(device=cpu) = prim::Constant[value={1}](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0/torch.nn.modules.conv.Conv1d::dw
+  %1227 : Float(2, 224, 16, strides=[3584, 16, 1], requires_grad=0, device=cpu) = aten::_convolution(%input.3, %model.text.conv.0.dw.weight, %model.text.conv.0.dw.bias, %1599, %1600, %1599, %1639, %1602, %1642, %1639, %1639, %1643, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0/torch.nn.modules.conv.Conv1d::dw # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/conv.py:380:0
+  %input.5 : Float(2, 16, 224, strides=[3584, 1, 16], requires_grad=0, device=cpu) = aten::transpose(%1227, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1603 : int[] = prim::Constant[value=[224]]()
+  %1644 : Double(device=cpu) = prim::Constant[value={1e-05}](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0/torch.nn.modules.normalization.LayerNorm::norm
+  %1235 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::layer_norm(%input.5, %1603, %model.text.conv.0.norm.weight, %model.text.conv.0.norm.bias, %1644, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0/torch.nn.modules.normalization.LayerNorm::norm # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2993:0
+  %1236 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::linear(%1235, %model.text.conv.0.pw1.weight, %model.text.conv.0.pw1.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0/torch.nn.modules.linear.Linear::pw1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1237 : str = prim::Constant[value="none"](), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1238 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::gelu(%1236, %1237), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1239 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::linear(%1238, %model.text.conv.0.pw2.weight, %model.text.conv.0.pw2.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0/torch.nn.modules.linear.Linear::pw2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1240 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%model.text.conv.0.gamma, %1239), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1242 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::add(%1206, %1240, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1245 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%1242, %1208), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %input.7 : Float(2, 224, 16, strides=[3584, 1, 224], requires_grad=0, device=cpu) = aten::transpose(%1245, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1263 : Float(2, 224, 16, strides=[3584, 16, 1], requires_grad=0, device=cpu) = aten::_convolution(%input.7, %model.text.conv.1.dw.weight, %model.text.conv.1.dw.bias, %1599, %1600, %1599, %1639, %1602, %1642, %1639, %1639, %1643, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1/torch.nn.modules.conv.Conv1d::dw # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/conv.py:380:0
+  %input.9 : Float(2, 16, 224, strides=[3584, 1, 16], requires_grad=0, device=cpu) = aten::transpose(%1263, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1271 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::layer_norm(%input.9, %1603, %model.text.conv.1.norm.weight, %model.text.conv.1.norm.bias, %1644, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1/torch.nn.modules.normalization.LayerNorm::norm # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2993:0
+  %1272 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::linear(%1271, %model.text.conv.1.pw1.weight, %model.text.conv.1.pw1.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1/torch.nn.modules.linear.Linear::pw1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1274 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::gelu(%1272, %1237), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1275 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::linear(%1274, %model.text.conv.1.pw2.weight, %model.text.conv.1.pw2.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1/torch.nn.modules.linear.Linear::pw2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1276 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%model.text.conv.1.gamma, %1275), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1278 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::add(%1242, %1276, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1281 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%1278, %1208), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %input.11 : Float(2, 224, 16, strides=[3584, 1, 224], requires_grad=0, device=cpu) = aten::transpose(%1281, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1299 : Float(2, 224, 16, strides=[3584, 16, 1], requires_grad=0, device=cpu) = aten::_convolution(%input.11, %model.text.conv.2.dw.weight, %model.text.conv.2.dw.bias, %1599, %1600, %1599, %1639, %1602, %1642, %1639, %1639, %1643, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2/torch.nn.modules.conv.Conv1d::dw # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/conv.py:380:0
+  %input.13 : Float(2, 16, 224, strides=[3584, 1, 16], requires_grad=0, device=cpu) = aten::transpose(%1299, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1307 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::layer_norm(%input.13, %1603, %model.text.conv.2.norm.weight, %model.text.conv.2.norm.bias, %1644, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2/torch.nn.modules.normalization.LayerNorm::norm # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2993:0
+  %1308 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::linear(%1307, %model.text.conv.2.pw1.weight, %model.text.conv.2.pw1.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2/torch.nn.modules.linear.Linear::pw1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1310 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::gelu(%1308, %1237), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1311 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::linear(%1310, %model.text.conv.2.pw2.weight, %model.text.conv.2.pw2.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2/torch.nn.modules.linear.Linear::pw2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1312 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%model.text.conv.2.gamma, %1311), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1314 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::add(%1278, %1312, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1317 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%1314, %1208), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %input.15 : Float(2, 224, 16, strides=[3584, 1, 224], requires_grad=0, device=cpu) = aten::transpose(%1317, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1335 : Float(2, 224, 16, strides=[3584, 16, 1], requires_grad=0, device=cpu) = aten::_convolution(%input.15, %model.text.conv.3.dw.weight, %model.text.conv.3.dw.bias, %1599, %1600, %1599, %1639, %1602, %1642, %1639, %1639, %1643, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3/torch.nn.modules.conv.Conv1d::dw # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/conv.py:380:0
+  %input.17 : Float(2, 16, 224, strides=[3584, 1, 16], requires_grad=0, device=cpu) = aten::transpose(%1335, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:62:0
+  %1343 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::layer_norm(%input.17, %1603, %model.text.conv.3.norm.weight, %model.text.conv.3.norm.bias, %1644, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3/torch.nn.modules.normalization.LayerNorm::norm # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2993:0
+  %1344 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::linear(%1343, %model.text.conv.3.pw1.weight, %model.text.conv.3.pw1.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3/torch.nn.modules.linear.Linear::pw1 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1346 : Float(2, 16, 448, strides=[7168, 448, 1], requires_grad=0, device=cpu) = aten::gelu(%1344, %1237), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1347 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::linear(%1346, %model.text.conv.3.pw2.weight, %model.text.conv.3.pw2.bias), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3/torch.nn.modules.linear.Linear::pw2 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1348 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::mul(%model.text.conv.3.gamma, %1347), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %input.19 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::add(%1314, %1348, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/ema_lightning.model.ConvNeXtBlock::conv.3 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:63:0
+  %1398 : Float(2, 16, 224, strides=[3584, 224, 1], requires_grad=0, device=cpu) = aten::layer_norm(%input.19, %1603, %model.text.norm.weight, %model.text.norm.bias, %1644, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.TextEncoder::text/torch.nn.modules.normalization.LayerNorm::norm # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2993:0
+  %1645 : Long(device=cpu) = prim::Constant[value={9223372036854775807}](), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur
+  %1403 : Bool(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::slice(%1, %1638, %1638, %1645, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:113:0
+  %1405 : Bool(2, 1, 16, strides=[16, 16, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%1403, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:113:0
+  %1646 : Long(device=cpu) = prim::Constant[value={6}](), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur
+  %1409 : NoneType = prim::Constant(), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur
+  %m : Float(2, 1, 16, strides=[16, 16, 1], requires_grad=0, device=cpu) = aten::to(%1405, %1646, %1639, %1639, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:113:0
+  %1413 : Float(2, 224, 16, strides=[3584, 1, 224], requires_grad=0, device=cpu) = aten::transpose(%1398, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:114:0
+  %input.21 : Float(2, 224, 16, strides=[3584, 1, 224], requires_grad=0, device=cpu) = aten::mul(%1413, %m), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:114:0
+  %1429 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::_convolution(%input.21, %model.chardur.net.0.weight, %model.chardur.net.0.bias, %1599, %1599, %1599, %1639, %1602, %1641, %1639, %1639, %1643, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur/torch.nn.modules.conv.Conv1d::net.0 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/conv.py:380:0
+  %1430 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::silu(%1429), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2451:0
+  %1624 : int[] = prim::Constant[value=[1, 2]]()
+  %1436 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::sum(%m, %1624, %1643, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:98:0
+  %1441 : Long(device=cpu) = aten::size(%1430, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:98:0
+  %1446 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::mul(%1436, %1441), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:98:0
+  %1447 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::mul(%1430, %m), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:99:0
+  %1453 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::sum(%1447, %1624, %1643, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:99:0
+  %1454 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::div(%1453, %1446), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:99:0
+  %1456 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::sub(%1430, %1454, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1457 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::mul(%1456, %m), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1459 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::pow(%1457, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/_tensor.py:39:0
+  %1465 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::sum(%1459, %1624, %1643, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1466 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::div(%1465, %1446), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1647 : Double(device=cpu) = prim::Constant[value={1e-05}]()
+  %1635 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::add(%1466, %1647, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1472 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::sqrt(%1635), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1473 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::div(%1456, %1472), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1475 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%model.chardur.net.2.weight, %1638), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1480 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::slice(%1475, %1641, %1638, %1645, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1482 : Float(1, 256, 1, strides=[256, 1, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%1480, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1483 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::mul(%1473, %1482), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1485 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%model.chardur.net.2.bias, %1638), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1490 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::slice(%1485, %1641, %1638, %1645, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1492 : Float(1, 256, 1, strides=[256, 1, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%1490, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1494 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::add(%1483, %1492, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %input : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::mul(%1494, %m), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:114:0
+  %1510 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::_convolution(%input, %model.chardur.net.4.weight, %model.chardur.net.4.bias, %1599, %1599, %1599, %1639, %1602, %1641, %1639, %1639, %1643, %1643), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur/torch.nn.modules.conv.Conv1d::net.4 # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/conv.py:380:0
+  %1511 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::silu(%1510), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/functional.py:2451:0
+  %1522 : Long(device=cpu) = aten::size(%1511, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:98:0
+  %1527 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::mul(%1436, %1522), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:98:0
+  %1528 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::mul(%1511, %m), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:99:0
+  %1534 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::sum(%1528, %1624, %1643, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:99:0
+  %1535 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::div(%1534, %1527), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:99:0
+  %1537 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::sub(%1511, %1535, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1538 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::mul(%1537, %m), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1540 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::pow(%1538, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/_tensor.py:39:0
+  %1546 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::sum(%1540, %1624, %1643, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1547 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::div(%1546, %1527), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:100:0
+  %1648 : Double(device=cpu) = prim::Constant[value={1e-05}]()
+  %1637 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::add(%1547, %1648, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1553 : Float(2, 1, 1, strides=[1, 1, 1], requires_grad=0, device=cpu) = aten::sqrt(%1637), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1554 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::div(%1537, %1553), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1556 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%model.chardur.net.6.weight, %1638), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1561 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::slice(%1556, %1641, %1638, %1645, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1563 : Float(1, 256, 1, strides=[256, 1, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%1561, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1564 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::mul(%1554, %1563), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1566 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%model.chardur.net.6.bias, %1638), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1571 : Float(1, 256, strides=[256, 1], requires_grad=0, device=cpu) = aten::slice(%1566, %1641, %1638, %1645, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1573 : Float(1, 256, 1, strides=[256, 1, 1], requires_grad=0, device=cpu) = aten::unsqueeze(%1571, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1575 : Float(2, 256, 16, strides=[4096, 16, 1], requires_grad=0, device=cpu) = aten::add(%1564, %1573, %1641), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:101:0
+  %1578 : Float(2, 16, 256, strides=[4096, 1, 16], requires_grad=0, device=cpu) = aten::transpose(%1575, %1641, %1640), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:116:0
+  %1579 : Float(2, 16, 1, strides=[16, 1, 1], requires_grad=0, device=cpu) = aten::linear(%1578, %model.chardur.out.weight, %model.chardur.out.bias), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur/torch.nn.modules.linear.Linear::out # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/nn/modules/linear.py:134:0
+  %1649 : Long(device=cpu) = prim::Constant[value={-1}](), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur
+  %1581 : Float(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::squeeze(%1579, %1649), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:116:0
+  %1582 : Bool(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::bitwise_not(%1), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:116:0
+  %1650 : Double(device=cpu) = prim::Constant[value={0}](), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur
+  %1584 : Float(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::masked_fill(%1581, %1582, %1650), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:116:0
+  %1651 : Double(device=cpu) = prim::Constant[value={6}](), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur
+  %1587 : Float(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::clamp(%1584, %1409, %1651), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:117:0
+  %1588 : Float(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::expm1(%1587), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:117:0
+  %1652 : Double(device=cpu) = prim::Constant[value={0.001}](), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur
+  %1591 : Float(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::clamp(%1588, %1652, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:117:0
+  %1596 : Float(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::to(%1, %1646, %1639, %1639, %1409), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:117:0
+  %1597 : Float(2, 16, strides=[16, 1], requires_grad=0, device=cpu) = aten::mul(%1591, %1596), scope: ema_config.TextWrapper::/ema_lightning.model.Duration::chardur # /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/ema_lightning/model.py:117:0
+  return (%1398, %1597)
+
 Traceback (most recent call last):
   File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/export.py", line 149, in <module>
     main()
   File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/export.py", line 124, in main
     export(
-TypeError: export() got an unexpected keyword argument 'dynamo'
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/optimum/exporters/onnx/convert.py", line 787, in export
+    export_output = export_pytorch(
+                    ^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/optimum/exporters/onnx/convert.py", line 568, in export_pytorch
+    onnx_export(
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/__init__.py", line 337, in export
+    export(
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/torchscript_exporter/utils.py", line 550, in export
+    _export(
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/torchscript_exporter/utils.py", line 1513, in _export
+    graph, params_dict, torch_out = _model_to_graph(
+                                    ^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/torchscript_exporter/utils.py", line 1115, in _model_to_graph
+    graph = _optimize_graph(
+            ^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/torchscript_exporter/utils.py", line 687, in _optimize_graph
+    graph = _C._jit_pass_onnx(graph, operator_export_type)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/torchscript_exporter/utils.py", line 1795, in _run_symbolic_function
+    raise errors.UnsupportedOperatorError(
+torch.onnx.errors.UnsupportedOperatorError: Exporting the operator 'aten::expm1' to ONNX opset version 18 is not supported
