@@ -1,0 +1,1 @@
+Run 1: side-by-side PyTorch vs Optimum vs fr0stb1rd ONNX. 2026-10-10
