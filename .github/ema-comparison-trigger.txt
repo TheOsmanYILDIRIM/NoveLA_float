@@ -1,1 +1,1 @@
-Run 1: side-by-side PyTorch vs Optimum vs fr0stb1rd ONNX. 2026-10-10
+Run 2: generate WAVs, compare HF original and both exports, persist metric report. 2026-10-10
