@@ -13,6 +13,7 @@ import onnx
 import onnxruntime as ort
 import torch
 from huggingface_hub import hf_hub_download
+from community_config import STAGES, validate_specs
 
 MODEL_ID = "canberkkkkkk/ema-lightning"
 OUT = Path("dist/ema-onnx")
@@ -73,6 +74,7 @@ def export_stage(name, model, feeds, outputs, dynamic_shapes, atol):
 def main():
     from ema_lightning.model import load_acoustic
     from ema_lightning.decoder import load_decoder
+    validate_specs()
     OUT.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(42)
     acoustic = load_acoustic(hf_hub_download(MODEL_ID, "ema.pt"), torch.device("cpu")).eval()
@@ -100,9 +102,10 @@ def main():
         ("decoder", Decoder(decoder), {"z": torch.randn(b,ld,t)},
          ["audio"], dynamic(z={0:"batch",2:"frames"}), 1e-4),
     ]
-    manifest = {"source": MODEL_ID, "framework": "optimum-community-style-custom-export",
+    manifest = {"source": MODEL_ID, "framework": "community-custom-stage-contracts-pytorch-onnx-exporter",
                 "stages": {}}
-    for name, module, feeds, outputs, axes, tol in contracts:
+    for (name, module, feeds, outputs, axes, tol), spec in zip(contracts, STAGES, strict=True):
+        assert name == spec.name and tuple(feeds) == spec.inputs and tuple(outputs) == spec.outputs and tol == spec.tolerance
         print("Exporting", name, flush=True)
         manifest["stages"][name] = export_stage(name, module, feeds, outputs, axes, tol)
     (OUT/"vocab.json").write_text(json.dumps(
