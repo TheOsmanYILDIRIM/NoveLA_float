@@ -11,11 +11,13 @@ from collections import OrderedDict
 import numpy as np
 import torch
 from optimum.exporters.onnx import OnnxConfig
+from optimum.utils import NormalizedConfig
 from transformers import PretrainedConfig
 
 
 class EMAStageOnnxConfig(OnnxConfig):
     DEFAULT_ONNX_OPSET = 18
+    NORMALIZED_CONFIG_CLASS = NormalizedConfig
 
     def __init__(self, stage: str, channels: int, latent_dim: int, steps: int, hop: int):
         if stage not in {"text_stage", "sound_stage", "decoder"}:
