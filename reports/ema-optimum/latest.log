@@ -1,18 +1,8 @@
-[0;93m2026-10-09 23:24:48.636722707 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+[0;93m2026-10-09 23:26:46.676726221 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+[OPTIMUM EXPORT] text_stage
 Traceback (most recent call last):
   File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/export.py", line 149, in <module>
     main()
-  File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/export.py", line 119, in main
-    cfg = config_for(stage, acoustic, decoder)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/ema_config.py", line 126, in config_for
-    return EMAStageOnnxConfig(
-           ^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/ema_config.py", line 28, in __init__
-    super().__init__(PretrainedConfig(return_dict=True), task="text-to-audio")
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/optimum/exporters/onnx/base.py", line 167, in __init__
-    super().__init__(config=config, task=task, int_dtype=int_dtype, float_dtype=float_dtype)
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/optimum/exporters/base.py", line 151, in __init__
-    self._normalized_config = self.NORMALIZED_CONFIG_CLASS(self._config)
-                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: 'NoneType' object is not callable
+  File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/export.py", line 124, in main
+    export(
+TypeError: export() got an unexpected keyword argument 'dynamo'
