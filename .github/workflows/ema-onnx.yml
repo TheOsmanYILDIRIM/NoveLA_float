@@ -1,0 +1,65 @@
+name: EMA Lightning ONNX export and validation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/ema-onnx.yml
+permissions:
+  contents: read
+jobs:
+  export-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout NoveLA
+        uses: actions/checkout@v4
+      - name: Checkout upstream ONNX exporter
+        uses: actions/checkout@v4
+        with:
+          repository: fr0stb1rd/ema-lightning-web
+          path: ema-export
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ema-export/requirements-export.txt
+      - name: Install upstream pinned CPU export dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r ema-export/requirements-export.txt
+      - name: Export and compare ONNX with original PyTorch
+        working-directory: ema-export
+        run: python export_onnx.py --check
+      - name: Inspect ONNX graph and collect hashes
+        working-directory: ema-export
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          import onnx
+          import onnxruntime as ort
+          report = {}
+          for name in ("text_stage", "sound_stage", "decoder"):
+              path = Path("models") / f"{name}.onnx"
+              onnx.checker.check_model(str(path))
+              session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+              report[name] = {
+                  "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                  "bytes": path.stat().st_size,
+                  "inputs": [{"name": x.name, "shape": x.shape, "type": x.type} for x in session.get_inputs()],
+                  "outputs": [{"name": x.name, "shape": x.shape, "type": x.type} for x in session.get_outputs()],
+              }
+          Path("models/manifest.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Upload validated ONNX artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ema-lightning-onnx-fp32
+          path: |
+            ema-export/models/*.onnx
+            ema-export/models/manifest.json
+            ema-export/vocab.json
+          retention-days: 30
