@@ -5,7 +5,7 @@ on:
       - .github/ema-comparison-trigger.txt
 permissions:
   actions: read
-  contents: read
+  contents: write
 jobs:
   compare:
     runs-on: ubuntu-24.04
@@ -26,7 +26,15 @@ jobs:
           mkdir -p dist/ema-optimum
           gh run download 38004682817 -n ema-optimum-onnx-fp32-quality-verified -D dist/ema-optimum
       - name: Run comparison
+        id: compare
         run: python tools/ema_optimum/compare_versions.py
+      - name: Write comparison summary
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.compare.outcome }}
+        run: |
+          mkdir -p reports/ema-comparison
+          python tools/ema_optimum/benchmark_report.py
       - name: Upload samples
         if: always()
         uses: actions/upload-artifact@v4
@@ -34,3 +42,10 @@ jobs:
           name: ema-head-to-head-wav
           path: dist/ema-comparison/
           retention-days: 30
+      - name: Commit readable report
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f reports/ema-comparison/LATEST.md
+          git diff --cached --quiet || (git commit -m 'ci: update EMA ONNX benchmark report [skip ci]' && git push)
