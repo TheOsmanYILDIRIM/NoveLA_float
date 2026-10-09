@@ -1,0 +1,3 @@
+EMA Lightning ONNX export validation trigger
+Run request: 2026-10-10
+Purpose: verify community stage contracts and repository-persisted logs.

@@ -1,0 +1,51 @@
+[0;93m2026-10-09 23:16:48.227917860 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+Exporting text_stage
+W1009 23:16:53.138000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::nms
+W1009 23:16:53.139000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::roi_align
+W1009 23:16:53.139000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::roi_pool
+W1009 23:16:53.139000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::deform_conv2d
+/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/exporter/_onnx_program.py:486: UserWarning: # The axis name: batch will not be used, since it shares the same shape constraints with another axis: batch.
+  rename_mapping = _dynamic_shapes.create_rename_mapping(
+/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/exporter/_onnx_program.py:486: UserWarning: # The axis name: letters will not be used, since it shares the same shape constraints with another axis: letters.
+  rename_mapping = _dynamic_shapes.create_rename_mapping(
+[torch.onnx] Obtain model graph for `Text([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `Text([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+Exporting sound_stage
+W1009 23:16:58.253000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::nms
+W1009 23:16:58.253000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::roi_align
+W1009 23:16:58.254000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::roi_pool
+W1009 23:16:58.254000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::deform_conv2d
+/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/exporter/_onnx_program.py:486: UserWarning: # The axis name: batch will not be used, since it shares the same shape constraints with another axis: batch.
+  rename_mapping = _dynamic_shapes.create_rename_mapping(
+/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/exporter/_onnx_program.py:486: UserWarning: # The axis name: letters will not be used, since it shares the same shape constraints with another axis: letters.
+  rename_mapping = _dynamic_shapes.create_rename_mapping(
+/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/torch/onnx/_internal/exporter/_onnx_program.py:486: UserWarning: # The axis name: frames will not be used, since it shares the same shape constraints with another axis: frames.
+  rename_mapping = _dynamic_shapes.create_rename_mapping(
+[torch.onnx] Obtain model graph for `Sound([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `Sound([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+Exporting decoder
+W1009 23:17:46.330000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::nms
+W1009 23:17:46.330000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::roi_align
+W1009 23:17:46.331000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::roi_pool
+W1009 23:17:46.331000 2429 site-packages/torch/onnx/_internal/exporter/_registration.py:107] torchvision is not installed. Skipping torchvision::deform_conv2d
+[torch.onnx] Obtain model graph for `Decoder([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `Decoder([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decompositions...
+[torch.onnx] Run decompositions... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+[torch.onnx] Optimize the ONNX graph...
+[torch.onnx] Optimize the ONNX graph... ✅
+Validated all three ONNX stages against PyTorch.
