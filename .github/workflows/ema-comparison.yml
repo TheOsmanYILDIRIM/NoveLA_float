@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - .github/ema-comparison-trigger.txt
+permissions:
+  actions: read
+  contents: read
 jobs:
   compare:
     runs-on: ubuntu-24.04
@@ -16,6 +19,12 @@ jobs:
         run: |
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
           python -m pip install ema-lightning==1.0.4 onnxruntime==1.31.0 huggingface_hub numpy==2.5.3
+      - name: Retrieve validated Optimum models
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist/ema-optimum
+          gh run download 38004682817 -n ema-optimum-onnx-fp32-quality-verified -D dist/ema-optimum
       - name: Run comparison
         run: python tools/ema_optimum/compare_versions.py
       - name: Upload samples
