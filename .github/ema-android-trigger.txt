@@ -1,1 +1,1 @@
-Native offline NoveLA TTS integration build 2026-10-10 #1. Generate validated EMA FP32 graph assets, build Android APK, persist errors.
+2026-10-10 build #2: verify latest built-in EMA TTS Kotlin service, multi-chunk audio, Turkish number normalization, pinned model generator and APK assets.
