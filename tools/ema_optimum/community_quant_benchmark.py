@@ -98,7 +98,7 @@ def quality_test(sessions,model,decoder):
             out=synthesize_piece(engine,piece,speed,sessions)
             checks.append({"text":text,"status":"passed",
                            "waveform_snr_db":out["waveform_snr_db"],
-                           "latent_snr_db":out["latent_snr_db"]})
+                           "latent_snr_db":out["latents_snr_db"]})
         except Exception as error:
             checks.append({"text":text,"status":"rejected",
                            "reason":f"{type(error).__name__}: {error}"})
