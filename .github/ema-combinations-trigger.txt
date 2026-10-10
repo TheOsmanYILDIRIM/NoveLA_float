@@ -1,0 +1,2 @@
+Combination test 1 — 2026-10-10
+FP32 OnnxSlim with ORT Basic/Extended/All in both orders, ORT format and CPU thread sweep.
