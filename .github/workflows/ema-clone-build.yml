@@ -1,5 +1,6 @@
 name: NoveLA EMA Clone — stable signed APK
 on:
+  workflow_dispatch:
   push:
     paths:
       - .github/ema-clone-trigger.txt
@@ -82,7 +83,8 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee reports/ema-clone/signature.log
-          # Test-only certificate is public; reject accidental signing-key changes.\n          grep -Eiq "c0238eb27c05ba1f80a46c776b10b6d5a342d654f4bef94915c302ee4d4ec66e" reports/ema-clone/signature.log
+          # Test-only certificate is public; reject accidental signing-key changes.
+          grep -Eiq "c0238eb27c05ba1f80a46c776b10b6d5a342d654f4bef94915c302ee4d4ec66e" reports/ema-clone/signature.log
           "$AAPT" dump badging "$APK" | grep -E '^package: name=.my.novela.clone.' | tee reports/ema-clone/package.log
           for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
             unzip -Z1 "$APK" | grep -Fx "assets/ema/$name"
