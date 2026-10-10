@@ -1,1 +1,1 @@
-2026-10-10 build #2: verify latest built-in EMA TTS Kotlin service, multi-chunk audio, Turkish number normalization, pinned model generator and APK assets.
+2026-10-10 build #3: verified APK and model assets; fix git report commit rebase autostash after Gradle modifications.
