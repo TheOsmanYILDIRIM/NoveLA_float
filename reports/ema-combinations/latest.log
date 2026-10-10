@@ -1,0 +1,20 @@
+[0;93m2026-10-10 07:33:32.891659976 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+[CHAIN] slim_basic -> slim / basic
+[PASSED] slim_basic: []
+[CHAIN] slim_extended -> slim / extended
+[PASSED] slim_extended: []
+[CHAIN] slim_all -> slim / all
+[PASSED] slim_all: []
+[CHAIN] basic_slim -> basic / slim
+[PASSED] basic_slim: []
+[CHAIN] extended_slim -> extended / slim
+[PASSED] extended_slim: []
+[CHAIN] all_slim -> all / slim
+[PASSED] all_slim: []
+[CHAIN] slim_extended_ort -> slim / extended / ort
+[PASSED] slim_extended_ort: []
+[CHAIN] extended_slim_ort -> extended / slim / ort
+[PASSED] extended_slim_ort: []
+[CHAIN] slim_all_ort -> slim / all / ort
+[PASSED] slim_all_ort: []
+[COMPLETE] Combination matrix saved
