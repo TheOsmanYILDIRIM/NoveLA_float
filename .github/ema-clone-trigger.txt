@@ -1,0 +1,1 @@
+2026-10-10 clone run 10: compile EMA reference duration-scatter correction and PCM render-time diagnostics; verify package, QA signer, three FP32 ONNX assets and vocab.

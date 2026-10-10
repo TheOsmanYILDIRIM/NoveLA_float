@@ -1,0 +1,107 @@
+name: NoveLA EMA Clone — stable signed APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/ema-clone-trigger.txt
+permissions:
+  contents: write
+jobs:
+  clone:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: TheOsmanYILDIRIM/NoveLA_float
+          ref: 2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d
+          path: ema-tools
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install fixed FP32 conversion toolchain
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
+      - name: Rebuild validated model from source
+        working-directory: ema-tools
+        run: |
+          python tools/ema_optimum/export.py
+          python tools/ema_optimum/rebuild_selected.py
+      - name: Install FP32 model and verify SHA256
+        run: |
+          mkdir -p tooling/text_to_speech/src/main/assets/ema
+          cp ema-tools/dist/ema-selected/*.onnx tooling/text_to_speech/src/main/assets/ema/
+          cp ema-tools/dist/ema-selected/vocab.json tooling/text_to_speech/src/main/assets/ema/
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          src=Path('ema-tools/dist/ema-selected')
+          dst=Path('tooling/text_to_speech/src/main/assets/ema')
+          manifest=json.loads((src/'manifest.json').read_text())
+          for name,info in manifest['models'].items():
+              payload=(dst/f'{name}.onnx').read_bytes()
+              assert len(payload)==info['bytes'],name
+              assert hashlib.sha256(payload).hexdigest()==info['sha256'],name
+          assert json.loads((dst/'vocab.json').read_text())['stoi']
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Provision fixed PUBLIC TEST-ONLY signing certificate (no secrets)
+        id: sign
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d test-signing/novela-ema-clone-TEST-ONLY.p12.base64 > "$RUNNER_TEMP/novela-ema-test-only.p12"
+          keytool -list -keystore "$RUNNER_TEMP/novela-ema-test-only.p12" -alias novela-ema-clone-demo -storepass androidtest > /dev/null
+          echo "NOVELA_CLONE_KEYSTORE_PATH=$RUNNER_TEMP/novela-ema-test-only.p12" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_STORE_PASSWORD=androidtest" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_KEY_PASSWORD=androidtest" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_KEY_ALIAS=novela-ema-clone-demo" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+      - name: Compile signed, separately installable clone APK
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i '/org.gradle.java.home/d' gradle.properties
+          chmod +x gradlew
+          mkdir -p reports/ema-clone
+          ./gradlew :app:assembleClone --stacktrace 2>&1 | tee reports/ema-clone/build.log
+      - name: Verify clone package, fixed signing identity and model bundle
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/clone -name '*.apk' -print -quit)
+          test -s "$APK"
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee reports/ema-clone/signature.log
+          # Test-only certificate is public; reject accidental signing-key changes.
+          grep -Eiq "c0238eb27c05ba1f80a46c776b10b6d5a342d654f4bef94915c302ee4d4ec66e" reports/ema-clone/signature.log
+          "$AAPT" dump badging "$APK" | grep -E '^package: name=.my.novela.clone.' | tee reports/ema-clone/package.log
+          for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
+            unzip -Z1 "$APK" | grep -Fx "assets/ema/$name"
+          done
+          sha256sum "$APK" | tee reports/ema-clone/apk-sha256.txt
+          cp "$APK" reports/ema-clone/../novela-ema-clone-signed.apk
+      - name: Upload independently signed clone APK
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoveLA-EMA-Clone-PUBLIC-TEST-KEY
+          path: |
+            reports/novela-ema-clone-signed.apk
+            reports/ema-clone/signature.log
+            reports/ema-clone/package.log
+            reports/ema-clone/apk-sha256.txt
+          retention-days: 14
+      - name: Clean up key material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/novela-ema-test-only.p12"
