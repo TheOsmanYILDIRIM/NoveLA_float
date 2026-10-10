@@ -63,6 +63,14 @@ jobs:
           set -o pipefail
           chmod +x gradlew
           ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee reports/ema-android/build.log
+      - name: Check packaged APK contains complete offline EMA model
+        if: steps.compile.outcome == 'success'
+        run: |
+          APK=$(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' | head -1)
+          test -n "$APK"
+          for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
+            unzip -Z1 "$APK" | grep -Fx "assets/ema/$name"
+          done
       - name: Write build status for future sessions
         if: always()
         env:
