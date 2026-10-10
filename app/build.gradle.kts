@@ -87,6 +87,7 @@ android {
         create("clone") {
             initWith(getByName("debug"))
             // A separate install ID, not a replacement for official NoveLA.
+            matchingFallbacks += listOf("debug")
             applicationIdSuffix = ".clone"
             versionNameSuffix = "-clone"
             manifestPlaceholders["appLabel"] = "NoveLA EMA Clone"
