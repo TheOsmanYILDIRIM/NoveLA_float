@@ -50,28 +50,29 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
-      - name: Provision the persistent clone signing key (GitHub secrets)
+      - name: Use existing NoveLA release signing identity (no new secrets)
         id: sign
         env:
-          KEYSTORE_BASE64: ${{ secrets.NOVELA_CLONE_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.NOVELA_CLONE_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.NOVELA_CLONE_KEY_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "::error::Configure NOVELA_CLONE_KEYSTORE_BASE64, NOVELA_CLONE_STORE_PASSWORD, NOVELA_CLONE_KEY_PASSWORD in repository Actions secrets. No ephemeral signing key is permitted."
+          if [ -z "$SIGNING_KEY" ] || [ -z "$KEY_STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ] || [ -z "$ALIAS" ]; then
+            echo "::error::Existing NoveLA release signing secrets are missing; no fresh key is generated."
             exit 1
           fi
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/novela-clone-upload.p12"
-          chmod 600 "$RUNNER_TEMP/novela-clone-upload.p12"
-          echo "NOVELA_CLONE_KEYSTORE_PATH=$RUNNER_TEMP/novela-clone-upload.p12" >> "$GITHUB_ENV"
-          echo "NOVELA_CLONE_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          printf '%s' "$SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/novela-shared-signing.jks"
+          chmod 600 "$RUNNER_TEMP/novela-shared-signing.jks"
+          keytool -list -keystore "$RUNNER_TEMP/novela-shared-signing.jks" -alias "$ALIAS" -storepass "$KEY_STORE_PASSWORD" >/dev/null
+          echo "NOVELA_CLONE_KEYSTORE_PATH=$RUNNER_TEMP/novela-shared-signing.jks" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_STORE_PASSWORD=$KEY_STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "NOVELA_CLONE_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_KEY_ALIAS=$ALIAS" >> "$GITHUB_ENV"
           echo "NOVELA_CLONE_VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
-          keytool -list -keystore "$RUNNER_TEMP/novela-clone-upload.p12" -alias novela-clone -storepass "$STORE_PASSWORD" >/dev/null
       - name: Compile signed, separately installable clone APK
         id: build
         shell: bash
@@ -91,8 +92,7 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee reports/ema-clone/signature.log
-          # Lock clone update compatibility to the dedicated certificate fingerprint.
-          grep -qi 'c465309be2436c22754d57fdb4af9f6dc2f5248a411e5ff91b528170a19b64b2' reports/ema-clone/signature.log
+          # Every future clone build reuses the same existing repository certificate.
           "$AAPT" dump badging "$APK" | grep -E '^package: name=.my.novela.clone.' | tee reports/ema-clone/package.log
           for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
             unzip -Z1 "$APK" | grep -Fx "assets/ema/$name"
@@ -103,7 +103,7 @@ jobs:
         if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: NoveLA-EMA-Clone-stable-key
+          name: NoveLA-EMA-Clone-existing-key
           path: |
             reports/novela-ema-clone-signed.apk
             reports/ema-clone/signature.log
@@ -112,4 +112,4 @@ jobs:
           retention-days: 14
       - name: Clean up key material
         if: always()
-        run: rm -f "$RUNNER_TEMP/novela-clone-upload.p12"
+        run: rm -f "$RUNNER_TEMP/novela-shared-signing.jks"
