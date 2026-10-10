@@ -5,7 +5,7 @@
   "scope": "text_stage FP32, sound_stage optionally quantized, decoder FP32",
   "candidates": {
     "fp32": {
-      "status": "rejected_quality",
+      "status": "passed",
       "model_bytes": {
         "text_stage": 4808079,
         "sound_stage": 17921918,
@@ -15,24 +15,27 @@
       "quality": [
         {
           "text": "Merhaba! Bugün hava güzel, değil mi?",
-          "status": "rejected",
-          "reason": "KeyError: 'latent_snr_db'"
+          "status": "passed",
+          "waveform_snr_db": 90.613,
+          "latent_snr_db": 94.368
         },
         {
           "text": "2026 yılında saat 14.30'da, bin iki yüz elli lira ödendi.",
-          "status": "rejected",
-          "reason": "KeyError: 'latent_snr_db'"
+          "status": "passed",
+          "waveform_snr_db": 83.978,
+          "latent_snr_db": 86.221
         },
         {
           "text": "Kapıyı araladı ve yağmurlu sokağa baktı.",
-          "status": "rejected",
-          "reason": "KeyError: 'latent_snr_db'"
+          "status": "passed",
+          "waveform_snr_db": 97.538,
+          "latent_snr_db": 101.323
         }
       ],
       "median_ms": {
-        "text_stage": 0.476,
-        "sound_stage": 9.163,
-        "decoder": 42.542
+        "text_stage": 4.559,
+        "sound_stage": 21.72,
+        "decoder": 93.404
       }
     },
     "int8": {
@@ -79,9 +82,9 @@
         }
       ],
       "median_ms": {
-        "text_stage": 0.686,
-        "sound_stage": 10.412,
-        "decoder": 44.837
+        "text_stage": 3.93,
+        "sound_stage": 24.029,
+        "decoder": 92.021
       }
     },
     "nf4": {
@@ -114,9 +117,9 @@
         }
       ],
       "median_ms": {
-        "text_stage": 0.709,
-        "sound_stage": 12.282,
-        "decoder": 42.538
+        "text_stage": 4.07,
+        "sound_stage": 27.186,
+        "decoder": 93.154
       }
     }
   }

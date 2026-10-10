@@ -1,12 +1,7 @@
-[0;93m2026-10-10 08:27:56.932921444 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
-[fp32] rejected_quality 34.767 MB
+[0;93m2026-10-10 08:37:39.682200295 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+[fp32] passed 34.767 MB
 WARNING:root:Please consider to run pre-processing before quantization. Refer to example: https://github.com/microsoft/onnxruntime-inference-examples/blob/main/quantization/image_classification/cpu/ReadMe.md 
 [int8] failed 23.36 MB
 [q4] rejected_quality 21.855 MB
 [nf4] rejected_quality 21.581 MB
-Traceback (most recent call last):
-  File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/community_quant_benchmark.py", line 165, in <module>
-    main()
-  File "/home/runner/work/NoveLA_float/NoveLA_float/tools/ema_optimum/community_quant_benchmark.py", line 160, in main
-    raise RuntimeError("FP32 reference failed")
-RuntimeError: FP32 reference failed
+[COMPLETE] Ready quantizer comparisons are saved, failures preserved.
