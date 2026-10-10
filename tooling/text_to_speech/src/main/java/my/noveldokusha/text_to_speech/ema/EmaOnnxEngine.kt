@@ -1,6 +1,7 @@
 package my.noveldokusha.text_to_speech.ema
 
 import android.content.Context
+import android.icu.text.RuleBasedNumberFormat
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
@@ -43,6 +44,9 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
     private val stoi = vocab.getJSONObject("stoi")
     private val times = vocab.getJSONArray("times").length()
     private val latentDim = vocab.getInt("latent_dim")
+    private val numberSpellout = RuleBasedNumberFormat(
+        java.util.Locale.forLanguageTag("tr-TR"), RuleBasedNumberFormat.SPELLOUT
+    )
 
     private fun infer(session: OrtSession, inputs: Map<String, Any>): Any {
         val tensors = inputs.mapValues { (_, array) -> OnnxTensor.createTensor(env, array) }
@@ -162,7 +166,11 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
 
     private fun normalizeAlphabet(text: String): String {
         // Maintain Turkish I/İ semantics and model's own vocabulary.
-        val lowered = text.replace('İ', 'i').replace('I', 'ı')
+        // Offline Turkish integer spellout; this does not replace normalizer-tr.
+        val readable = Regex("\\d+").replace(text) { match ->
+            match.value.toLongOrNull()?.let { numberSpellout.format(it) } ?: match.value
+        }
+        val lowered = readable.replace('İ', 'i').replace('I', 'ı')
             .lowercase(java.util.Locale.forLanguageTag("tr-TR"))
         return lowered.map { if (stoi.has(it.toString())) it else ' ' }
             .joinToString("").replace(Regex("\\s+"), " ").trim()
