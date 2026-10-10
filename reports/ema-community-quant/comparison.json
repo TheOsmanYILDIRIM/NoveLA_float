@@ -1,0 +1,123 @@
+{
+  "model_source": "canberkkkkkk/ema-lightning",
+  "model_revision": "7a6ba1ad216bb2f1da9863f80ac8770a6a807632",
+  "platform": "x86_64 Linux CPU",
+  "scope": "text_stage FP32, sound_stage optionally quantized, decoder FP32",
+  "candidates": {
+    "fp32": {
+      "status": "rejected_quality",
+      "model_bytes": {
+        "text_stage": 4808079,
+        "sound_stage": 17921918,
+        "decoder": 12036684
+      },
+      "total_mb": 34.767,
+      "quality": [
+        {
+          "text": "Merhaba! Bugün hava güzel, değil mi?",
+          "status": "rejected",
+          "reason": "KeyError: 'latent_snr_db'"
+        },
+        {
+          "text": "2026 yılında saat 14.30'da, bin iki yüz elli lira ödendi.",
+          "status": "rejected",
+          "reason": "KeyError: 'latent_snr_db'"
+        },
+        {
+          "text": "Kapıyı araladı ve yağmurlu sokağa baktı.",
+          "status": "rejected",
+          "reason": "KeyError: 'latent_snr_db'"
+        }
+      ],
+      "median_ms": {
+        "text_stage": 0.476,
+        "sound_stage": 9.163,
+        "decoder": 42.542
+      }
+    },
+    "int8": {
+      "status": "failed",
+      "conversion": {
+        "eligible": 132,
+        "quantized_ops": 239
+      },
+      "model_bytes": {
+        "text_stage": 4808079,
+        "sound_stage": 6515613,
+        "decoder": 12036684
+      },
+      "total_mb": 23.36,
+      "error": "Fail: [ONNXRuntimeError] : 1 : FAIL : Load model from dist/ema-community-quant/int8/sound_stage.onnx failed:Node (/t_embed/mlp/mlp.0/Gemm_MatMul) Op (MatMul) [ShapeInferenceError] Incompatible dimensions for matrix multiplication"
+    },
+    "q4": {
+      "status": "rejected_quality",
+      "conversion": {
+        "eligible": 132,
+        "quantized_ops": 132
+      },
+      "model_bytes": {
+        "text_stage": 4808079,
+        "sound_stage": 5010648,
+        "decoder": 12036684
+      },
+      "total_mb": 21.855,
+      "quality": [
+        {
+          "text": "Merhaba! Bugün hava güzel, değil mi?",
+          "status": "rejected",
+          "reason": "AssertionError: Latents differ excessively: SNR=3.41 dB"
+        },
+        {
+          "text": "2026 yılında saat 14.30'da, bin iki yüz elli lira ödendi.",
+          "status": "rejected",
+          "reason": "AssertionError: Latents differ excessively: SNR=4.95 dB"
+        },
+        {
+          "text": "Kapıyı araladı ve yağmurlu sokağa baktı.",
+          "status": "rejected",
+          "reason": "AssertionError: Latents differ excessively: SNR=3.53 dB"
+        }
+      ],
+      "median_ms": {
+        "text_stage": 0.686,
+        "sound_stage": 10.412,
+        "decoder": 44.837
+      }
+    },
+    "nf4": {
+      "status": "rejected_quality",
+      "conversion": {
+        "eligible": 132,
+        "quantized_ops": 132
+      },
+      "model_bytes": {
+        "text_stage": 4808079,
+        "sound_stage": 4736256,
+        "decoder": 12036684
+      },
+      "total_mb": 21.581,
+      "quality": [
+        {
+          "text": "Merhaba! Bugün hava güzel, değil mi?",
+          "status": "rejected",
+          "reason": "AssertionError: Latents differ excessively: SNR=4.57 dB"
+        },
+        {
+          "text": "2026 yılında saat 14.30'da, bin iki yüz elli lira ödendi.",
+          "status": "rejected",
+          "reason": "AssertionError: Latents differ excessively: SNR=4.36 dB"
+        },
+        {
+          "text": "Kapıyı araladı ve yağmurlu sokağa baktı.",
+          "status": "rejected",
+          "reason": "AssertionError: Latents differ excessively: SNR=2.17 dB"
+        }
+      ],
+      "median_ms": {
+        "text_stage": 0.709,
+        "sound_stage": 12.282,
+        "decoder": 42.538
+      }
+    }
+  }
+}
