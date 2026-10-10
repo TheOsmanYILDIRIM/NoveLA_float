@@ -1,0 +1,1 @@
+2026-10-10 signed clone build #1. Package my.novela.clone; dedicated reusable upload key configured only through GitHub Actions secrets.
