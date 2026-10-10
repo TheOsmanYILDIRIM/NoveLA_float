@@ -1,0 +1,55 @@
+name: EMA Community INT8 Q4 NF4 vs FP32
+on:
+  push:
+    paths:
+      - .github/ema-community-quant-trigger.txt
+permissions:
+  contents: write
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned ONNX and EMA toolchain
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
+      - name: Rebuild original source FP32 with Optimum
+        run: python tools/ema_optimum/export.py
+      - name: Rebuild selected FP32 Extended Slim
+        run: python tools/ema_optimum/rebuild_selected.py
+      - name: Compare community quantizers on Sound Stage
+        id: test
+        shell: bash
+        run: |
+          mkdir -p reports/ema-community-quant
+          set -o pipefail
+          python tools/ema_optimum/community_quant_benchmark.py 2>&1 | tee reports/ema-community-quant/latest.log
+      - name: Save readable results
+        if: always()
+        run: |
+          mkdir -p reports/ema-community-quant
+          test -f reports/ema-community-quant/latest.log || echo "Benchmark did not start" > reports/ema-community-quant/latest.log
+          python tools/ema_optimum/community_quant_report.py
+      - name: Upload only lightweight results (no large model artifacts)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ema-community-quant-report
+          path: reports/ema-community-quant/
+          retention-days: 7
+      - name: Persist results to branch
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f reports/ema-community-quant/
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: record EMA Community quantizer results [skip ci]"
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
