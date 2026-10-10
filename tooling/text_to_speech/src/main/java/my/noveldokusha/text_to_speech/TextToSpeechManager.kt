@@ -224,6 +224,7 @@ class TextToSpeechManager<T : Utterance<T>>(
     private val emaPlayer = EmaLocalPlayer(context)
     private var emaSelected = false
     private var emaJob: Job? = null
+    private val emaJobs = mutableListOf<Job>()
 
     // Храним enginePackage сами — service.defaultEngine всегда возвращает системный дефолт,
     // независимо от того с каким enginePackage был создан этот конкретный service объект.
@@ -343,7 +344,7 @@ class TextToSpeechManager<T : Utterance<T>>(
     fun stop() {
         Timber.d( "stop() queueSize=${_queueList.size}")
         emaPlayer.stop()
-        emaJob?.cancel()
+        synchronized(emaJobs) { emaJobs.forEach { it.cancel() }; emaJobs.clear() }
         emaJob = null
         service.stop()
         cancelDelayedRanges()
@@ -352,7 +353,7 @@ class TextToSpeechManager<T : Utterance<T>>(
 
     fun shutdown() {
         emaPlayer.stop()
-        emaJob?.cancel()
+        synchronized(emaJobs) { emaJobs.forEach { it.cancel() }; emaJobs.clear() }
         runCatching { service.stop() }
         auxiliaryServices.forEach { runCatching { it.shutdown() } }
         auxiliaryServices.clear()
@@ -363,7 +364,7 @@ class TextToSpeechManager<T : Utterance<T>>(
 
     fun clearQueue() {
         emaPlayer.stop()
-        emaJob?.cancel()
+        synchronized(emaJobs) { emaJobs.forEach { it.cancel() }; emaJobs.clear() }
         Timber.d("clearQueue() queueSize=${_queueList.size}")
         cancelDelayedRanges()
         clearAllTracking()
@@ -391,11 +392,12 @@ class TextToSpeechManager<T : Utterance<T>>(
 
     fun speak(text: String, textSynthesis: T, leadingOffset: Int = 0) {
         if (emaSelected) {
-            emaPlayer.stop()
-            emaJob?.cancel()
+            val previous = emaJob
             _queueList[textSynthesis.utteranceId] = textSynthesis
             currentSpeakingText.value = text
             emaJob = scope.launch {
+                previous?.join()
+                if (!_queueList.containsKey(textSynthesis.utteranceId)) return@launch
                 val success = emaPlayer.play(text, voiceSpeed.floatValue, onStart = {
                     val playing = textSynthesis.copyWithState(Utterance.PlayState.PLAYING)
                     currentActiveItemState.value = playing
@@ -405,6 +407,10 @@ class TextToSpeechManager<T : Utterance<T>>(
                     if (!success) Timber.w("EMA PCM playback failed")
                     completeItem(textSynthesis.copyWithState(Utterance.PlayState.FINISHED))
                 }
+            }
+            emaJob?.let { job ->
+                synchronized(emaJobs) { emaJobs.add(job) }
+                job.invokeOnCompletion { synchronized(emaJobs) { emaJobs.remove(job) } }
             }
             return
         }
