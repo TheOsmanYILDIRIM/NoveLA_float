@@ -1,0 +1,93 @@
+name: NoveLA EMA offline TTS Android build
+on:
+  push:
+    paths:
+      - .github/ema-android-trigger.txt
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout NoveLA integration
+        uses: actions/checkout@v4
+      - name: Checkout validated Optimum converter source
+        uses: actions/checkout@v4
+        with:
+          repository: TheOsmanYILDIRIM/NoveLA_float
+          ref: feature/ema-selected-quantization
+          path: ema-tools
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned EMA converter
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
+      - name: Generate and verify original EMA FP32 model
+        working-directory: ema-tools
+        run: |
+          python tools/ema_optimum/export.py
+          python tools/ema_optimum/rebuild_selected.py
+      - name: Bundle verified model and vocabulary inside Android app
+        run: |
+          mkdir -p tooling/text_to_speech/src/main/assets/ema
+          cp ema-tools/dist/ema-selected/*.onnx tooling/text_to_speech/src/main/assets/ema/
+          cp ema-tools/dist/ema-selected/vocab.json tooling/text_to_speech/src/main/assets/ema/
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('tooling/text_to_speech/src/main/assets/ema')
+          manifest=json.loads(Path('ema-tools/dist/ema-selected/manifest.json').read_text())
+          for name,data in manifest['models'].items():
+              file=root/f'{name}.onnx'
+              assert len(file.read_bytes())==data['bytes'],name
+              assert hashlib.sha256(file.read_bytes()).hexdigest()==data['sha256'],name
+          assert json.loads((root/'vocab.json').read_text())['stoi']
+          print('All FP32 model components and vocab verified')
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Remove machine-specific JDK setting
+        run: sed -i '/org.gradle.java.home/d' gradle.properties
+      - name: Build APK with embedded EMA engine
+        id: compile
+        shell: bash
+        run: |
+          mkdir -p reports/ema-android
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee reports/ema-android/build.log
+      - name: Write build status for future sessions
+        if: always()
+        env:
+          BUILD_STATUS: ${{ steps.compile.outcome }}
+        run: |
+          mkdir -p reports/ema-android
+          printf '# NoveLA EMA Android build\n\n- Result: **%s**\n- Run: https://github.com/%s/actions/runs/%s\n- Source: pinned EMA 1.0.4 FP32 Optimum Extended -> Slim\n- Build logs: [build.log](build.log)\n- Device synthesis and Turkish normalization parity: NOT YET VERIFIED\n' "$BUILD_STATUS" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > reports/ema-android/LATEST.md
+          test -f reports/ema-android/build.log || echo "Gradle did not begin" > reports/ema-android/build.log
+      - name: Upload APK and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novela-ema-android-debug
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            reports/ema-android/
+          retention-days: 7
+      - name: Commit report to branch
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f reports/ema-android/LATEST.md reports/ema-android/build.log
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: record native EMA Android build [skip ci]'
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
