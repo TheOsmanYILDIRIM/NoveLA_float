@@ -91,6 +91,8 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee reports/ema-clone/signature.log
+          # Lock clone update compatibility to the dedicated certificate fingerprint.
+          grep -qi 'c465309be2436c22754d57fdb4af9f6dc2f5248a411e5ff91b528170a19b64b2' reports/ema-clone/signature.log
           "$AAPT" dump badging "$APK" | grep -E '^package: name=.my.novela.clone.' | tee reports/ema-clone/package.log
           for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
             unzip -Z1 "$APK" | grep -Fx "assets/ema/$name"
