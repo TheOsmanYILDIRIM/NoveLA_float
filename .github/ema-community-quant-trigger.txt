@@ -1,1 +1,1 @@
-2026-10-10 run 1: ONNX Community INT8 MatMul, MatMulNBits Q4, MatMulBnb4 NF4 on sound_stage; FP32 Text+Decoder. Measure quality and CPU speed.
+2026-10-10 rerun 2: fix FP32 latent SNR report field; retain Q4/NF4/INT8 comparative diagnostics.
