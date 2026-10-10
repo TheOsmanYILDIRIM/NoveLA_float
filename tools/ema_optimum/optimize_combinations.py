@@ -42,9 +42,9 @@ def transform(src, dst, method):
     if dst.suffix == ".onnx":
         graph = onnx.load(str(dst))
         onnx.checker.check_model(graph)
-        if any(initializer.data_type != onnx.TensorProto.FLOAT for initializer in graph.graph.initializer
-               if initializer.data_type == onnx.TensorProto.FLOAT):
-            raise AssertionError("Unexpected FP32 change")
+        unsupported = [t.name for t in graph.graph.initializer if t.data_type in (onnx.TensorProto.FLOAT16, onnx.TensorProto.BFLOAT16, onnx.TensorProto.INT8, onnx.TensorProto.UINT8)]
+        if unsupported:
+            raise AssertionError(f"Unexpected quantized or reduced-precision initializers: {unsupported[:3]}")
     return dst
 
 
