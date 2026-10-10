@@ -19,7 +19,8 @@ jobs:
           gh api repos/TheOsmanYILDIRIM/NoveLA_float/actions/artifacts/11665893872/zip > /tmp/source.zip
           mkdir -p /tmp/source
           unzip -q /tmp/source.zip -d /tmp/source
-          APK=/tmp/source/novela-ema-clone-signed.apk
+          APK=$(find /tmp/source -name '*.apk' -print -quit)
+          test -s "$APK"
           echo "03f9d2d6a93c9ff612ed8b05326766a065e78bcd1cee60915baa52b0ebea3d3a  $APK" | sha256sum -c -
           mkdir -p dist
           for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
