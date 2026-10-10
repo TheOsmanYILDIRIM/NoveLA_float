@@ -69,31 +69,51 @@ class EmaTextToSpeechService : TextToSpeechService() {
         try {
             val active = engine ?: EmaOnnxEngine(this).also { engine = it }
             val rate = (request.speechRate / 100f).coerceIn(0.25f, 4f)
-            // Restrict length to keep worst-case allocations reasonable.
-            val phrase = request.charSequenceText.toString().take(700)
-            val samples = active.render(phrase, rate, phrase.hashCode().toLong(), stopRequested::get)
-            if (stopRequested.get()) return
+            // NoveLA may send long paragraphs; never silently truncate text.
+            // Prefer sentence boundaries, then split long sentences into small
+            // bounded windows to avoid 48-kHz PCM and frame-plan memory spikes.
+            val words = request.charSequenceText.toString().trim().split(Regex("\\s+"))
+            val chunks = mutableListOf<String>()
+            val pending = StringBuilder()
+            for (word in words) {
+                if (pending.isNotEmpty() && pending.length + word.length + 1 > 160) {
+                    chunks += pending.toString()
+                    pending.clear()
+                }
+                if (pending.isNotEmpty()) pending.append(' ')
+                pending.append(word)
+                if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) {
+                    chunks += pending.toString()
+                    pending.clear()
+                }
+            }
+            if (pending.isNotEmpty()) chunks += pending.toString()
             if (callback.start(EmaOnnxEngine.SAMPLE_RATE, AudioFormat.ENCODING_PCM_16BIT, 1) != TextToSpeech.SUCCESS) {
                 callback.error()
                 return
             }
-            // audioAvailable must be <= callback.maxBufferSize.
             val chunkSamples = (callback.maxBufferSize / 2).coerceAtLeast(1)
-            var position = 0
-            while (position < samples.size && !stopRequested.get()) {
-                val end = minOf(samples.size, position + chunkSamples)
-                val bytes = ByteArray((end - position) * 2)
-                var j = 0
-                for (i in position until end) {
-                    val v = samples[i].toInt()
-                    bytes[j++] = (v and 255).toByte()
-                    bytes[j++] = ((v ushr 8) and 255).toByte()
+            for ((partIndex, phrase) in chunks.withIndex()) {
+                if (stopRequested.get()) return
+                val samples = active.render(
+                    phrase, rate, phrase.hashCode().toLong() + partIndex, stopRequested::get
+                )
+                var position = 0
+                while (position < samples.size && !stopRequested.get()) {
+                    val end = minOf(samples.size, position + chunkSamples)
+                    val bytes = ByteArray((end - position) * 2)
+                    var j = 0
+                    for (i in position until end) {
+                        val v = samples[i].toInt()
+                        bytes[j++] = (v and 255).toByte()
+                        bytes[j++] = ((v ushr 8) and 255).toByte()
+                    }
+                    if (callback.audioAvailable(bytes, 0, bytes.size) != TextToSpeech.SUCCESS) {
+                        callback.error()
+                        return
+                    }
+                    position = end
                 }
-                if (callback.audioAvailable(bytes, 0, bytes.size) != TextToSpeech.SUCCESS) {
-                    callback.error()
-                    return
-                }
-                position = end
             }
             if (!stopRequested.get()) callback.done()
         } catch (failure: Exception) {
