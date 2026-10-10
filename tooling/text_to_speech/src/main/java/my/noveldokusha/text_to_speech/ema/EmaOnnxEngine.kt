@@ -82,18 +82,23 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
             words[i] = word
             starts[i] = start
         }
-        val h: Array<Array<FloatArray>>
-        val durations: FloatArray
         @Suppress("UNCHECKED_CAST")
-        run {
-            val inputs = mapOf("ids" to arrayOf(ids), "mask" to arrayOf(BooleanArray(n) { true }))
-            val tensors = inputs.mapValues { (_, v) -> OnnxTensor.createTensor(env, v) }
+        val (h, durations) = run {
+            val inputs: Map<String, Any> = mapOf(
+                "ids" to arrayOf(ids),
+                "mask" to arrayOf(BooleanArray(n) { true })
+            )
+            val tensors = inputs.mapValues { (_, value) -> OnnxTensor.createTensor(env, value) }
             try {
                 textSession.run(tensors).use { result ->
-                    h = (result[0] as OnnxTensor).value as Array<Array<FloatArray>>
-                    durations = ((result[1] as OnnxTensor).value as Array<FloatArray>)[0]
+                    Pair(
+                        (result[0] as OnnxTensor).value as Array<Array<FloatArray>>,
+                        ((result[1] as OnnxTensor).value as Array<FloatArray>)[0]
+                    )
                 }
-            } finally { tensors.values.forEach { it.close() } }
+            } finally {
+                tensors.values.forEach { it.close() }
+            }
         }
         val counts = FloatArray(word.toInt() + 1)
         for (i in 0 until n) counts[words[i].toInt()] += durations[i] / speed
