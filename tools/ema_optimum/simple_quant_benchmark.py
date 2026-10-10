@@ -41,6 +41,25 @@ def constant_matmuls(path):
             if node.op_type == "MatMul" and len(node.input) > 1 and node.input[1] in constants]
 
 
+def prepare_int8_source(source, prepared):
+    """Avoid ORT's implicit Gemm rewrite with stale intermediate shapes.
+
+    Rewrite Gemm once, drop stale intermediate value_info, infer shapes again,
+    then validate the pre-quantized graph in an ORT CPU session.
+    """
+    from onnxruntime.quantization.onnx_model import ONNXModel
+    import onnx.shape_inference
+    original = onnx.load(str(source))
+    holder = ONNXModel(original)
+    holder.replace_gemm_with_matmul()
+    # ORT quantizer otherwise sees value_info from a pre-transposition graph.
+    holder.model.graph.ClearField("value_info")
+    inferred = onnx.shape_inference.infer_shapes(holder.model, strict_mode=False)
+    onnx.checker.check_model(inferred)
+    onnx.save(inferred, str(prepared))
+    ort.InferenceSession(str(prepared), providers=["CPUExecutionProvider"])
+
+
 def convert(method):
     folder = OUT / method
     folder.mkdir(parents=True, exist_ok=True)
@@ -48,25 +67,31 @@ def convert(method):
     for stage in STAGES:
         src = BASE / (stage + ".onnx")
         dst = folder / (stage + ".onnx")
-        nodes = constant_matmuls(src)
+        working = src
+        if method == "int8":
+            # Gemm transpose + shape metadata must be kept consistent.
+            working = folder / (stage + ".preprocessed.onnx")
+            prepare_int8_source(src, working)
+        nodes = constant_matmuls(working)
         if not nodes:
             import shutil
-            shutil.copy2(src, dst)
+            shutil.copy2(working, dst)
         elif method == "int8":
             from onnxruntime.quantization import quantize_dynamic, QuantType
-            quantize_dynamic(str(src), str(dst), weight_type=QuantType.QInt8,
+            quantize_dynamic(str(working), str(dst), weight_type=QuantType.QInt8,
                              op_types_to_quantize=["MatMul"], nodes_to_quantize=nodes,
                              extra_options={"DefaultTensorType": onnx.TensorProto.FLOAT})
         elif method == "int4":
             from onnxruntime.quantization.matmul_nbits_quantizer import (
-                MatMul4BitsQuantizer, DefaultWeightOnlyQuantConfig)
-            from onnxruntime.quantization.quant_utils import load_model_with_shape_infer
+                MatMulNBitsQuantizer, DefaultWeightOnlyQuantConfig)
             config = DefaultWeightOnlyQuantConfig(block_size=64, is_symmetric=True,
                                                   accuracy_level=4, op_types_to_quantize=("MatMul",))
-            quantizer = MatMul4BitsQuantizer(load_model_with_shape_infer(src),
+            quantizer = MatMulNBitsQuantizer(onnx.load(str(working)),
                                             nodes_to_include=nodes, algo_config=config)
             quantizer.process()
             quantizer.model.save_model_to_file(str(dst), use_external_data_format=False)
+        if working != src and working.exists():
+            working.unlink()
         onnx.checker.check_model(str(dst))
         model = onnx.load(str(dst))
         qops = sum(node.op_type in ("MatMulInteger", "MatMulNBits", "DynamicQuantizeLinear")
