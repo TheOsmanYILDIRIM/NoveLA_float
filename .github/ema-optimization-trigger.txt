@@ -1,0 +1,2 @@
+Run 1: FP32 baseline, OnnxSlim, ORT basic/extended/all, ORT format, Slim+Extended, CPU thread sweep.
+Date 2026-10-10
