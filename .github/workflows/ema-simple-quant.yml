@@ -1,0 +1,63 @@
+name: EMA FP32 vs INT8 vs INT4
+on:
+  push:
+    paths:
+      - .github/ema-simple-quant-trigger.txt
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 140
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU ONNX toolchain
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
+      - name: Export original FP32 using Optimum
+        shell: bash
+        run: |
+          mkdir -p reports/ema-simple-quant
+          set -o pipefail
+          python tools/ema_optimum/export.py 2>&1 | tee reports/ema-simple-quant/export.log
+      - name: Rebuild selected FP32 Extended Slim
+        shell: bash
+        run: |
+          set -o pipefail
+          python tools/ema_optimum/rebuild_selected.py 2>&1 | tee reports/ema-simple-quant/rebuild.log
+      - name: Compare FP32 INT8 INT4
+        id: comparison
+        shell: bash
+        run: |
+          set -o pipefail
+          python tools/ema_optimum/simple_quant_benchmark.py 2>&1 | tee reports/ema-simple-quant/latest.log
+      - name: Write comparison report
+        if: always()
+        run: |
+          mkdir -p reports/ema-simple-quant
+          test -f reports/ema-simple-quant/latest.log || echo 'Benchmark did not start' > reports/ema-simple-quant/latest.log
+          python tools/ema_optimum/simple_quant_report.py
+      - name: Upload comparison metadata only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ema-fp32-int8-int4-results
+          path: |
+            reports/ema-simple-quant/
+            dist/ema-simple-quant/comparison.json
+          retention-days: 7
+      - name: Save latest report to branch
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f reports/ema-simple-quant/
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: save EMA FP32 INT8 INT4 test results [skip ci]'
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
