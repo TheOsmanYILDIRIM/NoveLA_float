@@ -25,3 +25,9 @@ Updated: 2026-10-10 (Europe/Istanbul). Read `AGENTS.md` first.
 
 ## Single next action
 - Install the verified Clone artifact on a physical Android phone alongside standard NoveLA. Check that `ema-lightning-tr-fp32` appears, speaks a simple Turkish sentence audibly, correctly stops/resumes/advances, and does not crash. Inspect `adb logcat` (tag `EmaTTS`) if voice fails, then make narrowly scoped fixes on PR #2 and rebuild/reverify package and signing. **No extra optimization and no merge before a successful device smoke test.**
+
+## 2026-10-10 direct PCM integration follow-up (unverified)
+- Commits: 20bf4bc2 (EmaLocalPlayer AudioTrack), 1d6c058d (reader voice routing), 51bcd2f5 (PCM drain), be403026 (serialize queued paragraphs and stop pending jobs), c52454fd (workflow_dispatch and signer assertion), 269eaadf (build trigger).
+- Retained Android TextToSpeechService; direct local voice uses novela:ema-local and same FP32 ONNX assets. Source changes committed, but **no successful new APK run/artifact or on-device playback is confirmed**. fetch_commit_workflow_runs returned [] for push-trigger commit; that endpoint only reports PR-triggered runs, so [] does not prove no push run exists.
+- Open risks: Kotlin compilation, local voice restoration via ReaderTextToSpeech, actual PCM output and cancellation, AudioTrack audio focus/MediaSession integration, word range callbacks (not yet implemented for direct PCM), Android TTS discovery on Android 15. Do not claim complete feature parity.
+- Next: inspect Actions workflow page for the latest push run, obtain full failing job logs if failed; fix only confirmed failures, then verify my.novela.clone, QA signer and 4 assets. Test both EMA routes on physical phone. PR #2 remains draft/unmerged.
