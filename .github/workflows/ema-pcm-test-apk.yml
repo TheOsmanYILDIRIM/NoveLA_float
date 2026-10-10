@@ -1,0 +1,81 @@
+name: EMA PCM Test APK
+on:
+  push:
+    paths:
+      - 'ema-test-app/**'
+      - '.github/workflows/ema-pcm-test-apk.yml'
+      - '.github/ema-pcm-test-trigger.txt'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: TheOsmanYILDIRIM/NoveLA_float
+          ref: 2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d
+          path: ema-tools
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned model exporter
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
+      - name: Rebuild verified FP32 model
+        working-directory: ema-tools
+        run: |
+          python tools/ema_optimum/export.py
+          python tools/ema_optimum/rebuild_selected.py
+      - name: Verify model hashes and install assets
+        run: |
+          python - <<'PY'
+          import hashlib,json,shutil
+          from pathlib import Path
+          src=Path("ema-tools/dist/ema-selected")
+          dst=Path("ema-test-app/app/src/main/assets/ema")
+          dst.mkdir(parents=True,exist_ok=True)
+          manifest=json.loads((src/"manifest.json").read_text())
+          for stage in ("text_stage","sound_stage","decoder"):
+              name=stage+".onnx"
+              payload=(src/name).read_bytes()
+              assert len(payload)==manifest["models"][stage]["bytes"]
+              assert hashlib.sha256(payload).hexdigest()==manifest["models"][stage]["sha256"]
+              (dst/name).write_bytes(payload)
+          vocab=(src/"vocab.json").read_bytes()
+          assert json.loads(vocab)["stoi"]
+          (dst/"vocab.json").write_bytes(vocab)
+          print("Verified 3 FP32 graphs and vocab.json")
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build isolated test APK
+        working-directory: ema-test-app
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :app:assembleDebug --stacktrace
+      - name: Verify test package and four assets
+        run: |
+          set -euo pipefail
+          APK=$(find ema-test-app/app/build/outputs/apk/debug -name '*.apk' -print -quit)
+          test -s "$APK"
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          "$AAPT" dump badging "$APK" | grep "package: name='my.novela.ematest'"
+          for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
+            unzip -Z1 "$APK" | grep -Fx "assets/ema/$name"
+          done
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EMA-PCM-Test-APK
+          path: ema-test-app/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
