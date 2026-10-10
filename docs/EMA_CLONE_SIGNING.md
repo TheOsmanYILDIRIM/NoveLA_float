@@ -1,55 +1,38 @@
-# NoveLA EMA Clone — install separately, update without re-entering secrets
+# NoveLA EMA Clone — test-build signing policy
 
-Clone application ID: `my.novela.clone` (ordinary NoveLA remains `my.novela`).
-Clone label: NoveLA EMA Clone.
+The clone installs separately as `my.novela.clone` and is labelled
+`NoveLA EMA Clone`. The official app uses `my.novela` and is untouched.
 
-## No new GitHub secrets
+## Current status: fixed PUBLIC QA/test certificate, no secrets
 
-The clone build now uses the **existing NoveLA release signing credentials**
-from the current repository, already referenced by the standard
-`.github/workflows/buildRelease.yml`:
+GitHub Actions currently has **no configured signing secrets**:
+`SIGNING_KEY`, `KEY_STORE_PASSWORD`, `KEY_PASSWORD`, `ALIAS` were all
+empty in run #38040567713. Thus the prior plan to reuse official release
+signing credentials could not work.
 
-- `SIGNING_KEY`
-- `KEY_STORE_PASSWORD`
-- `KEY_PASSWORD`
-- `ALIAS`
+To fulfill the no-secrets requirement **for testing only**, the workflow
+uses a fixed, publicly stored PKCS#12 test keystore under
+`test-signing/novela-ema-clone-TEST-ONLY.p12.base64`.
 
-The same signing certificate may sign both official and clone variants,
-but **Android does not confuse them because the application IDs are distinct**.
-Future clone builds reuse that same certificate and increment clone
-`versionCode = 1000 + github.run_number`. This lets an updated clone APK
-replace an older *clone* without deleting its app data.
+- Alias: `novela-ema-clone-demo`
+- Certificate SHA-256: `C0:23:8E:B2:7C:05:BA:1F:80:A4:6C:77:6B:10:B6:D5:A3:42:D6:54:F4:BE:F9:49:15:C3:02:EE:4D:4E:C6:6E`
+- Package ID: `my.novela.clone`
+- Version code: `1000 + github.run_number`, increasing for subsequent builds
 
-No credential is committed or printed, and no random per-build signing
-identity is permitted. If the pre-existing credentials have not actually been
-configured, the workflow fails with an explicit message.
+**Security warning:** The testing key is PUBLIC. Anybody can sign APKs
+with it. It is not suitable for Play Store production distribution,
+sensitive user data, trusted update channels, or cross-app signature
+permissions. Install only artifacts from verified project runs; check
+the artifact origin before installation.
 
-The previously generated **separate clone key** is not used by this path.
-Do not install a clone signed with that distinct certificate if expecting it to
-update a clone signed by the standard NoveLA release certificate. Changing
-signing certificates later requires an Android-compatible key rotation process.
+If the project later needs a private/release signing identity, configure
+a private signing key once with GitHub secrets or an organization-central
+signing workflow. Changing keys for an already-installed clone cannot
+be treated as a normal update; a migration/reinstall may be needed.
 
-## Build
+The earlier privately backed dedicated key archive is NOT used by the
+current test workflow. Do not mix that key with this public test key.
 
-Workflow: `.github/workflows/ema-clone-build.yml`.
-To run: change `.github/ema-clone-trigger.txt` on the integration branch.
-Result artifact: `NoveLA-EMA-Clone-existing-key`.
-
-Verification checks:
-- The new `my.novela.clone` application ID
-- APK signed with the pre-existing release key
-- APK contains FP32 `text_stage.onnx`, `sound_stage.onnx`,
-  `decoder.onnx`, `vocab.json`
-- SHA256 published in artifact
-
-## Multiple repositories
-
-GitHub **organization** Actions secrets can be shared to selected/all
-repositories from the organization's Secrets and variables → Actions page.
-Personal-account repositories do not gain that cross-repository scope.
-For separate personal repos without an organization, a dedicated private
-**central build/signing repository** can be configured once and used to
-build source checked out from the other repositories by workflow dispatch.
-That requires an explicit, carefully scoped access design and is not set up here.
-
-Full on-device Turkish speech and compatibility testing remain pending.
+The workflow also checks the APK package, signing fingerprint, SHA256
+and four FP32 model assets. An Android device speech smoke test is
+still required.
