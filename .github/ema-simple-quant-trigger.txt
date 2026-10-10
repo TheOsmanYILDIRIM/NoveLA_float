@@ -1,0 +1,1 @@
+2026-10-10: FP32 vs INT8 vs INT4 minimal ONNX CPU size, latency, voice accuracy comparison. Run 1.
