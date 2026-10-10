@@ -1,48 +1,55 @@
-# NoveLA EMA Clone — independent Android install and signing
+# NoveLA EMA Clone — install separately, update without re-entering secrets
 
-This branch includes `:app:assembleClone`, Android application ID
-`my.novela.clone` and app label `NoveLA EMA Clone`.
-It does **not** overwrite the regular `my.novela` or debug `my.novela.debug`.
+Clone application ID: `my.novela.clone` (ordinary NoveLA remains `my.novela`).
+Clone label: NoveLA EMA Clone.
 
-## Permanent signing key
+## No new GitHub secrets
 
-A dedicated RSA-3072 PKCS#12 signing keystore was generated once.
-It is **never committed** to the public repo.
+The clone build now uses the **existing NoveLA release signing credentials**
+from the current repository, already referenced by the standard
+`.github/workflows/buildRelease.yml`:
 
-- Alias: `novela-clone`
-- Certificate SHA-256: `C4:65:30:9B:E2:43:6C:22:75:4D:57:FD:B4:AF:9F:6D:C2:F5:24:8A:41:1E:5F:F9:1B:52:81:70:A1:9B:64:B2`
-- The private key and passwords are supplied only as a secure, user-downloaded backup archive.
+- `SIGNING_KEY`
+- `KEY_STORE_PASSWORD`
+- `KEY_PASSWORD`
+- `ALIAS`
 
-GitHub Actions **repository secrets** that must be created by the repo owner:
-`NOVELA_CLONE_KEYSTORE_BASE64`, `NOVELA_CLONE_STORE_PASSWORD`,
-`NOVELA_CLONE_KEY_PASSWORD`. Their values are in the owner-only archive
-`novela_ema_clone_kalici_imza.zip`.
+The same signing certificate may sign both official and clone variants,
+but **Android does not confuse them because the application IDs are distinct**.
+Future clone builds reuse that same certificate and increment clone
+`versionCode = 1000 + github.run_number`. This lets an updated clone APK
+replace an older *clone* without deleting its app data.
 
-Open repository Settings → Secrets and variables → Actions → New repository
-secret and add each of the three values. No secrets are visible in the repo.
+No credential is committed or printed, and no random per-build signing
+identity is permitted. If the pre-existing credentials have not actually been
+configured, the workflow fails with an explicit message.
 
-### Update stability
+The previously generated **separate clone key** is not used by this path.
+Do not install a clone signed with that distinct certificate if expecting it to
+update a clone signed by the standard NoveLA release certificate. Changing
+signing certificates later requires an Android-compatible key rotation process.
 
-`NOVELA_CLONE_VERSION_CODE` is calculated as `1000 + github.run_number`
-when the clone workflow runs. For every future workflow run, that increases
-monotonically. Retain the package ID and certificate fingerprint forever.
-
-A different key or lower/equal Android versionCode will **not** update
-an existing clone APK in place.
-
-## Build and validation
+## Build
 
 Workflow: `.github/workflows/ema-clone-build.yml`.
-Trigger: update `.github/ema-clone-trigger.txt`.
+To run: change `.github/ema-clone-trigger.txt` on the integration branch.
+Result artifact: `NoveLA-EMA-Clone-existing-key`.
 
-The workflow fails closed if the key secrets are absent; it **never** produces
-an arbitrary fresh-key APK. Once secrets exist, it:
+Verification checks:
+- The new `my.novela.clone` application ID
+- APK signed with the pre-existing release key
+- APK contains FP32 `text_stage.onnx`, `sound_stage.onnx`,
+  `decoder.onnx`, `vocab.json`
+- SHA256 published in artifact
 
-1. Rebuilds verified EMA FP32 ONNX from pinned Optimum source.
-2. Copies complete model/vocab into Android assets.
-3. Creates signed `:app:assembleClone` APK.
-4. Confirms `my.novela.clone`, validates APK signature against pinned
-   certificate digest, checks all four model assets, and uploads the APK.
+## Multiple repositories
 
-The official app is unchanged. Full end-to-end Turkish device speech still
-needs practical playback testing after installation.
+GitHub **organization** Actions secrets can be shared to selected/all
+repositories from the organization's Secrets and variables → Actions page.
+Personal-account repositories do not gain that cross-repository scope.
+For separate personal repos without an organization, a dedicated private
+**central build/signing repository** can be configured once and used to
+build source checked out from the other repositories by workflow dispatch.
+That requires an explicit, carefully scoped access design and is not set up here.
+
+Full on-device Turkish speech and compatibility testing remain pending.
