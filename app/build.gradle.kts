@@ -64,7 +64,7 @@ android {
             create("clone") {
                 storeFile = file(System.getenv("NOVELA_CLONE_KEYSTORE_PATH"))
                 storePassword = System.getenv("NOVELA_CLONE_STORE_PASSWORD")
-                keyAlias = "novela-clone"
+                keyAlias = System.getenv("NOVELA_CLONE_KEY_ALIAS") ?: "novela-clone"
                 keyPassword = System.getenv("NOVELA_CLONE_KEY_PASSWORD")
             }
         }
