@@ -1,4 +1,4 @@
-[0;93m2026-10-10 08:00:35.293017432 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+[0;93m2026-10-10 08:10:12.686210935 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
 [OPTIMUM] Installed EMA-specific aten::expm1 symbolic for opset 18
 [OPTIMUM EXPORT] text_stage
 [PASS] text_stage: 4808378 bytes, 3 shape tests
@@ -7,6 +7,6 @@
 [OPTIMUM EXPORT] decoder
 [PASS] decoder: 12037950 bytes, 3 shape tests
 [QUALITY] Starting real Turkish speech parity checks
-[QUALITY PASS] Merhaba! Bugün hava güzel, değil mi... min waveform SNR=84.34 dB
-[QUALITY PASS] 2026 yılında saat 14.30'da, bin iki... min waveform SNR=72.67 dB
+[QUALITY PASS] Merhaba! Bugün hava güzel, değil mi... min waveform SNR=88.26 dB
+[QUALITY PASS] 2026 yılında saat 14.30'da, bin iki... min waveform SNR=74.24 dB
 [PASS] Genuine Optimum export + dynamic tests + full Turkish waveform parity

@@ -20,34 +20,79 @@
       {
         "text": "Merhaba! Bugün hava güzel, değil mi?",
         "status": "passed",
-        "waveform_snr_db": 101.437,
-        "latent_snr_db": 106.273
+        "waveform_snr_db": 90.613,
+        "latent_snr_db": 94.368
       },
       {
         "text": "2026 yılında saat 14.30'da, bin iki yüz elli lira ödendi.",
         "status": "passed",
-        "waveform_snr_db": 83.594,
-        "latent_snr_db": 90.36
+        "waveform_snr_db": 83.978,
+        "latent_snr_db": 86.221
       },
       {
         "text": "Kapıyı araladı ve yağmurlu sokağa baktı.",
         "status": "passed",
-        "waveform_snr_db": 97.244,
-        "latent_snr_db": 103.875
+        "waveform_snr_db": 97.538,
+        "latent_snr_db": 101.323
       }
     ],
     "stage_median_ms": {
-      "text_stage": 0.974,
-      "sound_stage": 16.039,
-      "decoder": 77.262
+      "text_stage": 1.236,
+      "sound_stage": 21.326,
+      "decoder": 93.128
     }
   },
   "int8": {
     "status": "failed",
-    "error": "Fail: [ONNXRuntimeError] : 1 : FAIL : Load model from dist/ema-simple-quant/int8/sound_stage.onnx failed:Node (/t_embed/mlp/mlp.0/Gemm_MatMul) Op (MatMul) [ShapeInferenceError] Incompatible dimensions for matrix multiplication"
+    "error": "Fail: [ONNXRuntimeError] : 1 : FAIL : Load model from dist/ema-simple-quant/int8/sound_stage.preprocessed.onnx failed:Node (/t_embed/mlp/mlp.0/Gemm_MatMul) Op (MatMul) [ShapeInferenceError] Incompatible dimensions for matrix multiplication"
   },
   "int4": {
-    "status": "failed",
-    "error": "ImportError: cannot import name 'MatMul4BitsQuantizer' from 'onnxruntime.quantization.matmul_nbits_quantizer' (/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/onnxruntime/quantization/matmul_nbits_quantizer.py)"
+    "status": "rejected_quality",
+    "files": {
+      "text_stage": {
+        "path": "dist/ema-simple-quant/int4/text_stage.onnx",
+        "bytes": 2082018,
+        "sha256": "b62ea8211fd033ac2446d8a79fb87897b4b6a68e5864d5dcce012dba9d51c1aa",
+        "eligible_matmuls": 8,
+        "quantized_operator_count": 8
+      },
+      "sound_stage": {
+        "path": "dist/ema-simple-quant/int4/sound_stage.onnx",
+        "bytes": 5013684,
+        "sha256": "08145953f1f9fa09f31502e98bfb88a84c15a1ba78c7c62d16532cabbd35845d",
+        "eligible_matmuls": 132,
+        "quantized_operator_count": 132
+      },
+      "decoder": {
+        "path": "dist/ema-simple-quant/int4/decoder.onnx",
+        "bytes": 12036684,
+        "sha256": "8a907ccbe35945030efe09d3ae886861e546882332ee8a3786167ccaa18ea42d",
+        "eligible_matmuls": 0,
+        "quantized_operator_count": 0
+      }
+    },
+    "size_mb": 19.132,
+    "quality": [
+      {
+        "text": "Merhaba! Bugün hava güzel, değil mi?",
+        "status": "rejected",
+        "reason": "AssertionError: Text-stage duration rounding changed the word/frame timeline"
+      },
+      {
+        "text": "2026 yılında saat 14.30'da, bin iki yüz elli lira ödendi.",
+        "status": "rejected",
+        "reason": "AssertionError: Text-stage duration rounding changed the word/frame timeline"
+      },
+      {
+        "text": "Kapıyı araladı ve yağmurlu sokağa baktı.",
+        "status": "rejected",
+        "reason": "AssertionError: Text-stage duration rounding changed the word/frame timeline"
+      }
+    ],
+    "stage_median_ms": {
+      "text_stage": 1.103,
+      "sound_stage": 26.323,
+      "decoder": 92.457
+    }
   }
 }
