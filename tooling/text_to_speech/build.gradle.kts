@@ -15,4 +15,6 @@ dependencies {
     implementation(libs.test.junit)
 
     implementation(libs.timber)
+    // Native Android CPU runtime for the bundled FP32 EMA Lightning ONNX graphs.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
 }
