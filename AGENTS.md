@@ -3,6 +3,7 @@
 ## Scope and workflow
 - This repository is NoveLA Android, **not MTS**. Default branch: `default`. Development/EMA Clone branch: `feature/ema-native-tts-integration`; draft PR #2. Read this file and `SESSION_HANDOFF.md` **before continuing**.
 - Work on a feature branch; keep `default` and the original `my.novela` app unaffected until Android real-device TTS validation and explicit merge approval. Do not merge draft PR #2 automatically.
+- Preserve BOTH EMA entry points: (1) Android system-wide TextToSpeechService discoverable by other apps, and (2) direct in-app NoveLA reader voice selection/playback using the same bundled FP32 ONNX assets. Neither route replaces or removes the other; share inference/model assets rather than duplicating model binaries. Keep existing system voices available. Validate both routes independently on a physical Android device before merge.
 - Keep source modular (Android/Kotlin components; standalone ONNX exporter scripts). Preserve existing reader playback, MediaSession, chapter navigation, system voices and user data.
 - Do **not** restart INT8/Q4/NF4 quantization research: FP32 `Extended → Slim` was selected; experimental quantizers were not validated for quality or Android. Avoid rebuilding completed alternatives without a new user request.
 - Production weights are original EMA Lightning 1.0.4, pinned revision `7a6ba1ad216bb2f1da9863f80ac8770a6a807632`, exported using the pinned Optimum code commit `2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d`. Three FP32 ONNX graphs total ~34.767 MB. Never silently substitute another model.
