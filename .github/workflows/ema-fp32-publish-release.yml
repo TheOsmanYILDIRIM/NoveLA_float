@@ -1,0 +1,49 @@
+name: Publish verified EMA FP32 model assets
+on:
+  push:
+    paths:
+      - '.github/workflows/ema-fp32-publish-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract verified assets without re-exporting
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/TheOsmanYILDIRIM/NoveLA_float/actions/artifacts/11665893872/zip > /tmp/source.zip
+          mkdir -p /tmp/source
+          unzip -q /tmp/source.zip -d /tmp/source
+          APK=/tmp/source/novela-ema-clone-signed.apk
+          echo "03f9d2d6a93c9ff612ed8b05326766a065e78bcd1cee60915baa52b0ebea3d3a  $APK" | sha256sum -c -
+          mkdir -p dist
+          for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
+            unzip -p "$APK" "assets/ema/$name" > "dist/$name"
+          done
+          cat > dist/SHA256SUMS <<'EOF'
+          85c7a5a5946dd1257ef98237040e1cc8ded61049d9878fc1f3a89b0dac2d430a  text_stage.onnx
+          65c3746cc64a17089a534ad6df5f492ace04a14c958da93f3c99c581daadbf94  sound_stage.onnx
+          8a907ccbe35945030efe09d3ae886861e546882332ee8a3786167ccaa18ea42d  decoder.onnx
+          95685d95b8540f7914650596f86306b975f0ca0eda74e5472bb337f0211b0261  vocab.json
+          EOF
+          (cd dist && sha256sum -c SHA256SUMS)
+      - name: Publish immutable verified QA model release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=ema-fp32-verified-20261010
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release exists: refusing to overwrite immutable assets"
+            exit 1
+          fi
+          gh release create "$TAG" dist/text_stage.onnx dist/sound_stage.onnx dist/decoder.onnx dist/vocab.json dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "EMA Lightning FP32 verified model assets (QA)" \
+            --notes "Original pinned FP32 model recovered from SHA256-verified Clone APK 03f9d2d6a93c9ff612ed8b05326766a065e78bcd1cee60915baa52b0ebea3d3a. SHA256SUMS required. No new export. QA only; not Android acoustic validation." \
+            --prerelease
