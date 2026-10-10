@@ -293,6 +293,18 @@ class TextToSpeechManager<T : Utterance<T>>(
     private fun collectVoicesFromAllEngines() {
         val engines = service.engines
         var pending = engines.size
+        val discovered = mutableListOf<VoiceData>()
+        fun publish(voices: List<VoiceData>) {
+            synchronized(discovered) {
+                discovered.addAll(voices)
+                val local = if (EmaLocalPlayer.available(context)) listOf(VoiceData(
+                    EmaLocalPlayer.VOICE_ID, "Türkçe", false, Voice.QUALITY_HIGH,
+                    EmaLocalPlayer.ENGINE_ID)) else emptyList()
+                val all = (local + discovered).distinctBy { it.enginePackage to it.id }
+                availableVoices.clear()
+                availableVoices.addAll(all)
+            }
+        }
 
         if (engines.isEmpty()) {
             availableVoices.clear()
@@ -312,7 +324,7 @@ class TextToSpeechManager<T : Utterance<T>>(
                 val voices = service.voices
                     ?.map { it.toVoiceData(engineInfo.name) }
                     ?: emptyList()
-                availableVoices.addAll(voices)
+                publish(voices)
                 // Эмитим «голоса собраны» при завершении сбора (даже пустой список):
                 // стартовый восстановитель в ReaderTextToSpeech применяет speed/pitch на
                 // первой эмиссии, а голос — на последующей наполненной. Если эмитить
@@ -352,7 +364,7 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     fun shutdown() {
-        emaPlayer.stop()
+        emaPlayer.close()
         synchronized(emaJobs) { emaJobs.forEach { it.cancel() }; emaJobs.clear() }
         runCatching { service.stop() }
         auxiliaryServices.forEach { runCatching { it.shutdown() } }
