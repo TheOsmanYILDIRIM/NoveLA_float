@@ -75,8 +75,8 @@
         <!-- Internal offline EMA Lightning engine, discoverable in NoveLA's existing TTS voice picker. -->
         <service
             android:name="my.noveldokusha.text_to_speech.ema.EmaTextToSpeechService"
-            android:permission="android.permission.BIND_TEXT_SERVICE"
-            android:exported="true">
+            android:exported="true"
+            android:label="NoveLA EMA Clone">
             <intent-filter>
                 <action android:name="android.intent.action.TTS_SERVICE" />
             </intent-filter>
