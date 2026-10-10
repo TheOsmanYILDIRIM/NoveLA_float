@@ -1,0 +1,85 @@
+name: EMA selected FP32 rebuild and quantization research
+on:
+  push:
+    paths:
+      - .github/ema-selected-trigger.txt
+permissions:
+  contents: write
+  actions: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 140
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Delete all old repository Actions artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p reports/ema-selected
+          echo "Deleting historical artifact IDs from repository" > reports/ema-selected/artifact-cleanup.log
+          gh api --paginate "/repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '.artifacts[].id' > old-artifacts.txt
+          while IFS= read -r artifact_id; do
+            if [ -n "$artifact_id" ]; then
+              gh api -X DELETE "/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
+              echo "deleted $artifact_id" >> reports/ema-selected/artifact-cleanup.log
+            fi
+          done < old-artifacts.txt
+          echo "Deleted $(wc -l < old-artifacts.txt) historical artifacts" | tee -a reports/ema-selected/artifact-cleanup.log
+      - name: Install ONNX Community Optimum and quantization toolchain
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
+      - name: Regenerate source FP32 ONNX via Optimum
+        id: base
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p reports/ema-selected
+          python tools/ema_optimum/export.py 2>&1 | tee reports/ema-selected/export.log
+      - name: Select Extended then Slim and check audio quality
+        id: selected
+        shell: bash
+        run: |
+          set -o pipefail
+          python tools/ema_optimum/rebuild_selected.py 2>&1 | tee reports/ema-selected/rebuild.log
+      - name: Explore portable INT8 / INT4 candidates (experimental)
+        id: quant
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          python tools/ema_optimum/quant_research.py 2>&1 | tee reports/ema-selected/quant.log
+      - name: Create readable repository report
+        if: always()
+        env:
+          BASE_STATUS: ${{ steps.base.outcome }}
+          SELECTED_STATUS: ${{ steps.selected.outcome }}
+          QUANT_STATUS: ${{ steps.quant.outcome }}
+        run: |
+          python tools/ema_optimum/selected_report.py
+      - name: Upload ONLY newly selected model and reports
+        if: steps.selected.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ema-selected-extended-slim-fp32
+          path: |
+            dist/ema-selected/
+            dist/ema-quant-research/research.json
+            reports/ema-selected/
+          retention-days: 7
+      - name: Persist report in GitHub
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f reports/ema-selected/
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: record selected EMA rebuild and artifact cleanup [skip ci]'
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
