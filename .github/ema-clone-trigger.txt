@@ -1,1 +1,1 @@
-2026-10-10 signed clone build #1. Package my.novela.clone; dedicated reusable upload key configured only through GitHub Actions secrets.
+2026-10-10 clone run 2: reuse existing NoveLA SIGNING_KEY release signing; no new secrets. Remove broken Android SDK setup.\n
