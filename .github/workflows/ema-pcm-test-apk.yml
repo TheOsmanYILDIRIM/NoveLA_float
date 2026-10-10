@@ -14,43 +14,28 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: TheOsmanYILDIRIM/NoveLA_float
-          ref: 2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d
-          path: ema-tools
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install pinned model exporter
+      - name: Restore verified FP32 models from previous successful Clone APK
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
-          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
-      - name: Rebuild verified FP32 model
-        working-directory: ema-tools
-        run: |
-          python tools/ema_optimum/export.py
-          python tools/ema_optimum/rebuild_selected.py
-      - name: Verify model hashes and install assets
-        run: |
+          set -euo pipefail
+          gh api repos/TheOsmanYILDIRIM/NoveLA_float/actions/artifacts/11665893872/zip > /tmp/verified-clone.zip
+          mkdir -p /tmp/verified-clone
+          unzip -q /tmp/verified-clone.zip -d /tmp/verified-clone
+          APK=$(find /tmp/verified-clone -name '*.apk' -print -quit)
+          test -s "$APK"
+          echo "03f9d2d6a93c9ff612ed8b05326766a065e78bcd1cee60915baa52b0ebea3d3a  $APK" | sha256sum -c -
+          mkdir -p ema-test-app/app/src/main/assets/ema
+          for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
+            unzip -p "$APK" "assets/ema/$name" > "ema-test-app/app/src/main/assets/ema/$name"
+            test -s "ema-test-app/app/src/main/assets/ema/$name"
+          done
           python - <<'PY'
-          import hashlib,json,shutil
+          import json
           from pathlib import Path
-          src=Path("ema-tools/dist/ema-selected")
-          dst=Path("ema-test-app/app/src/main/assets/ema")
-          dst.mkdir(parents=True,exist_ok=True)
-          manifest=json.loads((src/"manifest.json").read_text())
-          for stage in ("text_stage","sound_stage","decoder"):
-              name=stage+".onnx"
-              payload=(src/name).read_bytes()
-              assert len(payload)==manifest["models"][stage]["bytes"]
-              assert hashlib.sha256(payload).hexdigest()==manifest["models"][stage]["sha256"]
-              (dst/name).write_bytes(payload)
-          vocab=(src/"vocab.json").read_bytes()
-          assert json.loads(vocab)["stoi"]
-          (dst/"vocab.json").write_bytes(vocab)
-          print("Verified 3 FP32 graphs and vocab.json")
+          root=Path("ema-test-app/app/src/main/assets/ema")
+          assert json.loads((root/"vocab.json").read_text())["stoi"]
+          print("Restored 4 assets from SHA256-verified original Clone APK")
           PY
       - uses: actions/setup-java@v4
         with:
