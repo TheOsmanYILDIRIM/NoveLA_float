@@ -1,1 +1,1 @@
-2026-10-10 clone run 2: reuse existing NoveLA SIGNING_KEY release signing; no new secrets. Remove broken Android SDK setup.\n
+2026-10-10 clone run 3: fixed public QA-only signing identity (no secrets), verify package my.novela.clone and stable signer SHA256.
