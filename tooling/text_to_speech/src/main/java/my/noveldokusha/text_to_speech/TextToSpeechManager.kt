@@ -1,6 +1,7 @@
 package my.noveldokusha.text_to_speech
 
 import android.content.Context
+import my.noveldokusha.text_to_speech.ema.EmaLocalPlayer
 import android.os.Bundle
 import android.os.SystemClock
 import android.speech.tts.TextToSpeech
@@ -220,6 +221,9 @@ class TextToSpeechManager<T : Utterance<T>>(
     val spokenWordRange = mutableStateOf<IntRange?>(null)
 
     private val auxiliaryServices = mutableListOf<TextToSpeech>()
+    private val emaPlayer = EmaLocalPlayer(context)
+    private var emaSelected = false
+    private var emaJob: Job? = null
 
     // Храним enginePackage сами — service.defaultEngine всегда возвращает системный дефолт,
     // независимо от того с каким enginePackage был создан этот конкретный service объект.
@@ -246,9 +250,19 @@ class TextToSpeechManager<T : Utterance<T>>(
         collectVoicesFromAllEngines()
     }
 
-    fun getCurrentEnginePackage(): String = currentEnginePackage
+    fun getCurrentEnginePackage(): String = if (emaSelected) EmaLocalPlayer.ENGINE_ID else currentEnginePackage
 
     fun reinitWithEngine(enginePackage: String, voiceId: String) {
+        if (enginePackage == EmaLocalPlayer.ENGINE_ID && EmaLocalPlayer.available(context)) {
+            stop()
+            emaSelected = true
+            activeVoice.value = VoiceData(EmaLocalPlayer.VOICE_ID, "Türkçe", false,
+                Voice.QUALITY_HIGH, EmaLocalPlayer.ENGINE_ID)
+            loadRatio()
+            scope.launch { reinitDoneFlow.emit(Unit) }
+            return
+        }
+        emaSelected = false
         Timber.d( "reinitWithEngine engine=$enginePackage voice=$voiceId")
         auxiliaryServices.forEach { runCatching { it.shutdown() } }
         auxiliaryServices.clear()
@@ -280,12 +294,18 @@ class TextToSpeechManager<T : Utterance<T>>(
         var pending = engines.size
 
         if (engines.isEmpty()) {
+            availableVoices.clear()
+            if (EmaLocalPlayer.available(context)) availableVoices.add(VoiceData(
+                EmaLocalPlayer.VOICE_ID, "Türkçe", false, Voice.QUALITY_HIGH, EmaLocalPlayer.ENGINE_ID))
+            scope.launch { serviceLoadedFlow.emit(Unit) }
             return
         }
 
         // onServiceReady вызывается дважды (синхронно и из onInit движка) —
         // сбрасываем, чтобы голоса не дублировались в списке.
         availableVoices.clear()
+        if (EmaLocalPlayer.available(context)) availableVoices.add(VoiceData(
+            EmaLocalPlayer.VOICE_ID, "Türkçe", false, Voice.QUALITY_HIGH, EmaLocalPlayer.ENGINE_ID))
         engines.forEach { engineInfo ->
             if (engineInfo.name == currentEnginePackage) {
                 val voices = service.voices
@@ -322,12 +342,17 @@ class TextToSpeechManager<T : Utterance<T>>(
 
     fun stop() {
         Timber.d( "stop() queueSize=${_queueList.size}")
+        emaPlayer.stop()
+        emaJob?.cancel()
+        emaJob = null
         service.stop()
         cancelDelayedRanges()
         clearAllTracking()
     }
 
     fun shutdown() {
+        emaPlayer.stop()
+        emaJob?.cancel()
         runCatching { service.stop() }
         auxiliaryServices.forEach { runCatching { it.shutdown() } }
         auxiliaryServices.clear()
@@ -337,6 +362,8 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     fun clearQueue() {
+        emaPlayer.stop()
+        emaJob?.cancel()
         Timber.d("clearQueue() queueSize=${_queueList.size}")
         cancelDelayedRanges()
         clearAllTracking()
@@ -363,6 +390,24 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     fun speak(text: String, textSynthesis: T, leadingOffset: Int = 0) {
+        if (emaSelected) {
+            emaPlayer.stop()
+            emaJob?.cancel()
+            _queueList[textSynthesis.utteranceId] = textSynthesis
+            currentSpeakingText.value = text
+            emaJob = scope.launch {
+                val success = emaPlayer.play(text, voiceSpeed.floatValue, onStart = {
+                    val playing = textSynthesis.copyWithState(Utterance.PlayState.PLAYING)
+                    currentActiveItemState.value = playing
+                    scope.launch { _currentTextSpeakFlow.emit(playing) }
+                })
+                if (_queueList.containsKey(textSynthesis.utteranceId)) {
+                    if (!success) Timber.w("EMA PCM playback failed")
+                    completeItem(textSynthesis.copyWithState(Utterance.PlayState.FINISHED))
+                }
+            }
+            return
+        }
         val subItems = delimiterAwareTextSplitter(
             fullText = text,
             maxSliceLength = maxStringLengthPerTextUnit(),
@@ -432,6 +477,14 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     fun trySetVoiceById(id: String): Boolean {
+        if (id == EmaLocalPlayer.VOICE_ID && EmaLocalPlayer.available(context)) {
+            emaSelected = true
+            activeVoice.value = VoiceData(id, "Türkçe", false, Voice.QUALITY_HIGH,
+                EmaLocalPlayer.ENGINE_ID)
+            loadRatio()
+            return true
+        }
+        emaSelected = false
         val voice = service.voices?.find { it.name == id }
         if (voice == null) {
             Timber.w("trySetVoiceById($id) -> not found in ${service.voices?.size ?: 0} voices")
@@ -449,7 +502,7 @@ class TextToSpeechManager<T : Utterance<T>>(
             Timber.w( "trySetVoicePitch: invalid $value")
             return false
         }
-        val result = service.setPitch(value)
+        val result = if (emaSelected) TextToSpeech.SUCCESS else service.setPitch(value)
         val success = result == TextToSpeech.SUCCESS
         Timber.d( "trySetVoicePitch($value) -> $success")
         if (success) {
@@ -464,7 +517,7 @@ class TextToSpeechManager<T : Utterance<T>>(
             Timber.w( "trySetVoiceSpeed: invalid $value")
             return false
         }
-        val result = service.setSpeechRate(value)
+        val result = if (emaSelected) TextToSpeech.SUCCESS else service.setSpeechRate(value)
         val success = result == TextToSpeech.SUCCESS
         Timber.d( "trySetVoiceSpeed($value) -> $success")
         if (success) {
@@ -480,6 +533,7 @@ class TextToSpeechManager<T : Utterance<T>>(
     private fun maxStringLengthPerTextUnit() = TextToSpeech.getMaxSpeechInputLength()
 
     private fun updateActiveVoice() {
+        if (emaSelected) return
         activeVoice.value = service.voice?.toVoiceData(currentEnginePackage)
         // Калибровка грузится событийно под фактически активный голос (а не по точкам вызова):
         // сетевой голос после рестарта может подгрузиться позже — ratio применится в момент
