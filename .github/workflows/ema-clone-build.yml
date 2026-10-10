@@ -51,27 +51,17 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Use existing NoveLA release signing identity (no new secrets)
+      - name: Provision fixed PUBLIC TEST-ONLY signing certificate (no secrets)
         id: sign
-        env:
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          ALIAS: ${{ secrets.ALIAS }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "$SIGNING_KEY" ] || [ -z "$KEY_STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ] || [ -z "$ALIAS" ]; then
-            echo "::error::Existing NoveLA release signing secrets are missing; no fresh key is generated."
-            exit 1
-          fi
-          printf '%s' "$SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/novela-shared-signing.jks"
-          chmod 600 "$RUNNER_TEMP/novela-shared-signing.jks"
-          keytool -list -keystore "$RUNNER_TEMP/novela-shared-signing.jks" -alias "$ALIAS" -storepass "$KEY_STORE_PASSWORD" >/dev/null
-          echo "NOVELA_CLONE_KEYSTORE_PATH=$RUNNER_TEMP/novela-shared-signing.jks" >> "$GITHUB_ENV"
-          echo "NOVELA_CLONE_STORE_PASSWORD=$KEY_STORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "NOVELA_CLONE_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
-          echo "NOVELA_CLONE_KEY_ALIAS=$ALIAS" >> "$GITHUB_ENV"
+          base64 -d test-signing/novela-ema-clone-TEST-ONLY.p12.base64 > "$RUNNER_TEMP/novela-ema-test-only.p12"
+          keytool -list -keystore "$RUNNER_TEMP/novela-ema-test-only.p12" -alias novela-ema-clone-demo -storepass androidtest > /dev/null
+          echo "NOVELA_CLONE_KEYSTORE_PATH=$RUNNER_TEMP/novela-ema-test-only.p12" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_STORE_PASSWORD=androidtest" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_KEY_PASSWORD=androidtest" >> "$GITHUB_ENV"
+          echo "NOVELA_CLONE_KEY_ALIAS=novela-ema-clone-demo" >> "$GITHUB_ENV"
           echo "NOVELA_CLONE_VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
       - name: Compile signed, separately installable clone APK
         id: build
@@ -92,7 +82,7 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee reports/ema-clone/signature.log
-          # Every future clone build reuses the same existing repository certificate.
+          # Test-only certificate is public; reject accidental signing-key changes.\n          grep -Eiq "c0238eb27c05ba1f80a46c776b10b6d5a342d654f4bef94915c302ee4d4ec66e" reports/ema-clone/signature.log
           "$AAPT" dump badging "$APK" | grep -E '^package: name=.my.novela.clone.' | tee reports/ema-clone/package.log
           for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
             unzip -Z1 "$APK" | grep -Fx "assets/ema/$name"
@@ -103,7 +93,7 @@ jobs:
         if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: NoveLA-EMA-Clone-existing-key
+          name: NoveLA-EMA-Clone-PUBLIC-TEST-KEY
           path: |
             reports/novela-ema-clone-signed.apk
             reports/ema-clone/signature.log
@@ -112,4 +102,4 @@ jobs:
           retention-days: 14
       - name: Clean up key material
         if: always()
-        run: rm -f "$RUNNER_TEMP/novela-shared-signing.jks"
+        run: rm -f "$RUNNER_TEMP/novela-ema-test-only.p12"
