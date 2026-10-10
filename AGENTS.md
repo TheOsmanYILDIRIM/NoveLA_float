@@ -1,0 +1,14 @@
+# AGENTS.md — NoveLA_float
+
+## Scope and workflow
+- This repository is NoveLA Android, **not MTS**. Default branch: `default`. Development/EMA Clone branch: `feature/ema-native-tts-integration`; draft PR #2. Read this file and `SESSION_HANDOFF.md` **before continuing**.
+- Work on a feature branch; keep `default` and the original `my.novela` app unaffected until Android real-device TTS validation and explicit merge approval. Do not merge draft PR #2 automatically.
+- Keep source modular (Android/Kotlin components; standalone ONNX exporter scripts). Preserve existing reader playback, MediaSession, chapter navigation, system voices and user data.
+- Do **not** restart INT8/Q4/NF4 quantization research: FP32 `Extended → Slim` was selected; experimental quantizers were not validated for quality or Android. Avoid rebuilding completed alternatives without a new user request.
+- Production weights are original EMA Lightning 1.0.4, pinned revision `7a6ba1ad216bb2f1da9863f80ac8770a6a807632`, exported using the pinned Optimum code commit `2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d`. Three FP32 ONNX graphs total ~34.767 MB. Never silently substitute another model.
+- Workflow `.github/workflows/ema-clone-build.yml` rebuilds and SHA256-checks the model, embeds `text_stage.onnx`, `sound_stage.onnx`, `decoder.onnx`, `vocab.json`, compiles the Clone APK, checks its package/signature/assets and uploads it. Trigger via `.github/ema-clone-trigger.txt` when necessary. Always read full failed job logs before retrying.
+- Clone package ID is permanently `my.novela.clone`; display name `NoveLA EMA Clone`. Official NoveLA package ID is `my.novela`. Preserve Clone versionCode monotonicity; currently `1000 + GITHUB_RUN_NUMBER`.
+- **Signing security:** The Clone CI uses a **public TEST-ONLY** fixed certificate in `test-signing/novela-ema-clone-TEST-ONLY.p12.base64` because no GitHub signing secrets were configured. Its certificate SHA256 is `c0238eb27c05ba1f80a46c776b10b6d5a342d654f4bef94915c302ee4d4ec66e`. This is not production-safe; do not claim it authenticates the publisher. A private signing key would require deliberate migration planning; never commit a private keystore or passwords.
+- CI APK success is **not** real Android voice quality validation. Require physical-device testing of actual speech, punctuation/numbers, cancellation, long paragraphs, speed, audio focus and continuity before merging. Kotlin frontend is not a port of Python `normalizer-tr`; Java RNG differs from PyTorch.
+- Maintain brief, verifiable `SESSION_HANDOFF.md` containing the last successful run, artifact (including expiration), completed tasks, open risks and the single next action. Correct outdated statuses promptly. At session close, review both MD files, commit, and verify their HEAD. No unnecessary development during closure.
+- Additional details: `docs/EMA_ANDROID_TTS.md` and `docs/EMA_CLONE_SIGNING.md`; prefer the session handoff for newest status.
