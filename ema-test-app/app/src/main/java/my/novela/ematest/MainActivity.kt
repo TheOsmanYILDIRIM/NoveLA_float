@@ -33,7 +33,7 @@ class MainActivity : Activity() {
             thread {
                 try {
                     val started = android.os.SystemClock.elapsedRealtime()
-                    val pcm = EmaOnnxEngine(this).use { it.render(text, 1f, 42L) { false } }
+                    val pcm = EmaOnnxEngine(this@MainActivity).use { it.render(text, 1f, 42L) { false } }
                     require(pcm.isNotEmpty()) { "No audio generated" }
                     val file = File(getExternalFilesDir(null), "ema-test.wav")
                     FileOutputStream(file).use { stream ->
