@@ -81,11 +81,11 @@ def make_graphs():
                 if variant == "baseline":
                     shutil.copyfile(src, dst)
                 elif variant == "slim":
-                    onnxslim.slim(str(src), str(dst))
+                    onnx.save(onnxslim.slim(str(src)), str(dst))
                 elif variant == "slim_extended":
                     # First simplify, then optimize: two independent passes.
                     mid = folder / f"{stage}.preslim.onnx"
-                    onnxslim.slim(str(src), str(mid))
+                    onnx.save(onnxslim.slim(str(src)), str(mid))
                     ort.InferenceSession(str(mid), sess_options=options("extended", target=dst),
                                          providers=["CPUExecutionProvider"])
                     mid.unlink()
