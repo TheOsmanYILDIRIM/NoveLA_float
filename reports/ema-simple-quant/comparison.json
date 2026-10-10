@@ -1,0 +1,53 @@
+{
+  "fp32": {
+    "status": "passed",
+    "files": {
+      "text_stage": {
+        "path": "dist/ema-selected/text_stage.onnx",
+        "bytes": 4808079
+      },
+      "sound_stage": {
+        "path": "dist/ema-selected/sound_stage.onnx",
+        "bytes": 17921918
+      },
+      "decoder": {
+        "path": "dist/ema-selected/decoder.onnx",
+        "bytes": 12036684
+      }
+    },
+    "size_mb": 34.767,
+    "quality": [
+      {
+        "text": "Merhaba! Bugün hava güzel, değil mi?",
+        "status": "passed",
+        "waveform_snr_db": 101.437,
+        "latent_snr_db": 106.273
+      },
+      {
+        "text": "2026 yılında saat 14.30'da, bin iki yüz elli lira ödendi.",
+        "status": "passed",
+        "waveform_snr_db": 83.594,
+        "latent_snr_db": 90.36
+      },
+      {
+        "text": "Kapıyı araladı ve yağmurlu sokağa baktı.",
+        "status": "passed",
+        "waveform_snr_db": 97.244,
+        "latent_snr_db": 103.875
+      }
+    ],
+    "stage_median_ms": {
+      "text_stage": 0.974,
+      "sound_stage": 16.039,
+      "decoder": 77.262
+    }
+  },
+  "int8": {
+    "status": "failed",
+    "error": "Fail: [ONNXRuntimeError] : 1 : FAIL : Load model from dist/ema-simple-quant/int8/sound_stage.onnx failed:Node (/t_embed/mlp/mlp.0/Gemm_MatMul) Op (MatMul) [ShapeInferenceError] Incompatible dimensions for matrix multiplication"
+  },
+  "int4": {
+    "status": "failed",
+    "error": "ImportError: cannot import name 'MatMul4BitsQuantizer' from 'onnxruntime.quantization.matmul_nbits_quantizer' (/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/onnxruntime/quantization/matmul_nbits_quantizer.py)"
+  }
+}
