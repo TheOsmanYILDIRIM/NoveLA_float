@@ -100,9 +100,10 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
                 tensors.values.forEach { it.close() }
             }
         }
-        val counts = FloatArray(word.toInt() + 1)
-        for (i in 0 until n) counts[words[i].toInt()] += durations[i] / speed
-        val wordFrames = IntArray(counts.size) { counts[it].roundToInt().coerceIn(1, 250) }
+        val scaledDurations = FloatArray(n) { durations[it] / speed }
+        val counts = FloatArray(n)
+        for (i in 0 until n) counts[words[i].toInt()] += scaledDurations[i]
+        val wordFrames = IntArray(word.toInt() + 1) { counts[it].roundToInt().coerceIn(1, 250) }
         val frameCount = min(wordFrames.sum(), MAX_FRAMES)
         val fw = LongArray(frameCount)
         val fp = FloatArray(frameCount)
@@ -127,7 +128,7 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
         }
         val latents = infer(soundSession, mapOf(
             "h" to h,
-            "dur" to arrayOf(FloatArray(n) { durations[it] / speed }),
+            "dur" to arrayOf(scaledDurations),
             "mask" to arrayOf(BooleanArray(n) { true }),
             "cw" to arrayOf(words),
             "wstart" to arrayOf(starts),
