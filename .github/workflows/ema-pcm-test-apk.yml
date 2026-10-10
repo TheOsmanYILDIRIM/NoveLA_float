@@ -14,29 +14,23 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Restore verified FP32 models from previous successful Clone APK
+      - name: Restore immutable release assets and verify SHA256
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api repos/TheOsmanYILDIRIM/NoveLA_float/actions/artifacts/11665893872/zip > /tmp/verified-clone.zip
-          mkdir -p /tmp/verified-clone
-          unzip -q /tmp/verified-clone.zip -d /tmp/verified-clone
-          APK=$(find /tmp/verified-clone -name '*.apk' -print -quit)
-          test -s "$APK"
-          echo "03f9d2d6a93c9ff612ed8b05326766a065e78bcd1cee60915baa52b0ebea3d3a  $APK" | sha256sum -c -
+          TAG=ema-fp32-verified-20261010
           mkdir -p ema-test-app/app/src/main/assets/ema
-          for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
-            unzip -p "$APK" "assets/ema/$name" > "ema-test-app/app/src/main/assets/ema/$name"
-            test -s "ema-test-app/app/src/main/assets/ema/$name"
-          done
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root=Path("ema-test-app/app/src/main/assets/ema")
-          assert json.loads((root/"vocab.json").read_text())["stoi"]
-          print("Restored 4 assets from SHA256-verified original Clone APK")
-          PY
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir /tmp/ema-release
+          cd /tmp/ema-release
+          cat > EXPECTED <<'EOF'
+          85c7a5a5946dd1257ef98237040e1cc8ded61049d9878fc1f3a89b0dac2d430a  text_stage.onnx
+          65c3746cc64a17089a534ad6df5f492ace04a14c958da93f3c99c581daadbf94  sound_stage.onnx
+          8a907ccbe35945030efe09d3ae886861e546882332ee8a3786167ccaa18ea42d  decoder.onnx
+          95685d95b8540f7914650596f86306b975f0ca0eda74e5472bb337f0211b0261  vocab.json
+          EOF
+          sha256sum -c EXPECTED
+          cp text_stage.onnx sound_stage.onnx decoder.onnx vocab.json "$GITHUB_WORKSPACE/ema-test-app/app/src/main/assets/ema/"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
