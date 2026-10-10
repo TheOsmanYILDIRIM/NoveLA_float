@@ -1,1 +1,2 @@
 2026-10-10 clone run 7: compile and validate direct in-app EMA PCM voice selection and playback alongside retained Android TextToSpeechService; verify signed clone and 4 EMA assets.
+2026-10-10 follow-up: safe push-triggered Actions monitoring experiment; no application code changes.
