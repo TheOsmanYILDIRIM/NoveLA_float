@@ -54,6 +54,7 @@ class EmaLocalPlayer(private val context: Context) {
                 onStart()
                 audio.play()
                 val phrases = text.split(Regex("(?<=[.!?])\\s+|(?<=.{160})\\s+"))
+                var totalFramesWritten = 0L
                 for ((index, phrase) in phrases.withIndex()) {
                     if (token != generation) return@withContext false
                     if (phrase.isBlank()) continue
@@ -64,12 +65,12 @@ class EmaLocalPlayer(private val context: Context) {
                         val written = audio.write(pcm, offset, pcm.size - offset, AudioTrack.WRITE_BLOCKING)
                         if (written <= 0) error("AudioTrack write failed: $written")
                         offset += written
+                        totalFramesWritten += written
                     }
                 }
                 if (token != generation) return@withContext false
                 // Wait for the final queued PCM frames to finish before advancing the reader.
-                val endFrames = audio.playbackHeadPosition.toLong() +
-                    (audio.bufferSizeInFrames.toLong())
+                val endFrames = totalFramesWritten
                 while (token == generation && audio.playState == AudioTrack.PLAYSTATE_PLAYING &&
                     audio.playbackHeadPosition.toLong() < endFrames) {
                     kotlinx.coroutines.delay(20)
