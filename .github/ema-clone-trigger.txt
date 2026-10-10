@@ -1,1 +1,1 @@
-2026-10-10 clone run 4: public fixed test signer, clone buildType matchingFallbacks=debug, full APK/package/signature/models verification.
+2026-10-10 clone run 5: fix compile failures (unsupported Android ICU RuleBasedNumberFormat, literal Kotlin backslash-n tokens); verify signed my.novela.clone and all EMA assets.
