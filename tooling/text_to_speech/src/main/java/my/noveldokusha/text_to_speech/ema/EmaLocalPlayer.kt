@@ -19,6 +19,12 @@ class EmaLocalPlayer(private val context: Context) {
 
     @Volatile private var generation = 0
     @Volatile private var track: AudioTrack? = null
+    private var engine: EmaOnnxEngine? = null
+
+    fun close() {
+        stop()
+        synchronized(this) { engine?.close(); engine = null }
+    }
 
     fun stop() {
         generation++
@@ -30,10 +36,9 @@ class EmaLocalPlayer(private val context: Context) {
     suspend fun play(text: String, speed: Float, onStart: () -> Unit): Boolean =
         withContext(Dispatchers.IO) {
             val token = generation
-            var engine: EmaOnnxEngine? = null
             var audio: AudioTrack? = null
             try {
-                engine = EmaOnnxEngine(context)
+                val activeEngine = engine ?: EmaOnnxEngine(context).also { engine = it }
                 val minBytes = AudioTrack.getMinBufferSize(
                     EmaOnnxEngine.SAMPLE_RATE,
                     AudioFormat.CHANNEL_OUT_MONO,
@@ -58,7 +63,7 @@ class EmaLocalPlayer(private val context: Context) {
                 for ((index, phrase) in phrases.withIndex()) {
                     if (token != generation) return@withContext false
                     if (phrase.isBlank()) continue
-                    val pcm = engine.render(phrase, speed.coerceIn(0.25f, 4f),
+                    val pcm = activeEngine.render(phrase, speed.coerceIn(0.25f, 4f),
                         phrase.hashCode().toLong() + index) { token != generation }
                     var offset = 0
                     while (offset < pcm.size && token == generation) {
@@ -84,7 +89,6 @@ class EmaLocalPlayer(private val context: Context) {
             } finally {
                 if (track === audio) track = null
                 runCatching { audio?.pause(); audio?.flush(); audio?.release() }
-                runCatching { engine?.close() }
             }
         }
 }
