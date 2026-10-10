@@ -1,1 +1,1 @@
-2026-10-10 clone run 6: validate Android 15 EMA TTS engine discovery manifest fix (remove BIND_TEXT_SERVICE, add TTS_SERVICE queries, engine label); verify signed clone package and four EMA assets.
+2026-10-10 clone run 7: compile and validate direct in-app EMA PCM voice selection and playback alongside retained Android TextToSpeechService; verify signed clone and 4 EMA assets.
