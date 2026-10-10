@@ -21,7 +21,20 @@ jobs:
           set -euo pipefail
           TAG=ema-fp32-verified-20261010
           mkdir -p ema-test-app/app/src/main/assets/ema
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir /tmp/ema-release
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir /tmp/ema-release
+          else
+            echo "Pinned Release absent; using SHA256-verified previous Clone APK"
+            mkdir -p /tmp/ema-release /tmp/source-artifact
+            gh api repos/TheOsmanYILDIRIM/NoveLA_float/actions/artifacts/11665893872/zip > /tmp/source-artifact.zip
+            unzip -q /tmp/source-artifact.zip -d /tmp/source-artifact
+            APK=$(find /tmp/source-artifact -name '*.apk' -print -quit)
+            test -s "$APK"
+            echo "03f9d2d6a93c9ff612ed8b05326766a065e78bcd1cee60915baa52b0ebea3d3a  $APK" | sha256sum -c -
+            for name in text_stage.onnx sound_stage.onnx decoder.onnx vocab.json; do
+              unzip -p "$APK" "assets/ema/$name" > "/tmp/ema-release/$name"
+            done
+          fi
           cd /tmp/ema-release
           cat > EXPECTED <<'EOF'
           85c7a5a5946dd1257ef98237040e1cc8ded61049d9878fc1f3a89b0dac2d430a  text_stage.onnx
