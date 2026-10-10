@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.util.Log
+import android.os.SystemClock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,8 +64,11 @@ class EmaLocalPlayer(private val context: Context) {
                 for ((index, phrase) in phrases.withIndex()) {
                     if (token != generation) return@withContext false
                     if (phrase.isBlank()) continue
+                    val renderStarted = SystemClock.elapsedRealtime()
                     val pcm = activeEngine.render(phrase, speed.coerceIn(0.25f, 4f),
                         phrase.hashCode().toLong() + index) { token != generation }
+                    val renderMs = SystemClock.elapsedRealtime() - renderStarted
+                    Log.i("EmaTTS", "PCM phrase index=$index chars=${phrase.length} renderMs=$renderMs audioMs=${pcm.size * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
                     var offset = 0
                     while (offset < pcm.size && token == generation) {
                         val written = audio.write(pcm, offset, pcm.size - offset, AudioTrack.WRITE_BLOCKING)
