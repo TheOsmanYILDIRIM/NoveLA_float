@@ -1,1 +1,1 @@
-2026-10-10 clone run 8: verify queued direct PCM EMA playback, retained system TTS, manual workflow trigger, signer SHA256 assertion, package my.novela.clone and four model assets.
+2026-10-10 clone run 9: verify EMA ONNX session reuse and preservation of all system TTS voices in addition to local EMA; build, sign and inspect all four model assets.
