@@ -52,7 +52,7 @@ class EmaTextToSpeechService : TextToSpeechService() {
         ))
     }
 
-    override fun onLoadVoice(voiceName: String?): Int =
+    override fun onGetDefaultVoiceNameFor(lang: String?, country: String?, variant: String?): String? =\n        if (onIsLanguageAvailable(lang, country, variant) >= TextToSpeech.LANG_AVAILABLE && EmaOnnxEngine.available(this)) VOICE_ID else null\n\n    override fun onLoadVoice(voiceName: String?): Int =
         if (voiceName == VOICE_ID && EmaOnnxEngine.available(this))
             TextToSpeech.SUCCESS else TextToSpeech.ERROR
 
