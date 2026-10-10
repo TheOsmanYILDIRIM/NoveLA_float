@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: TheOsmanYILDIRIM/NoveLA_float
-          ref: feature/ema-selected-quantization
+          ref: 2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d
           path: ema-tools
           persist-credentials: false
       - uses: actions/setup-python@v5
