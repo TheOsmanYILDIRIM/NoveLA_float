@@ -1,0 +1,62 @@
+name: EMA FP32 chained optimization benchmark
+on:
+  push:
+    paths:
+      - .github/ema-combinations-trigger.txt
+permissions:
+  actions: read
+  contents: write
+jobs:
+  combinations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install FP32 toolchain
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxslim psutil numpy==2.5.3
+      - name: Download verified FP32 base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist/ema-optimum
+          gh run download 38004682817 -n ema-optimum-onnx-fp32-quality-verified -D dist/ema-optimum
+      - name: Run staged combinations and original-voice comparison
+        id: run
+        shell: bash
+        run: |
+          mkdir -p reports/ema-combinations
+          set -o pipefail
+          python tools/ema_optimum/optimize_combinations.py 2>&1 | tee reports/ema-combinations/latest.log
+      - name: Generate readable report
+        if: always()
+        env:
+          COMBINATION_OUTCOME: ${{ steps.run.outcome }}
+        run: |
+          mkdir -p reports/ema-combinations
+          test -f reports/ema-combinations/latest.log || echo 'Script did not start; see setup logs' > reports/ema-combinations/latest.log
+          python tools/ema_optimum/combinations_report.py
+      - name: Upload matrices and optimized model variants
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ema-fp32-combinations
+          path: |
+            dist/ema-fp32-matrix/
+            reports/ema-combinations/
+          retention-days: 30
+      - name: Commit result files
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f reports/ema-combinations/LATEST.md reports/ema-combinations/latest.log
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: record EMA FP32 combined optimization matrix [skip ci]'
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
