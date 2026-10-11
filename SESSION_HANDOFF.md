@@ -31,3 +31,11 @@ Updated: 2026-10-10 (Europe/Istanbul). Read `AGENTS.md` first.
 - Retained Android TextToSpeechService; direct local voice uses novela:ema-local and same FP32 ONNX assets. Source changes committed, but **no successful new APK run/artifact or on-device playback is confirmed**. fetch_commit_workflow_runs returned [] for push-trigger commit; that endpoint only reports PR-triggered runs, so [] does not prove no push run exists.
 - Open risks: Kotlin compilation, local voice restoration via ReaderTextToSpeech, actual PCM output and cancellation, AudioTrack audio focus/MediaSession integration, word range callbacks (not yet implemented for direct PCM), Android TTS discovery on Android 15. Do not claim complete feature parity.
 - Next: inspect Actions workflow page for the latest push run, obtain full failing job logs if failed; fix only confirmed failures, then verify my.novela.clone, QA signer and 4 assets. Test both EMA routes on physical phone. PR #2 remains draft/unmerged.
+
+## 2026-10-11 — EMA PCM diagnostics test branch session closure
+- Test branch: `test/ema-pcm-diagnostics`; last verified code change `24fa756526ed68698e12d4310b5c4b7346a562b4` (replace failing Android SDK setup action). This handoff commit advances the branch HEAD.
+- Standalone `ema-test-app` with package `my.novela.ematest` exists, with WAV generation and direct PCM replay. No confirmed successful build or device result.
+- Actions run #38055654511 failed because the pinned model Release was absent; run #38055770854 passed FP32 asset restore/hash checks but failed Android SDK license setup before Kotlin compilation. SDK setup correction committed; its subsequent run status was not established.
+- Pinned model Release publication remains **unverified**. The APK workflow can fall back to the old verified Clone artifact #11665893872, which expires 2026-10-24. No new artifact URL may be claimed without confirmation.
+- Open next steps: find the post-24fa7565 Actions run, inspect actual job logs, fix build failures, verify APK package/assets/signature, then compare raw WAV and AudioTrack playback on a physical phone.
+- Keep mainline `default`, EMA feature branch and draft PR #2 untouched; do not merge without user approval and real-device validation. Work remains OPEN, not completed.
