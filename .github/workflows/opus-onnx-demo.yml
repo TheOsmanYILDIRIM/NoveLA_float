@@ -23,6 +23,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+      - name: Install Android 36 platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
       - name: Restore stable PUBLIC TEST-ONLY signer
         shell: bash
@@ -36,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew -p experiments/opus-mt-onnx-demo :app:assembleRelease --stacktrace
+          ./gradlew -p experiments/opus-mt-onnx-demo :app:assembleRelease --stacktrace --console=plain 2>&1 | tee "$RUNNER_TEMP/opus-gradle.log"
       - name: Verify package, signature, monotonically increasing version
         shell: bash
         run: |
@@ -52,6 +54,13 @@ jobs:
           mkdir -p artifacts
           cp "$APK" artifacts/OPUS-Tiny-EN-TR-updateable.apk
           cp "$RUNNER_TEMP/opus-signature.txt" artifacts/signature.txt
+      - name: Upload build failure trace
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OPUS-Demo-Build-Failure-Log
+          path: ${{ runner.temp }}/opus-gradle.log
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: OPUS-Tiny-EN-TR-Android-APK
