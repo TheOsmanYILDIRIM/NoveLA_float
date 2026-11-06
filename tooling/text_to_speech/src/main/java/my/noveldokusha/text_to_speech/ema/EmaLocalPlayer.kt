@@ -4,27 +4,31 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import android.util.Log
 import android.os.SystemClock
+import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Direct reader PCM path; independent of Android's TTS engine discovery. */
+/** In-reader PCM player; does not register a system-wide Android TTS engine. */
 class EmaLocalPlayer(private val context: Context) {
     companion object {
-        const val VOICE_ID = EmaTextToSpeechService.VOICE_ID
+        const val VOICE_ID = "ema-lightning-tr-fp32"
         const val ENGINE_ID = "novela:ema-local"
         fun available(context: Context) = EmaOnnxEngine.available(context)
     }
 
     @Volatile private var generation = 0
     @Volatile private var track: AudioTrack? = null
+    private val engineLock = Any()
     private var engine: EmaOnnxEngine? = null
 
     fun close() {
         stop()
-        synchronized(this) { engine?.close(); engine = null }
+        synchronized(engineLock) { engine?.close(); engine = null }
     }
 
     fun stop() {
@@ -39,52 +43,77 @@ class EmaLocalPlayer(private val context: Context) {
             val token = generation
             var audio: AudioTrack? = null
             try {
-                val activeEngine = engine ?: EmaOnnxEngine(context).also { engine = it }
-                val minBytes = AudioTrack.getMinBufferSize(
-                    EmaOnnxEngine.SAMPLE_RATE,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT
-                ).coerceAtLeast(8192)
-                audio = AudioTrack.Builder()
-                    .setAudioAttributes(AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
-                    .setAudioFormat(AudioFormat.Builder()
-                        .setSampleRate(EmaOnnxEngine.SAMPLE_RATE)
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                    .setBufferSizeInBytes(minBytes)
-                    .setTransferMode(AudioTrack.MODE_STREAM).build()
-                if (token != generation) return@withContext false
-                track = audio
-                onStart()
-                audio.play()
-                val phrases = text.split(Regex("(?<=[.!?])\\s+|(?<=.{160})\\s+"))
-                var totalFramesWritten = 0L
-                for ((index, phrase) in phrases.withIndex()) {
-                    if (token != generation) return@withContext false
-                    if (phrase.isBlank()) continue
-                    val renderStarted = SystemClock.elapsedRealtime()
-                    val pcm = activeEngine.render(phrase, speed.coerceIn(0.25f, 4f),
-                        phrase.hashCode().toLong() + index) { token != generation }
-                    val renderMs = SystemClock.elapsedRealtime() - renderStarted
-                    Log.i("EmaTTS", "PCM phrase index=$index chars=${phrase.length} renderMs=$renderMs audioMs=${pcm.size * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
-                    var offset = 0
-                    while (offset < pcm.size && token == generation) {
-                        val written = audio.write(pcm, offset, pcm.size - offset, AudioTrack.WRITE_BLOCKING)
-                        if (written <= 0) error("AudioTrack write failed: $written")
-                        offset += written
-                        totalFramesWritten += written
+                coroutineScope {
+                    // Generate on a producer coroutine while AudioTrack consumes buffered PCM.
+                    // Previously play() started before even the first synthesis completed.
+                    val pcmQueue = Channel<ShortArray>(capacity = 2)
+                    val producer = launch(Dispatchers.IO) {
+                        try {
+                            val phrases = text.trim().split(Regex("(?<=[.!?])\\s+|(?<=.{160})\\s+"))
+                            for ((index, phrase) in phrases.withIndex()) {
+                                if (token != generation) break
+                                if (phrase.isBlank()) continue
+                                val started = SystemClock.elapsedRealtime()
+                                // Never run two ONNX sessions against a shared engine simultaneously.
+                                val pcm = synchronized(engineLock) {
+                                    val active = engine ?: EmaOnnxEngine(context).also { engine = it }
+                                    active.render(phrase, speed.coerceIn(0.25f, 4f),
+                                        phrase.hashCode().toLong() + index) { token != generation }
+                                }
+                                Log.i("EmaTTS", "PCM phrase index=$index renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${pcm.size * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
+                                if (token != generation) break
+                                if (pcm.isNotEmpty()) pcmQueue.send(pcm)
+                            }
+                            pcmQueue.close()
+                        } catch (failure: Throwable) {
+                            pcmQueue.close(failure)
+                            if (failure is CancellationException) throw failure
+                        }
+                    }
+                    try {
+                        // Do not begin playback or issue onStart until audible PCM is ready.
+                        val first = pcmQueue.receiveCatching().getOrNull() ?: return@coroutineScope false
+                        if (token != generation) return@coroutineScope false
+                        val minBytes = AudioTrack.getMinBufferSize(EmaOnnxEngine.SAMPLE_RATE,
+                            AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT).coerceAtLeast(8192)
+                        audio = AudioTrack.Builder()
+                            .setAudioAttributes(AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                            .setAudioFormat(AudioFormat.Builder()
+                                .setSampleRate(EmaOnnxEngine.SAMPLE_RATE)
+                                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                            .setBufferSizeInBytes(minBytes)
+                            .setTransferMode(AudioTrack.MODE_STREAM).build()
+                        if (token != generation || audio?.state != AudioTrack.STATE_INITIALIZED) return@coroutineScope false
+                        track = audio
+                        onStart()
+                        audio?.play()
+                        var totalFramesWritten = 0L
+                        var pcm: ShortArray? = first
+                        while (pcm != null && token == generation) {
+                            var offset = 0
+                            while (offset < pcm.size && token == generation) {
+                                val written = audio!!.write(pcm, offset, pcm.size - offset, AudioTrack.WRITE_BLOCKING)
+                                if (written <= 0) error("AudioTrack write failed: $written")
+                                offset += written
+                                totalFramesWritten += written
+                            }
+                            pcm = pcmQueue.receiveCatching().getOrNull()
+                        }
+                        if (token != generation) return@coroutineScope false
+                        // Let the last queued samples reach the output before advancing.
+                        while (token == generation && audio?.playState == AudioTrack.PLAYSTATE_PLAYING &&
+                            audio!!.playbackHeadPosition.toLong() < totalFramesWritten) {
+                            kotlinx.coroutines.delay(20)
+                        }
+                        token == generation
+                    } finally {
+                        producer.cancel()
+                        pcmQueue.cancel()
                     }
                 }
-                if (token != generation) return@withContext false
-                // Wait for the final queued PCM frames to finish before advancing the reader.
-                val endFrames = totalFramesWritten
-                while (token == generation && audio.playState == AudioTrack.PLAYSTATE_PLAYING &&
-                    audio.playbackHeadPosition.toLong() < endFrames) {
-                    kotlinx.coroutines.delay(20)
-                }
-                token == generation
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (failure: Exception) {
