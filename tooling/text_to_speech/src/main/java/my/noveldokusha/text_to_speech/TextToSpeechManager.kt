@@ -407,6 +407,11 @@ class TextToSpeechManager<T : Utterance<T>>(
             val previous = emaJob
             _queueList[textSynthesis.utteranceId] = textSynthesis
             currentSpeakingText.value = text
+            // The reader queues multiple paragraphs; reserve the next one for
+            // first-phrase generation while the current paragraph drains PCM.
+            if (previous != null) {
+                emaPlayer.queueLookahead(textSynthesis.utteranceId, text, voiceSpeed.floatValue)
+            }
             emaJob = scope.launch {
                 previous?.join()
                 if (!_queueList.containsKey(textSynthesis.utteranceId)) return@launch
@@ -414,7 +419,7 @@ class TextToSpeechManager<T : Utterance<T>>(
                     val playing = textSynthesis.copyWithState(Utterance.PlayState.PLAYING)
                     currentActiveItemState.value = playing
                     scope.launch { _currentTextSpeakFlow.emit(playing) }
-                })
+                }, prefetchId = textSynthesis.utteranceId)
                 if (_queueList.containsKey(textSynthesis.utteranceId)) {
                     if (!success) Timber.w("EMA PCM playback failed")
                     completeItem(textSynthesis.copyWithState(Utterance.PlayState.FINISHED))
