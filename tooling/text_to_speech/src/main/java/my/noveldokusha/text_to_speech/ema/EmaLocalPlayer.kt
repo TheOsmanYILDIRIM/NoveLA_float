@@ -164,7 +164,11 @@ class EmaLocalPlayer(private val context: Context) {
                                 } catch (cancel: CancellationException) {
                                     throw cancel
                                 } catch (failure: Exception) {
-                                    Log.w("EmaTTS", "Skipping failed PCM phrase index=$index", failure)
+                                    Log.w("EmaTTS", "Skipping failed PCM phrase index=$index; resetting ONNX sessions", failure)
+                                    synchronized(engineLock) {
+                                        runCatching { engine?.close() }
+                                        engine = null
+                                    }
                                 }
                                 Log.i("EmaTTS", "PCM phrase=$index chars=${phrase.length} firstMs=$firstWindowMs renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${totalSamples * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
                             }
