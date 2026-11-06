@@ -71,6 +71,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import my.noveldokusha.text_to_speech.ema.EmaDiagnostics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -111,6 +116,8 @@ internal fun VoiceReaderSettingDialog(
 ) {
     var openVoicesDialog by rememberSaveable { mutableStateOf(false) }
     var openOriginalVoiceDialog by rememberSaveable { mutableStateOf(false) }
+    val diagnosticContext = LocalContext.current
+    var diagnosticsCopied by remember { mutableStateOf(false) }
     val dropdownCustomSavedVoicesExpanded = rememberSaveable { mutableStateOf(false) }
 
     Column {
@@ -229,6 +236,19 @@ internal fun VoiceReaderSettingDialog(
                             leadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             disabledLeadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
+                    )
+                    AssistChip(
+                        label = { Text(if (diagnosticsCopied) "EMA log copied" else "Copy EMA log") },
+                        onClick = {
+                            val clipboard = diagnosticContext.getSystemService(Context.CLIPBOARD_SERVICE)
+                                as ClipboardManager
+                            clipboard.setPrimaryClip(
+                                ClipData.newPlainText("NoveLA EMA diagnostics",
+                                    EmaDiagnostics.report(diagnosticContext))
+                            )
+                            diagnosticsCopied = true
+                        },
+                        modifier = Modifier.heightIn(min = 30.dp)
                     )
                     Box {
                         DropdownCustomSavedVoices(
