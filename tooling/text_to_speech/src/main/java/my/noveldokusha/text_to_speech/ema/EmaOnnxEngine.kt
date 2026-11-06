@@ -17,6 +17,7 @@ import kotlin.math.roundToInt
  * The UI must not describe this as full normalizer-tr parity.
  */
 internal class EmaOnnxEngine(context: Context) : AutoCloseable {
+    private val appContext = context.applicationContext
     companion object {
         private const val ROOT = "ema/"
         const val SAMPLE_RATE = 48_000
@@ -78,6 +79,7 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
         emitPcm: (ShortArray) -> Unit
     ) {
         require(speed in 0.25f..4f)
+        EmaDiagnostics.record(appContext, "MODEL_TEXT_BEGIN chars=${phrase.length}")
         val text = normalizeAlphabet(phrase)
         if (text.isBlank() || cancelled()) return
         val n = text.length
@@ -112,6 +114,7 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
                 tensors.values.forEach { it.close() }
             }
         }
+        EmaDiagnostics.record(appContext, "MODEL_TEXT_DONE chars=$n")
         val scaledDurations = FloatArray(n) { durations[it] / speed }
         val counts = FloatArray(n)
         for (i in 0 until n) counts[words[i].toInt()] += scaledDurations[i]
@@ -138,6 +141,7 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
                 }
             }
         }
+        EmaDiagnostics.record(appContext, "MODEL_SOUND_BEGIN frames=$frameCount")
         val latents = infer(soundSession, mapOf(
             "h" to h,
             "dur" to arrayOf(scaledDurations),
@@ -149,6 +153,7 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
             "fmask" to arrayOf(BooleanArray(frameCount) { true }),
             "noise" to noise
         )) as Array<Array<FloatArray>>
+        EmaDiagnostics.record(appContext, "MODEL_SOUND_DONE frames=$frameCount")
         var from = 0
         while (from < frameCount && !cancelled()) {
             val to = min(frameCount, from + if (from == 0) FIRST_WINDOW else NEXT_WINDOW)
@@ -161,7 +166,9 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
                     }
                 }
             }
+            EmaDiagnostics.record(appContext, "MODEL_DECODE_BEGIN from=$from to=$to")
             val audio = (infer(decoderSession, mapOf("z" to input)) as Array<FloatArray>)[0]
+            EmaDiagnostics.record(appContext, "MODEL_DECODE_DONE from=$from to=$to samples=${audio.size}")
             val low = (from - contextStart) * 1920
             val high = min((to - contextStart) * 1920, audio.size)
             val pcm = ShortArray((high - low).coerceAtLeast(0)) { i ->
