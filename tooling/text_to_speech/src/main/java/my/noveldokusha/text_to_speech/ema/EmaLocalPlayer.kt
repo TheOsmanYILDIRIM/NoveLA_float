@@ -16,6 +16,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** In-reader PCM player; does not register a system-wide Android TTS engine. */
 class EmaLocalPlayer(private val context: Context) {
@@ -138,7 +139,8 @@ class EmaLocalPlayer(private val context: Context) {
                     // Previously play() started before even the first synthesis completed.
                     val pcmQueue = Channel<ShortArray>(capacity = 8)
                     EmaDiagnostics.record(context, "PLAY_REQUEST token=$token chars=${text.length} speed=$speed")
-                    val producer = launch(Dispatchers.IO) {
+                    // Detached producer: a native ONNX stall cannot hold the reader job forever.
+                    val producer = lookaheadScope.launch {
                         try {
                             val phrases = splitForSpeech(text)
                             val cachedFirst = prefetchId?.let { takeLookahead(it, text, speed, token) }
@@ -195,7 +197,11 @@ class EmaLocalPlayer(private val context: Context) {
                     }
                     try {
                         // Do not begin playback or issue onStart until audible PCM is ready.
-                        val firstResult = pcmQueue.receiveCatching()
+                        val firstResult = withTimeoutOrNull(25_000L) { pcmQueue.receiveCatching() }
+                        if (firstResult == null) {
+                            EmaDiagnostics.record(context, "PCM_FIRST_TIMEOUT token=$token afterMs=25000")
+                            return@coroutineScope false
+                        }
                         firstResult.exceptionOrNull()?.let { throw it }
                         val first = firstResult.getOrNull() ?: return@coroutineScope false
                         if (token != generation.get()) return@coroutineScope false
@@ -227,7 +233,11 @@ class EmaLocalPlayer(private val context: Context) {
                                 offset += written
                                 totalFramesWritten += written
                             }
-                            val nextResult = pcmQueue.receiveCatching()
+                            val nextResult = withTimeoutOrNull(15_000L) { pcmQueue.receiveCatching() }
+                            if (nextResult == null) {
+                                EmaDiagnostics.record(context, "PCM_NEXT_TIMEOUT token=$token afterMs=15000")
+                                return@coroutineScope false
+                            }
                             nextResult.exceptionOrNull()?.let { throw it }
                             pcm = nextResult.getOrNull()
                         }
