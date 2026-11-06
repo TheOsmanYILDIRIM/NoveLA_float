@@ -1,6 +1,6 @@
 # SESSION_HANDOFF.md — NoveLA EMA Clone
 
-Updated: 2026-10-10 (Europe/Istanbul). Read `AGENTS.md` first.
+Updated: 2026-11-06 (Europe/Istanbul). Read `AGENTS.md` first.
 
 ## Canonical current state
 - Repo: `TheOsmanYILDIRIM/NoveLA_float`; mainline: `default` (untouched); active branch: `feature/ema-native-tts-integration`. PR: [#2](https://github.com/TheOsmanYILDIRIM/NoveLA_float/pull/2) OPEN, **DRAFT**, unmerged.
@@ -11,7 +11,7 @@ Updated: 2026-10-10 (Europe/Istanbul). Read `AGENTS.md` first.
 
 ## Completed
 - Selected verified **FP32** EMA Lightning (34.767 MB total, original pinned weights; Optimum exporter → ORT Extended → Slim). Abandoned INT8/Q4/NF4 after unsuccessful CPU/voice quality trials; do not repeat.
-- Added Kotlin ONNX inference adapter and Android `TextToSpeechService` for optional offline EMA voice using existing NoveLA reading infrastructure. Bundles three graphs + vocab in the CI-built APK; regular Android TTS unaffected.
+- Added Kotlin ONNX inference adapter and optional direct EMA PCM voice. The former Android `TextToSpeechService` registration was removed on 2026-11-06; normal system TTS engines are retained.
 - Added independent Clone build type/package `my.novela.clone` (standard `my.novela` remains installable) and fixed public QA certificate; stable fingerprint/versioning permits updating later **test-signed clones**, not differently signed APKs.
 - Fixed Kotlin compile errors (unavailable `RuleBasedNumberFormat`; literal `\\n` characters), then Actions #38042003127 passed; package, signing fingerprint, all 4 embedded model assets checked by actual APK tools.
 - Fixed previous clone workflow SDK setup failure and documented no-secrets test-key fallback. `AGENTS.md` and this file added for canonical continuity.
@@ -28,6 +28,14 @@ Updated: 2026-10-10 (Europe/Istanbul). Read `AGENTS.md` first.
 
 ## 2026-10-10 direct PCM integration follow-up (unverified)
 - Commits: 20bf4bc2 (EmaLocalPlayer AudioTrack), 1d6c058d (reader voice routing), 51bcd2f5 (PCM drain), be403026 (serialize queued paragraphs and stop pending jobs), c52454fd (workflow_dispatch and signer assertion), 269eaadf (build trigger).
-- Retained Android TextToSpeechService; direct local voice uses novela:ema-local and same FP32 ONNX assets. Source changes committed, but **no successful new APK run/artifact or on-device playback is confirmed**. fetch_commit_workflow_runs returned [] for push-trigger commit; that endpoint only reports PR-triggered runs, so [] does not prove no push run exists.
+- Historical note: originally retained Android TextToSpeechService; superseded by the 2026-11-06 direct-only decision. Direct local voice uses novela:ema-local and the same FP32 ONNX assets. Source changes committed, but **no successful new APK run/artifact or on-device playback is confirmed**. fetch_commit_workflow_runs returned [] for push-trigger commit; that endpoint only reports PR-triggered runs, so [] does not prove no push run exists.
 - Open risks: Kotlin compilation, local voice restoration via ReaderTextToSpeech, actual PCM output and cancellation, AudioTrack audio focus/MediaSession integration, word range callbacks (not yet implemented for direct PCM), Android TTS discovery on Android 15. Do not claim complete feature parity.
-- Next: inspect Actions workflow page for the latest push run, obtain full failing job logs if failed; fix only confirmed failures, then verify my.novela.clone, QA signer and 4 assets. Test both EMA routes on physical phone. PR #2 remains draft/unmerged.
+- Next: inspect Actions workflow page for the latest push run, obtain full failing job logs if failed; fix only confirmed failures, then verify my.novela.clone, QA signer and 4 assets. Test the direct EMA playback route and normal Android system voices on a physical phone. PR #2 remains draft/unmerged.
+
+## 2026-11-06 direct-only TTS correction (source committed; build/device unverified)
+- User explicitly removed the separate Android EMA TTS service route; manifest entry, Kotlin service and service engine XML removed. The experimental clone remains on `feature/ema-native-tts-integration`, not `default`.
+- PCM player now waits for first synthesized audio, uses bounded producer/consumer buffering for subsequent phrases and serializes ONNX inference. Source-level improvement only; synthesis may still be slower than playback on real ARM devices.
+- System TTS readiness is awaited, each multi-engine voice scan publishes atomically, and voice picker observes list mutations. Audio focus now requests MAY_DUCK rather than exclusive GAIN.
+- Basic Turkish integer spelling added before vocabulary filtering. This does not implement full Python `normalizer-tr`. EMA still lacks actual word-range callbacks; speed, acoustic quality, numbers and continuity need device tests.
+- The last historically successful QA APK is from 2026-10-10, BEFORE this correction, and is expired. No current corrected APK or real-device verification can be claimed until new CI evidence exists.
+- Next action: build the clone from this branch, review exact Gradle failure or APK signature/model artifacts, then listen on a physical Android device and inspect `EmaTTS` logs. Keep PR #2 draft and unmerged.
