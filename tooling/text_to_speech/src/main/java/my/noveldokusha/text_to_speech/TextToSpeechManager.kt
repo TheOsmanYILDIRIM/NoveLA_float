@@ -305,7 +305,13 @@ class TextToSpeechManager<T : Utterance<T>>(
         val installedEngines = service.engines.toList()
         val remaining = java.util.concurrent.atomic.AtomicInteger(installedEngines.size)
         val discovered = java.util.Collections.synchronizedList(mutableListOf<VoiceData>())
-        val local = if (EmaLocalPlayer.available(context)) listOf(
+        val emaBundled = EmaLocalPlayer.available(context)
+        if (!emaBundled) {
+            // No voice is advertised without ONNX weights: installing the standard
+            // APK instead of the model-bearing EMA Clone is the usual cause.
+            Timber.w("EMA voice unavailable: FP32 model assets absent from installed APK")
+        }
+        val local = if (emaBundled) listOf(
             VoiceData(EmaLocalPlayer.VOICE_ID, "Türkçe", false,
                 Voice.QUALITY_HIGH, EmaLocalPlayer.ENGINE_ID)
         ) else emptyList()
