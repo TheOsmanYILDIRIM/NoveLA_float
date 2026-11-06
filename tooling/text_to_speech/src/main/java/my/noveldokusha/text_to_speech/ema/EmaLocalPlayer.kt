@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CancellationException
@@ -242,6 +243,24 @@ class EmaLocalPlayer(private val context: Context) {
                             .setBufferSizeInBytes(bufferBytes)
                             .setTransferMode(AudioTrack.MODE_STREAM).build()
                         if (token != generation.get() || audio?.state != AudioTrack.STATE_INITIALIZED) return@coroutineScope false
+                        // Android streaming tracks normally require the entire output buffer
+                        // to be filled before playback starts. Our 2 s capacity is larger
+                        // than a typical title (1.44 s in the reported trace), so these
+                        // titles previously NEVER started and sat in the 15 s drain guard.
+                        // On Android 12+ decouple the start threshold from 2 s capacity.
+                        // On older Android versions, reduce the effective buffer/start
+                        // threshold; the 8-window producer queue remains bounded and intact.
+                        val startThresholdFrames = EmaOnnxEngine.SAMPLE_RATE / 2
+                        val startThresholdSet = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            audio!!.setStartThresholdInFrames(startThresholdFrames)
+                        } else {
+                            audio!!.setBufferSizeInFrames(startThresholdFrames)
+                        }
+                        EmaDiagnostics.record(context,
+                            "AUDIO_CONFIG token=$token sdk=${Build.VERSION.SDK_INT} " +
+                                "bufferCapacityFrames=${audio!!.bufferCapacityInFrames} " +
+                                "bufferFrames=${audio!!.bufferSizeInFrames} " +
+                                "startThresholdRequested=$startThresholdFrames applied=$startThresholdSet")
                         track = audio
                         onStart()
                         audio?.play()
@@ -266,16 +285,25 @@ class EmaLocalPlayer(private val context: Context) {
                         }
                         if (token != generation.get()) return@coroutineScope false
                         // Let the last queued samples reach the output before advancing.
-                        val drainDeadline = SystemClock.elapsedRealtime() + 15_000L
+                        // The final frames can be no more than one output buffer ahead.
+                        // Limit a stalled device/route to 4 s, not 15 s per chapter title.
+                        val drainDeadline = SystemClock.elapsedRealtime() + 4_000L
                         while (token == generation.get() && audio?.playState == AudioTrack.PLAYSTATE_PLAYING &&
                             audio!!.playbackHeadPosition.toLong() < totalFramesWritten &&
                             SystemClock.elapsedRealtime() < drainDeadline) {
                             kotlinx.coroutines.delay(20)
                         }
-                        if (token == generation.get()) {
-                            EmaDiagnostics.record(context, "AUDIO_DONE token=$token frames=$totalFramesWritten underruns=${audio?.underrunCount}")
-                        }
-                        token == generation.get()
+                        if (token != generation.get()) return@coroutineScope false
+                        val playedFrames = audio!!.playbackHeadPosition.toLong()
+                        val drained = playedFrames >= totalFramesWritten
+                        EmaDiagnostics.record(context,
+                            if (drained) {
+                                "AUDIO_DONE token=$token frames=$totalFramesWritten underruns=${audio?.underrunCount}"
+                            } else {
+                                "AUDIO_DRAIN_TIMEOUT token=$token playedFrames=$playedFrames " +
+                                    "writtenFrames=$totalFramesWritten underruns=${audio?.underrunCount}"
+                            })
+                        drained
                     } finally {
                         producer.cancel()
                         pcmQueue.cancel()
