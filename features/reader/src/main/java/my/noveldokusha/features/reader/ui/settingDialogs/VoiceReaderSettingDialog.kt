@@ -237,19 +237,6 @@ internal fun VoiceReaderSettingDialog(
                             disabledLeadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
                     )
-                    AssistChip(
-                        label = { Text(if (diagnosticsCopied) "EMA log copied" else "Copy EMA log") },
-                        onClick = {
-                            val clipboard = diagnosticContext.getSystemService(Context.CLIPBOARD_SERVICE)
-                                as ClipboardManager
-                            clipboard.setPrimaryClip(
-                                ClipData.newPlainText("NoveLA EMA diagnostics",
-                                    EmaDiagnostics.report(diagnosticContext))
-                            )
-                            diagnosticsCopied = true
-                        },
-                        modifier = Modifier.heightIn(min = 30.dp)
-                    )
                     Box {
                         DropdownCustomSavedVoices(
                             expanded = dropdownCustomSavedVoicesExpanded,
@@ -282,6 +269,21 @@ internal fun VoiceReaderSettingDialog(
                         )
                     }
                 }
+
+                    FilledTonalButton(
+                        onClick = {
+                            val clipboard = diagnosticContext.getSystemService(Context.CLIPBOARD_SERVICE)
+                                as ClipboardManager
+                            clipboard.setPrimaryClip(
+                                ClipData.newPlainText("NoveLA EMA diagnostics",
+                                    EmaDiagnostics.report(diagnosticContext))
+                            )
+                            diagnosticsCopied = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (diagnosticsCopied) "EMA log copied — paste it here" else "Copy EMA diagnostic log")
+                    }
 
                 if (floatingTtsState != null) {
                     Box(
