@@ -27,6 +27,54 @@ class EmaLocalPlayer(private val context: Context) {
     private val engineLock = Any()
     private var engine: EmaOnnxEngine? = null
 
+    private data class Lookahead(val id: String, val text: String, val speed: Float,
+                                 val token: Int, var chunks: List<ShortArray>? = null)
+    private val lookaheadLock = Any()
+    private val lookaheadQueue = ArrayDeque<Lookahead>()
+
+    /** Reserve only a small number of future paragraphs; render one phrase ahead. */
+    fun queueLookahead(id: String, text: String, speed: Float) {
+        synchronized(lookaheadLock) {
+            if (lookaheadQueue.size >= 8 || lookaheadQueue.any { it.id == id }) return
+            lookaheadQueue.addLast(Lookahead(id, text, speed, generation.get()))
+        }
+    }
+
+    private fun takeLookahead(id: String, text: String, speed: Float, token: Int): List<ShortArray>? =
+        synchronized(lookaheadLock) {
+            val first = lookaheadQueue.firstOrNull() ?: return@synchronized null
+            if (first.id != id) return@synchronized null
+            lookaheadQueue.removeFirst()
+            if (first.text == text && first.speed == speed && first.token == token)
+                first.chunks else null
+        }
+
+    private fun prepareLookahead(token: Int) {
+        val next = synchronized(lookaheadLock) {
+            lookaheadQueue.firstOrNull()?.takeIf { it.token == token && it.chunks == null }
+        } ?: return
+        val phrase = splitForSpeech(next.text).firstOrNull() ?: return
+        val samples = mutableListOf<ShortArray>()
+        try {
+            synchronized(engineLock) {
+                val active = engine ?: EmaOnnxEngine(context).also { engine = it }
+                active.renderChunks(phrase, next.speed.coerceIn(0.25f, 4f),
+                    phrase.hashCode().toLong(), { token != generation.get() }) { pcm ->
+                    if (token == generation.get()) samples.add(pcm)
+                }
+            }
+            synchronized(lookaheadLock) {
+                if (token == generation.get() && lookaheadQueue.firstOrNull() === next) {
+                    next.chunks = samples
+                    Log.i("EmaTTS", "Prepared next paragraph first phrase, windows=" + samples.size)
+                }
+            }
+        } catch (failure: Exception) {
+            Log.w("EmaTTS", "Lookahead failed: next paragraph will synthesize normally", failure)
+        }
+    }
+
+
     fun close() {
         stop()
         synchronized(engineLock) { engine?.close(); engine = null }
@@ -34,6 +82,7 @@ class EmaLocalPlayer(private val context: Context) {
 
     fun stop() {
         generation.incrementAndGet()
+        synchronized(lookaheadLock) { lookaheadQueue.clear() }
         val old = track
         track = null
         runCatching { old?.pause(); old?.flush(); old?.release() }
@@ -69,7 +118,7 @@ class EmaLocalPlayer(private val context: Context) {
         return out.filter { it.isNotBlank() }
     }
 
-    suspend fun play(text: String, speed: Float, onStart: () -> Unit): Boolean =
+    suspend fun play(text: String, speed: Float, onStart: () -> Unit, prefetchId: String? = null): Boolean =
         withContext(Dispatchers.IO) {
             val token = generation.get()
             var audio: AudioTrack? = null
@@ -77,12 +126,21 @@ class EmaLocalPlayer(private val context: Context) {
                 coroutineScope {
                     // Generate on a producer coroutine while AudioTrack consumes buffered PCM.
                     // Previously play() started before even the first synthesis completed.
-                    val pcmQueue = Channel<ShortArray>(capacity = 4)
+                    val pcmQueue = Channel<ShortArray>(capacity = 8)
                     val producer = launch(Dispatchers.IO) {
                         try {
                             val phrases = splitForSpeech(text)
+                            val cachedFirst = prefetchId?.let { takeLookahead(it, text, speed, token) }
                             for ((index, phrase) in phrases.withIndex()) {
                                 if (token != generation.get()) break
+                                if (index == 0 && cachedFirst != null) {
+                                    for (pcm in cachedFirst) {
+                                        if (token != generation.get()) break
+                                        pcmQueue.send(pcm)
+                                    }
+                                    Log.i("EmaTTS", "Using prefetched paragraph id=" + prefetchId)
+                                    continue
+                                }
                                 val started = SystemClock.elapsedRealtime()
                                 var totalSamples = 0L
                                 var firstWindowMs = -1L
@@ -105,6 +163,7 @@ class EmaLocalPlayer(private val context: Context) {
                                 Log.i("EmaTTS", "PCM phrase=$index chars=${phrase.length} firstMs=$firstWindowMs renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${totalSamples * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
                             }
                             pcmQueue.close()
+                            if (token == generation.get()) prepareLookahead(token)
                         } catch (failure: Throwable) {
                             pcmQueue.close(failure)
                             if (failure is CancellationException) throw failure
@@ -118,6 +177,7 @@ class EmaLocalPlayer(private val context: Context) {
                         if (token != generation.get()) return@coroutineScope false
                         val minBytes = AudioTrack.getMinBufferSize(EmaOnnxEngine.SAMPLE_RATE,
                             AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT).coerceAtLeast(8192)
+                        val bufferBytes = maxOf(minBytes, EmaOnnxEngine.SAMPLE_RATE * 2 * 2)
                         audio = AudioTrack.Builder()
                             .setAudioAttributes(AudioAttributes.Builder()
                                 .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -126,7 +186,7 @@ class EmaLocalPlayer(private val context: Context) {
                                 .setSampleRate(EmaOnnxEngine.SAMPLE_RATE)
                                 .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                            .setBufferSizeInBytes(minBytes)
+                            .setBufferSizeInBytes(bufferBytes)
                             .setTransferMode(AudioTrack.MODE_STREAM).build()
                         if (token != generation.get() || audio?.state != AudioTrack.STATE_INITIALIZED) return@coroutineScope false
                         track = audio
