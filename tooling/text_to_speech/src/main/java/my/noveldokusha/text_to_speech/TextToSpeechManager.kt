@@ -495,6 +495,14 @@ class TextToSpeechManager<T : Utterance<T>>(
         _itemMarkerMs.remove(item.utteranceId)
         currentActiveItemState.value = item
         scope.launch { _currentTextSpeakFlow.emit(item) }
+        if (emaSelected && _queueList.isEmpty()) {
+            // Keep music ducked briefly at chapter boundaries, but restore its
+            // volume automatically when narration finishes naturally.
+            scope.launch {
+                delay(1_500L)
+                if (emaSelected && _queueList.isEmpty()) emaPlayer.releaseDuckFocus()
+            }
+        }
     }
 
     fun setCurrentSpeakState(textSynthesis: T) {
