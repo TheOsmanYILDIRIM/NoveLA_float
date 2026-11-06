@@ -66,3 +66,8 @@ Updated: 2026-11-06 (Europe/Istanbul). Read `AGENTS.md` first.
 - Pending lookahead metadata is bounded to eight queued paragraph IDs; PCM retention is one phrase only. Stop/clear/close invalidates the generation and clears the lookahead queue to avoid stale speech. Null/empty prefetched PCM is never consumed.
 - Decoder-to-playback channel capacity increased from 4 to 8 PCM windows. AudioTrack streaming buffer minimum increased to approximately 2 seconds at 48 kHz 16-bit mono (192000 bytes), unless the Android-reported minimum is higher.
 - These are source-level changes on the experimental branch only. No current signed APK, Gradle pass, device listening or measured latency/underrun improvement is proven yet; keep draft PR #2 unmerged.
+
+## 2026-11-06 failed Clone run #42255971043
+- Actual GitHub Actions job #128023133217 logs checked. Model cache restore and verification were successful; `:tooling:text_to_speech:compileDebugKotlin` failed at `EmaOnnxEngine.kt:131:33` with `Return type mismatch: expected Unit, actual ShortArray`.
+- Corrected the leftover cancellation branch in `renderChunks()` from `return ShortArray(0)` to `return`, consistent with streaming callback API returning Unit. Fix commit `90ee33049839c8fd2b06fef25963090a2d8d3693`.
+- New Clone CI trigger requested to validate compiler/build after correction. A trigger commit is not CI success; package/signature/assets and device listening remain unverified until new run evidence exists.
