@@ -12,41 +12,68 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      # Reuse the validated FP32 ONNX model across builds whenever cached.
+      # Only a cache miss performs the pinned PyTorch / Optimum export.
+      - name: Restore EMA FP32 model bundle
+        id: ema_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ema-tools/dist/ema-selected
+          key: ema-fp32-source-7a6ba1ad216b-export-2d7a1fa45857-slim-v1
+      - name: Checkout pinned converter on cache miss
+        if: steps.ema_cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
         with:
           repository: TheOsmanYILDIRIM/NoveLA_float
           ref: 2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d
           path: ema-tools
           persist-credentials: false
       - uses: actions/setup-python@v5
+        if: steps.ema_cache.outputs.cache-hit != 'true'
         with:
           python-version: '3.12'
-      - name: Install fixed FP32 conversion toolchain
+      - name: Install model converter on cache miss
+        if: steps.ema_cache.outputs.cache-hit != 'true'
         run: |
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
           python -m pip install ema-lightning==1.0.4 optimum-onnx==0.1.0 optimum==2.1.0 transformers==4.57.6 onnx==1.23.2 onnxruntime==1.31.0 onnxscript==0.7.2 onnxslim psutil numpy==2.5.3
-      - name: Rebuild validated model from source
+      - name: Generate and validate selected FP32 model on cache miss
+        if: steps.ema_cache.outputs.cache-hit != 'true'
         working-directory: ema-tools
         run: |
           python tools/ema_optimum/export.py
           python tools/ema_optimum/rebuild_selected.py
-      - name: Install FP32 model and verify SHA256
+      - name: Verify and install cached or generated model
         run: |
-          mkdir -p tooling/text_to_speech/src/main/assets/ema
-          cp ema-tools/dist/ema-selected/*.onnx tooling/text_to_speech/src/main/assets/ema/
-          cp ema-tools/dist/ema-selected/vocab.json tooling/text_to_speech/src/main/assets/ema/
           python - <<'PY'
-          import json,hashlib
+          import hashlib, json, shutil
           from pathlib import Path
-          src=Path('ema-tools/dist/ema-selected')
-          dst=Path('tooling/text_to_speech/src/main/assets/ema')
-          manifest=json.loads((src/'manifest.json').read_text())
-          for name,info in manifest['models'].items():
-              payload=(dst/f'{name}.onnx').read_bytes()
-              assert len(payload)==info['bytes'],name
-              assert hashlib.sha256(payload).hexdigest()==info['sha256'],name
-          assert json.loads((dst/'vocab.json').read_text())['stoi']
+          src = Path('ema-tools/dist/ema-selected')
+          dst = Path('tooling/text_to_speech/src/main/assets/ema')
+          manifest = json.loads((src/'manifest.json').read_text())
+          assert manifest['recipe'] == 'Optimum FP32 -> ORT Extended -> OnnxSlim'
+          assert manifest['source_commit'] == '7a6ba1ad216bb2f1da9863f80ac8770a6a807632'
+          assert manifest['precision'] == 'FP32'
+          expected = {'text_stage', 'sound_stage', 'decoder'}
+          assert set(manifest['models']) == expected
+          dst.mkdir(parents=True, exist_ok=True)
+          for stage in sorted(expected):
+              info = manifest['models'][stage]
+              model = src / (stage + '.onnx')
+              assert model.stat().st_size == info['bytes'], stage
+              assert hashlib.sha256(model.read_bytes()).hexdigest() == info['sha256'], stage
+              shutil.copyfile(model, dst / model.name)
+          vocab = src/'vocab.json'
+          assert json.loads(vocab.read_text())['stoi']
+          shutil.copyfile(vocab, dst/vocab.name)
+          print('EMA FP32 model verified and bundled from cache or pinned source')
           PY
+      - name: Cache the selected model only after validation
+        if: steps.ema_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ema-tools/dist/ema-selected
+          key: ema-fp32-source-7a6ba1ad216b-export-2d7a1fa45857-slim-v1
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
