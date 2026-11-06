@@ -237,9 +237,10 @@ class TextToSpeechManager<T : Utterance<T>>(
     val currentActiveItemState = mutableStateOf(initialItemState)
 
     fun init() {
-        service = appTtsEngine.getOrCreate(onReady = ::onServiceReady)
+        service = appTtsEngine.getOrCreate()
         currentEnginePackage = appTtsEngine.getBoundEnginePackage() ?: (service.defaultEngine ?: "")
-        // Wait for the actual Android TTS initialization callback.
+        // Register only after service assignment; an already-ready engine can call back synchronously.
+        appTtsEngine.whenReady(::onServiceReady)
     }
 
     private fun onServiceReady() {
