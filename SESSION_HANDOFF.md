@@ -39,3 +39,10 @@ Updated: 2026-11-06 (Europe/Istanbul). Read `AGENTS.md` first.
 - Basic Turkish integer spelling added before vocabulary filtering. This does not implement full Python `normalizer-tr`. EMA still lacks actual word-range callbacks; speed, acoustic quality, numbers and continuity need device tests.
 - The last historically successful QA APK is from 2026-10-10, BEFORE this correction, and is expired. No current corrected APK or real-device verification can be claimed until new CI evidence exists.
 - Next action: build the clone from this branch, review exact Gradle failure or APK signature/model artifacts, then listen on a physical Android device and inspect `EmaTTS` logs. Keep PR #2 draft and unmerged.
+
+## 2026-11-06 EMA visibility and music coexistence follow-up
+- User observed normal Android TTS engines are visible and working but EMA is missing from the list. The EMA entry is deliberately withheld when model assets are absent in the installed APK: check `EmaOnnxEngine.available()` and `EmaTTS`/Timber logs before attributing it to UI only. Production builds without CI-installed assets cannot expose a functioning EMA engine.
+- Voice search now matches language, voice ID and engine package. A missing-model diagnostic is emitted to the Android log; this is not an audio-quality validation.
+- Narrator no longer requests Android audio focus, and the old synthetic silent AudioTrack/media-session claim in `ReaderTextToSpeech` is removed. Direct EMA playback can therefore coexist with external music without an app-level focus request. External system TTS engines may separately take focus; physical-device test remains necessary.
+- Confirm only the `clone` build from the EMA workflow bundles the four ONNX/vocab assets. The normal `default` app and older APKs do not automatically receive new source changes.
+- Next: run `ema-clone-build.yml` from current HEAD and verify APK build, actual asset contents and signature, then check EMA selection plus Spotify/YouTube Music coexistence and speech on a phone. No successful post-change CI or device result recorded at authoring time.
