@@ -1,0 +1,59 @@
+name: OPUS Tiny Android demo (stable updateable APK)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/opus-mt-onnx-updatable-demo
+    paths:
+      - experiments/opus-mt-onnx-demo/**
+      - .github/workflows/opus-onnx-demo.yml
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Restore stable PUBLIC TEST-ONLY signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d test-signing/novela-ema-clone-TEST-ONLY.p12.base64 > "$RUNNER_TEMP/opus-demo-test.p12"
+          keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/opus-demo-test.p12" -alias novela-ema-clone-demo -storepass androidtest
+          echo "OPUS_DEMO_KEYSTORE_PATH=$RUNNER_TEMP/opus-demo-test.p12" >> "$GITHUB_ENV"
+      - name: Compile updateable, signed demo release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew -p experiments/opus-mt-onnx-demo :app:assembleRelease --stacktrace
+      - name: Verify package, signature, monotonically increasing version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="experiments/opus-mt-onnx-demo/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/opus-signature.txt"
+          grep -Eiq 'c0238eb27c05ba1f80a46c776b10b6d5a342d654f4bef94915c302ee4d4ec66e' "$RUNNER_TEMP/opus-signature.txt"
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          "$AAPT" dump badging "$APK" | grep "package: name='com.osman.opusdemo'"
+          "$AAPT" dump badging "$APK" | grep "versionCode='$GITHUB_RUN_NUMBER'"
+          mkdir -p artifacts
+          cp "$APK" artifacts/OPUS-Tiny-EN-TR-updateable.apk
+          cp "$RUNNER_TEMP/opus-signature.txt" artifacts/signature.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OPUS-Tiny-EN-TR-Android-APK
+          path: artifacts/
+          retention-days: 14
