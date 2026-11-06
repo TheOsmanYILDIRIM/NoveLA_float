@@ -63,3 +63,7 @@ workflow result. APK builds are retained for 7 days as GitHub Actions artifacts.
 
 Do not merge into `default` until the integration compiles and at least
 one real-device spoken sentence is heard correctly.
+
+## Built-in EMA diagnostic export (2026-11-06)
+The reader's TTS control panel contains **Copy EMA diagnostic log**. After reproducing a stall, tap it and paste the text in the chat; no adb is required. Logs survive reader restarts and are capped to 96 KiB in app-private storage. They contain no text of the book. Key events: READER_QUEUE, WAIT_PREVIOUS, PREVIOUS_DONE, MODEL_TEXT_BEGIN/DONE, MODEL_SOUND_BEGIN/DONE, MODEL_DECODE_BEGIN/DONE, AUDIO_START/DONE, PCM_FIRST_TIMEOUT/PCM_NEXT_TIMEOUT, READER_FINISHED and REACHED_CHAPTER_END.
+The live player no longer awaits speculative lookahead. PCM waits and engine lock acquisition are bounded. On a long native inference, the reader may skip the failed phrase; native ONNX itself cannot be forcibly interrupted safely. Inspect stage timing before changing model windows, text cleaning or audio quality.
