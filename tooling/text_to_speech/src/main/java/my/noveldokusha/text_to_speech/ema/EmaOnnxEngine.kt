@@ -64,10 +64,21 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
      * mirrors Engine.plan: sum character durations per word, round, clamp and
      * expand word/frame position vectors.
      */
-    fun render(phrase: String, speed: Float, seed: Long, cancelled: () -> Boolean): ShortArray {
+    /**
+     * Produces decoded audio window-by-window so playback can begin before the
+     * decoder finishes the rest of the phrase. Caller provides backpressure.
+     * Text and sound ONNX stages are still computed once for each phrase.
+     */
+    fun renderChunks(
+        phrase: String,
+        speed: Float,
+        seed: Long,
+        cancelled: () -> Boolean,
+        emitPcm: (ShortArray) -> Unit
+    ) {
         require(speed in 0.25f..4f)
         val text = normalizeAlphabet(phrase)
-        if (text.isBlank()) return ShortArray(0)
+        if (text.isBlank() || cancelled()) return
         val n = text.length
         val ids = ids(text)
         val words = LongArray(n)
@@ -137,7 +148,6 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
             "fmask" to arrayOf(BooleanArray(frameCount) { true }),
             "noise" to noise
         )) as Array<Array<FloatArray>>
-        val samples = ArrayList<Short>(frameCount * 1920)
         var from = 0
         while (from < frameCount && !cancelled()) {
             val to = min(frameCount, from + if (from == 0) FIRST_WINDOW else NEXT_WINDOW)
@@ -152,13 +162,13 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
             }
             val audio = (infer(decoderSession, mapOf("z" to input)) as Array<FloatArray>)[0]
             val low = (from - contextStart) * 1920
-            val high = (to - contextStart) * 1920
-            for (i in low until min(high, audio.size)) {
-                samples.add((audio[i].coerceIn(-1f, 1f) * 32767).roundToInt().toShort())
+            val high = min((to - contextStart) * 1920, audio.size)
+            val pcm = ShortArray((high - low).coerceAtLeast(0)) { i ->
+                (audio[low + i].coerceIn(-1f, 1f) * 32767).roundToInt().toShort()
             }
+            if (pcm.isNotEmpty() && !cancelled()) emitPcm(pcm)
             from = to
         }
-        return samples.toShortArray()
     }
 
     /** Basic Turkish numeric frontend; keeps digits from becoming empty spaces.
