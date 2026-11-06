@@ -128,7 +128,7 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
                 f++
             }
         }
-        if (cancelled()) return ShortArray(0)
+        if (cancelled()) return
         val rng = Random(seed)
         val noise = Array(1) {
             Array(times) {
