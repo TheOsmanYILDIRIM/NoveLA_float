@@ -456,7 +456,11 @@ private fun VoiceSelectorDialog(
             .collectLatest { (filter, sorted) ->
                 val items = withContext(Dispatchers.Default) {
                     if (filter.isEmpty()) sorted
-                    else sorted.filter { it.language.contains(filter, ignoreCase = true) }
+                    else sorted.filter {
+                        it.language.contains(filter, ignoreCase = true) ||
+                            it.id.contains(filter, ignoreCase = true) ||
+                            it.enginePackage.contains(filter, ignoreCase = true)
+                    }
                 }
                 voicesFiltered.clear()
                 voicesFiltered.addAll(items)
