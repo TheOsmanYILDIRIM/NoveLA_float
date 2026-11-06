@@ -2,11 +2,12 @@
 
 Status: **Android APK integration candidate, not device-validated**.
 
-This branch preserves the original NoveLA application and its existing
-`TextToSpeechManager`/MediaSession/UI. It registers an optional
-`EmaTextToSpeechService` in the app manifest; the service implements the
-standard Android TTS API, so the existing engine and voice selector can
-discover `ema-lightning-tr-fp32` when the model is bundled.
+This branch keeps the existing NoveLA TextToSpeechManager, MediaSession and reader UI.
+EMA runs only through the app-internal `EmaLocalPlayer` PCM AudioTrack route.
+The separate Android `TextToSpeechService` and system engine manifest registration
+were removed on 2026-11-06 at the user's request. Installed Android system
+TTS engines remain independently available in NoveLA's voice picker.
+The EMA model is advertised only if the four bundled assets are present.
 
 ## Production model
 
@@ -35,7 +36,7 @@ assets. A local IDE build without model assets will not advertise the voice.
   8-frame decoder context, 48-kHz PCM16 output.
 - The previous Android/system voices remain available. If model assets are
   absent, the EMA voice is not advertised.
-- `onStop` interrupts generation and callback delivery.
+- The direct PCM player prebuffers the first phrase and generates subsequent phrases in a producer coroutine. Stop invalidates pending generation and releases AudioTrack.
 
 ## Known gaps before shipping
 
@@ -48,7 +49,7 @@ assets. A local IDE build without model assets will not advertise the voice.
 - Exact Android ARM64 performance, cold-start delay, Bluetooth playback,
   speed controls, lock-screen controls, word highlighting and interruptions
   must be checked on a physical phone.
-- Android service voice discovery and full synthesis require device tests.
+- Android system voice discovery, direct EMA PCM synthesis, buffering, pause/resume and music ducking require physical-device tests.
 - The CI run checks model reproduction and APK compilation, **not acoustic
   quality on Android**.
 
