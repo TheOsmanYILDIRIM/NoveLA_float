@@ -161,12 +161,52 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
         return samples.toShortArray()
     }
 
+    /** Basic Turkish numeric frontend; keeps digits from becoming empty spaces.
+     * Full Python normalizer-tr parity still needs acoustic/device validation.
+     */
+    private fun numberToTurkish(digits: String): String {
+        val ones = arrayOf("", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz")
+        val tens = arrayOf("", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan")
+        val parsed = digits.toLongOrNull()
+        if (parsed == null || digits.length > 12 || (digits.length > 1 && digits[0] == '0')) {
+            return digits.map { ones[it.digitToInt()].ifBlank { "sıfır" } }.joinToString(" ")
+        }
+        if (parsed == 0L) return "sıfır"
+        fun triplet(value: Int): String {
+            val result = mutableListOf<String>()
+            if (value >= 100) {
+                if (value / 100 > 1) result += ones[value / 100]
+                result += "yüz"
+            }
+            if ((value % 100) / 10 > 0) result += tens[(value % 100) / 10]
+            if (value % 10 > 0) result += ones[value % 10]
+            return result.joinToString(" ")
+        }
+        val units = arrayOf("", "bin", "milyon", "milyar")
+        var left = parsed
+        var group = 0
+        val fragments = mutableListOf<String>()
+        while (left > 0) {
+            val value = (left % 1000).toInt()
+            if (value != 0) {
+                val words = if (group == 1 && value == 1) "bin"
+                    else listOf(triplet(value), units[group]).filter { it.isNotEmpty() }.joinToString(" ")
+                fragments.add(0, words)
+            }
+            left /= 1000
+            group++
+        }
+        return fragments.joinToString(" ")
+    }
+
     private fun normalizeAlphabet(text: String): String {
-        // Maintain Turkish I/İ semantics and model's own vocabulary.
-        // No full Turkish normalizer port: preserve simple alphabet-only behavior.
         val lowered = text.replace('İ', 'i').replace('I', 'ı')
             .lowercase(java.util.Locale.forLanguageTag("tr-TR"))
-        return lowered.map { if (stoi.has(it.toString())) it else ' ' }
+        val numbersExpanded = Regex("\\d+").replace(lowered) { match ->
+            " " + numberToTurkish(match.value) + " "
+        }
+        // Only characters in the actual model vocabulary are sent as token IDs.
+        return numbersExpanded.map { if (stoi.has(it.toString())) it else ' ' }
             .joinToString("").replace(Regex("\\s+"), " ").trim()
     }
 
