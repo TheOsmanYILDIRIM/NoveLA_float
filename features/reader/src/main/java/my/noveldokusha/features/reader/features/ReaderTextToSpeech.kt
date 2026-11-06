@@ -1,6 +1,7 @@
 package my.noveldokusha.features.reader.features
 
 import android.content.Context
+import android.os.SystemClock
 import my.noveldokusha.features.reader.services.NarratorMediaControlsService
 import timber.log.Timber
 import androidx.compose.runtime.MutableState
@@ -64,6 +65,8 @@ internal data class TextToSpeechSettingData(
     val originalVoiceId: State<String>,
     val setOriginalVoiceId: (String) -> Unit,
     val spokenWordRange: State<IntRange?>,
+    val sleepTimerRemainingSeconds: State<Int> = mutableStateOf(0),
+    val setSleepTimer: (Int) -> Unit = {},
 )
 
 internal data class TextSynthesis(
@@ -132,6 +135,33 @@ internal class ReaderTextToSpeech(
             playState = Utterance.PlayState.FINISHED
         )
     )
+
+    private val sleepTimerSeconds = mutableStateOf(0)
+    private var sleepTimerJob: Job? = null
+
+    private fun setSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        if (minutes <= 0) {
+            sleepTimerSeconds.value = 0
+            return
+        }
+        val deadline = SystemClock.elapsedRealtime() + minutes * 60_000L
+        sleepTimerSeconds.value = minutes * 60
+        sleepTimerJob = coroutineScope.launch {
+            while (true) {
+                val remaining = ((deadline - SystemClock.elapsedRealtime() + 999L) / 1000L)
+                    .coerceAtLeast(0L).toInt()
+                sleepTimerSeconds.value = remaining
+                if (remaining == 0) {
+                    sleepTimerJob = null
+                    if (state.isPlaying.value) setPlaying(false)
+                    break
+                }
+                delay(1000L)
+            }
+        }
+    }
 
     val scrolledToTheTop = MutableSharedFlow<Unit>()
     val scrolledToTheBottom = MutableSharedFlow<Unit>()
@@ -270,6 +300,8 @@ internal class ReaderTextToSpeech(
             onOriginalVoiceChanged()
         },
         spokenWordRange = manager.spokenWordRange,
+        sleepTimerRemainingSeconds = sleepTimerSeconds,
+        setSleepTimer = ::setSleepTimer,
     )
 
     val isActive = derivedStateOf { state.isThereActiveItem.value || state.isPlaying.value }
