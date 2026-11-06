@@ -79,6 +79,13 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Test EMA Turkish normalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i '/org.gradle.java.home/d' gradle.properties
+          chmod +x gradlew
+          ./gradlew :tooling:text_to_speech:testDebugUnitTest --stacktrace
       - name: Provision fixed PUBLIC TEST-ONLY signing certificate (no secrets)
         id: sign
         shell: bash
