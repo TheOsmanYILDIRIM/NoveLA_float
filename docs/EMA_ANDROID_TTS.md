@@ -15,10 +15,13 @@ The verified, nonquantized **FP32** EMA Lightning model is reconstructed
 from the original `canberkkkkkk/ema-lightning` weights at pinned revision
 `7a6ba1ad216bb2f1da9863f80ac8770a6a807632`.
 
-The CI workflow uses the code from the project's already validated
-`feature/ema-selected-quantization` branch:
+The first cache-miss build uses the validated pinned converter:
 Optimum ONNX export → ORT Extended → OnnxSlim → stage and reference-waveform
-validation → SHA256 verification → Android APK assets. It does not use INT8,
+validation → SHA256 verification → Android APK assets. Subsequent Clone and debug
+builds restore the same selected FP32 bundle through GitHub Actions cache, verify
+the pinned model manifest, file sizes and SHA256, and package the APK without
+re-running the converter. The cache is **not permanent**: if GitHub evicts it,
+the verified model must be regenerated once. It does not use INT8,
 Q4, NF4, or the earlier unsuccessful quantization experiments.
 
 Files packaged into `tooling/text_to_speech/src/main/assets/ema/`:
