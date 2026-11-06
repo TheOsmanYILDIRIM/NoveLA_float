@@ -7,7 +7,7 @@ EMA runs only through the app-internal `EmaLocalPlayer` PCM AudioTrack route.
 The separate Android `TextToSpeechService` and system engine manifest registration
 were removed on 2026-11-06 at the user's request. Installed Android system
 TTS engines remain independently available in NoveLA's voice picker.
-The EMA model is advertised only if the four bundled assets are present.
+The EMA model is advertised only if the four bundled assets are present. Symbol/control characters are removed from the spoken copy without modifying displayed text; system TTS preserves UTF-16 character offsets for range callbacks.
 
 ## Production model
 
