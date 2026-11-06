@@ -4,6 +4,8 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
@@ -33,6 +35,45 @@ class EmaLocalPlayer(private val context: Context) {
     private val lookaheadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var lookaheadJob: Job? = null
     private var engine: EmaOnnxEngine? = null
+    // Hold transient duck focus across adjacent EMA paragraphs to avoid music
+    // volume pumping between sentences; release on stop/close or queue exhaustion.
+    private val audioManager: AudioManager =
+        context.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val focusLock = Any()
+    private var duckFocusHeld = false
+    private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
+        EmaDiagnostics.record(context, "AUDIO_FOCUS_CHANGE value=$change")
+        if (change == AudioManager.AUDIOFOCUS_LOSS ||
+            change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+            stop()
+        }
+    }
+    private val duckRequest: AudioFocusRequest = AudioFocusRequest.Builder(
+        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+    ).setAudioAttributes(
+        AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .build()
+    ).setOnAudioFocusChangeListener(focusListener).build()
+
+    private fun acquireDuckFocus(): Boolean = synchronized(focusLock) {
+        if (duckFocusHeld) return@synchronized true
+        val result = audioManager.requestAudioFocus(duckRequest)
+        duckFocusHeld = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        EmaDiagnostics.record(context, "AUDIO_FOCUS_REQUEST duck result=$result")
+        duckFocusHeld
+    }
+
+    fun releaseDuckFocus() = synchronized(focusLock) {
+        if (duckFocusHeld) {
+            duckFocusHeld = false
+            audioManager.abandonAudioFocusRequest(duckRequest)
+            EmaDiagnostics.record(context, "AUDIO_FOCUS_RELEASE")
+        }
+        Unit
+    }
+
 
     private data class Lookahead(val id: String, val text: String, val speed: Float,
                                  val token: Int, var chunks: List<ShortArray>? = null)
@@ -104,6 +145,7 @@ class EmaLocalPlayer(private val context: Context) {
 
     fun stop() {
         generation.incrementAndGet()
+        releaseDuckFocus()
         lookaheadJob?.cancel()
         EmaDiagnostics.record(context, "STOP generation=${generation.get()}")
         synchronized(lookaheadLock) { lookaheadQueue.clear() }
@@ -261,6 +303,10 @@ class EmaLocalPlayer(private val context: Context) {
                                 "bufferCapacityFrames=${audio!!.bufferCapacityInFrames} " +
                                 "bufferFrames=${audio!!.bufferSizeInFrames} " +
                                 "startThresholdRequested=$startThresholdFrames applied=$startThresholdSet")
+                        if (!acquireDuckFocus()) {
+                            EmaDiagnostics.record(context, "AUDIO_FOCUS_DENIED token=$token")
+                            return@coroutineScope false
+                        }
                         track = audio
                         onStart()
                         audio?.play()
