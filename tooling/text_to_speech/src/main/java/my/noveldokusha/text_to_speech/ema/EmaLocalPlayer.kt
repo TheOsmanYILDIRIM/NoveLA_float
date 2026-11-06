@@ -58,6 +58,7 @@ class EmaLocalPlayer(private val context: Context) {
         val next = synchronized(lookaheadLock) {
             lookaheadQueue.firstOrNull()?.takeIf { it.token == token && it.chunks == null }
         } ?: return
+        EmaDiagnostics.record(context, "PREFETCH_BEGIN token=$token chars=${next.text.length}")
         val phrase = splitForSpeech(next.text).firstOrNull() ?: return
         val samples = mutableListOf<ShortArray>()
         try {
@@ -71,11 +72,11 @@ class EmaLocalPlayer(private val context: Context) {
             synchronized(lookaheadLock) {
                 if (token == generation.get() && lookaheadQueue.firstOrNull() === next) {
                     if (samples.isNotEmpty()) next.chunks = samples
-                    Log.i("EmaTTS", "Prepared next paragraph first phrase, windows=" + samples.size)
+                    EmaDiagnostics.record(context, "PREFETCH_DONE token=$token windows=${samples.size}")
                 }
             }
         } catch (failure: Exception) {
-            Log.w("EmaTTS", "Lookahead failed: next paragraph will synthesize normally", failure)
+            EmaDiagnostics.record(context, "PREFETCH_ERROR kind=${failure.javaClass.simpleName}")
         }
     }
 
@@ -136,6 +137,7 @@ class EmaLocalPlayer(private val context: Context) {
                     // Generate on a producer coroutine while AudioTrack consumes buffered PCM.
                     // Previously play() started before even the first synthesis completed.
                     val pcmQueue = Channel<ShortArray>(capacity = 8)
+                    EmaDiagnostics.record(context, "PLAY_REQUEST token=$token chars=${text.length} speed=$speed")
                     val producer = launch(Dispatchers.IO) {
                         try {
                             val phrases = splitForSpeech(text)
@@ -151,6 +153,7 @@ class EmaLocalPlayer(private val context: Context) {
                                     continue
                                 }
                                 val started = SystemClock.elapsedRealtime()
+                                EmaDiagnostics.record(context, "ONNX_BEGIN token=$token phrase=$index chars=${phrase.length}")
                                 var totalSamples = 0L
                                 var firstWindowMs = -1L
                                 // Recover from a single failed piece without aborting the reader.
@@ -172,13 +175,13 @@ class EmaLocalPlayer(private val context: Context) {
                                 } catch (cancel: CancellationException) {
                                     throw cancel
                                 } catch (failure: Exception) {
-                                    Log.w("EmaTTS", "Skipping failed PCM phrase index=$index; resetting ONNX sessions", failure)
+                                    EmaDiagnostics.record(context, "ONNX_ERROR phrase=$index kind=${failure.javaClass.simpleName}")
                                     synchronized(engineLock) {
                                         runCatching { engine?.close() }
                                         engine = null
                                     }
                                 }
-                                Log.i("EmaTTS", "PCM phrase=$index chars=${phrase.length} firstMs=$firstWindowMs renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${totalSamples * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
+                                EmaDiagnostics.record(context, "ONNX_END token=$token phrase=$index firstMs=$firstWindowMs renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${totalSamples * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
                             }
                             pcmQueue.close()
                             if (token == generation.get()) {
@@ -213,6 +216,7 @@ class EmaLocalPlayer(private val context: Context) {
                         track = audio
                         onStart()
                         audio?.play()
+                        EmaDiagnostics.record(context, "AUDIO_START token=$token")
                         var totalFramesWritten = 0L
                         var pcm: ShortArray? = first
                         while (pcm != null && token == generation.get()) {
@@ -236,7 +240,7 @@ class EmaLocalPlayer(private val context: Context) {
                             kotlinx.coroutines.delay(20)
                         }
                         if (token == generation.get()) {
-                            Log.i("EmaTTS", "Playback finished frames=$totalFramesWritten underruns=${audio?.underrunCount}")
+                            EmaDiagnostics.record(context, "AUDIO_DONE token=$token frames=$totalFramesWritten underruns=${audio?.underrunCount}")
                         }
                         token == generation.get()
                     } finally {
@@ -247,7 +251,7 @@ class EmaLocalPlayer(private val context: Context) {
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (failure: Exception) {
-                Log.e("EmaTTS", "Direct PCM playback failed", failure)
+                EmaDiagnostics.record(context, "PLAY_ERROR kind=${failure.javaClass.simpleName}")
                 false
             } finally {
                 if (track === audio) track = null
