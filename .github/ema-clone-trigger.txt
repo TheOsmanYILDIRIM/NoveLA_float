@@ -1,2 +1,3 @@
 2026-10-10 clone run 10: compile EMA reference duration-scatter correction and PCM render-time diagnostics; verify package, QA signer, three FP32 ONNX assets and vocab.
 2026-11-06: validate direct-only EMA PCM + preserved Android voices; build/sign/model bundle; physical-device voice quality still pending.
+2026-11-06: rebuild EMA Clone after visibility diagnostics, voice-ID search, and background music coexistence changes.
