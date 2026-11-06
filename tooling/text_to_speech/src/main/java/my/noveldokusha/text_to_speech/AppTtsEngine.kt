@@ -28,6 +28,11 @@ class AppTtsEngine private constructor(context: Context) {
         return engine!!
     }
 
+    @Synchronized
+    fun whenReady(callback: () -> Unit) {
+        if (ready) callback() else waitingCallbacks.add(callback)
+    }
+
     private fun completeInitialization(requestGeneration: Int, status: Int) {
         val callbacks = synchronized(this) {
             if (generation != requestGeneration) return
@@ -58,6 +63,7 @@ class AppTtsEngine private constructor(context: Context) {
 
     fun getBoundEnginePackage(): String? = boundEnginePackage
 
+    @Synchronized
     fun shutdown() {
         engine?.stop()
         engine?.shutdown()
