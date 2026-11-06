@@ -435,15 +435,19 @@ private fun VoiceSelectorDialog(
     val voicesFiltered = remember { mutableStateListOf<VoiceData>() }
 
     LaunchedEffect(availableVoices) {
-        val sorted = withContext(Dispatchers.Default) {
-            availableVoices.sortedWith(
-                compareBy<VoiceData> { it.language }
-                    .thenByDescending { it.quality }
-                    .thenBy { it.needsInternet }
-            )
+        // SnapshotStateList is mutated in place as Android engines finish loading.
+        // A LaunchedEffect keyed only on the list object does not rerun on those changes.
+        snapshotFlow { availableVoices.toList() }.collectLatest { voices ->
+            val sorted = withContext(Dispatchers.Default) {
+                voices.sortedWith(
+                    compareBy<VoiceData> { it.language }
+                        .thenByDescending { it.quality }
+                        .thenBy { it.needsInternet }
+                )
+            }
+            voicesSorted.clear()
+            voicesSorted.addAll(sorted)
         }
-        voicesSorted.clear()
-        voicesSorted.addAll(sorted)
     }
 
     LaunchedEffect(Unit) {
