@@ -66,12 +66,14 @@ class EmaLocalPlayer(private val context: Context) {
             synchronized(engineLock) {
                 val active = engine ?: EmaOnnxEngine(context).also { engine = it }
                 active.renderChunks(phrase, next.speed.coerceIn(0.25f, 4f),
-                    phrase.hashCode().toLong(), { token != generation.get() }) { pcm ->
+                    phrase.hashCode().toLong(),
+                    { token != generation.get() || lookaheadJob?.isCancelled == true }) { pcm ->
                     if (token == generation.get()) samples.add(pcm)
                 }
             }
             synchronized(lookaheadLock) {
-                if (token == generation.get() && lookaheadQueue.firstOrNull() === next) {
+                if (token == generation.get() && lookaheadJob?.isCancelled != true &&
+                    lookaheadQueue.firstOrNull() === next) {
                     if (samples.isNotEmpty()) next.chunks = samples
                     EmaDiagnostics.record(context, "PREFETCH_DONE token=$token windows=${samples.size}")
                 }
@@ -144,6 +146,7 @@ class EmaLocalPlayer(private val context: Context) {
                         try {
                             val phrases = splitForSpeech(text)
                             val cachedFirst = prefetchId?.let { takeLookahead(it, text, speed, token) }
+                            if (cachedFirst == null) lookaheadJob?.cancel()
                             for ((index, phrase) in phrases.withIndex()) {
                                 if (token != generation.get()) break
                                 if (index == 0 && cachedFirst != null) {
