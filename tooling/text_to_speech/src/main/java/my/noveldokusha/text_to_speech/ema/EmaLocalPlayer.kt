@@ -161,7 +161,8 @@ class EmaLocalPlayer(private val context: Context) {
      */
     private fun splitForSpeech(text: String, targetChars: Int = 110): List<String> {
         // Speech-only cleanup: retain the visible text and spoken letters.
-        val clean = text.replace(Regex("[\\p{S}\\p{C}]"), " ")
+        val clean = EmaTurkishNormalizer.normalize(text)
+            .replace(Regex("[\\p{S}\\p{C}]"), " ")
             .replace(Regex("\\s+"), " ").trim()
         if (clean.isEmpty()) return emptyList()
         val out = mutableListOf<String>()
