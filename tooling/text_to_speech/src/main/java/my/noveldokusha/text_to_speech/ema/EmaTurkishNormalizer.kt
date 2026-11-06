@@ -130,7 +130,8 @@ internal object EmaTurkishNormalizer {
             else integer(day.toString()) + " " + months[month] + " " + integer(m.groupValues[3])
         }
         s = clock.replace(s) { m ->
-            integer(m.groupValues[1]) + " " + integer(m.groupValues[2])
+            integer(m.groupValues[1].toInt().toString()) + " " +
+                integer(m.groupValues[2].toInt().toString())
         }
         s = prefixAmount.replace(s) { m ->
             quantity(m.groupValues[2]) + " " + currency(m.groupValues[1])
@@ -145,7 +146,7 @@ internal object EmaTurkishNormalizer {
         for ((pattern, replacement) in abbreviations) s = pattern.replace(s, replacement)
         // Only known initialisms; do not spell out novel characters' names.
         for ((abbreviation, spoken) in initialisms) {
-            val pattern = Regex("(?<![\\\\p{L}])" + abbreviation + "(?![\\\\p{L}])")
+            val pattern = Regex("""(?<!\p{L})""" + abbreviation + """(?!\p{L})""")
             s = pattern.replace(s, spoken)
         }
         s = decimal.replace(s) { m -> quantity(m.value) }
