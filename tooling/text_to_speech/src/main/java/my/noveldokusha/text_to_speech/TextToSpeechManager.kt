@@ -2,6 +2,7 @@ package my.noveldokusha.text_to_speech
 
 import android.content.Context
 import my.noveldokusha.text_to_speech.ema.EmaLocalPlayer
+import my.noveldokusha.text_to_speech.ema.EmaDiagnostics
 import android.os.Bundle
 import android.os.SystemClock
 import android.speech.tts.TextToSpeech
@@ -405,6 +406,7 @@ class TextToSpeechManager<T : Utterance<T>>(
     fun speak(text: String, textSynthesis: T, leadingOffset: Int = 0) {
         if (emaSelected) {
             val previous = emaJob
+            EmaDiagnostics.record(context, "QUEUED paragraph=${textSynthesis.utteranceId} chars=${text.length} speed=${voiceSpeed.floatValue} pending=${_queueList.size}")
             _queueList[textSynthesis.utteranceId] = textSynthesis
             currentSpeakingText.value = text
             // The reader queues multiple paragraphs; reserve the next one for
@@ -413,16 +415,23 @@ class TextToSpeechManager<T : Utterance<T>>(
                 emaPlayer.queueLookahead(textSynthesis.utteranceId, text, voiceSpeed.floatValue)
             }
             emaJob = scope.launch {
-                previous?.join()
+                if (previous != null) {
+                    EmaDiagnostics.record(context, "WAIT_PREVIOUS paragraph=${textSynthesis.utteranceId}")
+                    previous.join()
+                }
+                EmaDiagnostics.record(context, "PREVIOUS_DONE paragraph=${textSynthesis.utteranceId}")
                 if (!_queueList.containsKey(textSynthesis.utteranceId)) return@launch
                 val success = emaPlayer.play(text, voiceSpeed.floatValue, onStart = {
+                    EmaDiagnostics.record(context, "START_PLAY paragraph=${textSynthesis.utteranceId}")
                     val playing = textSynthesis.copyWithState(Utterance.PlayState.PLAYING)
                     currentActiveItemState.value = playing
                     scope.launch { _currentTextSpeakFlow.emit(playing) }
                 }, prefetchId = textSynthesis.utteranceId)
+                EmaDiagnostics.record(context, "END_PLAY paragraph=${textSynthesis.utteranceId} success=$success")
                 if (_queueList.containsKey(textSynthesis.utteranceId)) {
                     if (!success) Timber.w("EMA PCM playback failed")
                     completeItem(textSynthesis.copyWithState(Utterance.PlayState.FINISHED))
+                    EmaDiagnostics.record(context, "FINISHED_EMITTED paragraph=${textSynthesis.utteranceId}")
                 }
             }
             emaJob?.let { job ->
