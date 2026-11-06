@@ -173,6 +173,37 @@ internal fun VoiceReaderSettingDialog(
                     onValueChangeFinished = { state.setVoiceSpeed(localSpeed) },
                 )
 
+                Text(
+                    text = "Sleep timer",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                val sleepRemaining = state.sleepTimerRemainingSeconds.value
+                if (sleepRemaining > 0) {
+                    val minutesLeft = (sleepRemaining + 59) / 60
+                    Text(
+                        text = "TTS stops in $minutesLeft min",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState())
+                ) {
+                    listOf(15, 30, 45, 60, 90).forEach { minutes ->
+                        AssistChip(
+                            onClick = { state.setSleepTimer(minutes) },
+                            label = { Text("$minutes min") }
+                        )
+                    }
+                    if (sleepRemaining > 0) {
+                        AssistChip(
+                            onClick = { state.setSleepTimer(0) },
+                            label = { Text("Cancel") }
+                        )
+                    }
+                }
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
