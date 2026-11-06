@@ -28,7 +28,7 @@ class EmaLocalPlayer(private val context: Context) {
 
     private val generation = java.util.concurrent.atomic.AtomicInteger(0)
     @Volatile private var track: AudioTrack? = null
-    private val engineLock = Any()
+    private val engineLock = java.util.concurrent.locks.ReentrantLock()
     private val lookaheadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var lookaheadJob: Job? = null
     private var engine: EmaOnnxEngine? = null
@@ -63,13 +63,20 @@ class EmaLocalPlayer(private val context: Context) {
         val phrase = splitForSpeech(next.text).firstOrNull() ?: return
         val samples = mutableListOf<ShortArray>()
         try {
-            synchronized(engineLock) {
+            // Do not let speculative work wait for (or block) live playback.
+            if (!engineLock.tryLock()) {
+                EmaDiagnostics.record(context, "PREFETCH_SKIPPED engine_busy")
+                return
+            }
+            try {
                 val active = engine ?: EmaOnnxEngine(context).also { engine = it }
                 active.renderChunks(phrase, next.speed.coerceIn(0.25f, 4f),
                     phrase.hashCode().toLong(),
                     { token != generation.get() || lookaheadJob?.isCancelled == true }) { pcm ->
                     if (token == generation.get()) samples.add(pcm)
                 }
+            } finally {
+                engineLock.unlock()
             }
             synchronized(lookaheadLock) {
                 if (token == generation.get() && lookaheadJob?.isCancelled != true &&
@@ -87,7 +94,11 @@ class EmaLocalPlayer(private val context: Context) {
     fun close() {
         stop()
         lookaheadScope.coroutineContext[Job]?.cancel()
-        synchronized(engineLock) { engine?.close(); engine = null }
+        if (engineLock.tryLock()) {
+            try { engine?.close(); engine = null } finally { engineLock.unlock() }
+        } else {
+            EmaDiagnostics.record(context, "CLOSE_ENGINE_BUSY native_call_not_interruptible")
+        }
     }
 
     fun stop() {
@@ -163,7 +174,10 @@ class EmaLocalPlayer(private val context: Context) {
                                 var firstWindowMs = -1L
                                 // Recover from a single failed piece without aborting the reader.
                                 try {
-                                synchronized(engineLock) {
+                                if (!engineLock.tryLock(3L, java.util.concurrent.TimeUnit.SECONDS)) {
+                                    throw IllegalStateException("ONNX engine lock timeout")
+                                }
+                                try {
                                     val active = engine ?: EmaOnnxEngine(context).also { engine = it }
                                     active.renderChunks(phrase, speed.coerceIn(0.25f, 4f),
                                         phrase.hashCode().toLong() + index,
@@ -176,14 +190,20 @@ class EmaLocalPlayer(private val context: Context) {
                                         // Bounded channel: never build an unbounded multi-minute PCM queue.
                                         runBlocking { pcmQueue.send(pcm) }
                                     }
+                                } finally {
+                                    engineLock.unlock()
                                 }
                                 } catch (cancel: CancellationException) {
                                     throw cancel
                                 } catch (failure: Exception) {
                                     EmaDiagnostics.record(context, "ONNX_ERROR phrase=$index kind=${failure.javaClass.simpleName}")
-                                    synchronized(engineLock) {
-                                        runCatching { engine?.close() }
-                                        engine = null
+                                    if (engineLock.tryLock()) {
+                                        try {
+                                            runCatching { engine?.close() }
+                                            engine = null
+                                        } finally { engineLock.unlock() }
+                                    } else {
+                                        EmaDiagnostics.record(context, "ENGINE_RESET_SKIPPED native_busy")
                                     }
                                 }
                                 EmaDiagnostics.record(context, "ONNX_END token=$token phrase=$index firstMs=$firstWindowMs renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${totalSamples * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
