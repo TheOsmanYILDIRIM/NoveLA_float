@@ -46,3 +46,10 @@ Updated: 2026-11-06 (Europe/Istanbul). Read `AGENTS.md` first.
 - Narrator no longer requests Android audio focus, and the old synthetic silent AudioTrack/media-session claim in `ReaderTextToSpeech` is removed. Direct EMA playback can therefore coexist with external music without an app-level focus request. External system TTS engines may separately take focus; physical-device test remains necessary.
 - Confirm only the `clone` build from the EMA workflow bundles the four ONNX/vocab assets. The normal `default` app and older APKs do not automatically receive new source changes.
 - Next: run `ema-clone-build.yml` from current HEAD and verify APK build, actual asset contents and signature, then check EMA selection plus Spotify/YouTube Music coexistence and speech on a phone. No successful post-change CI or device result recorded at authoring time.
+
+## 2026-11-06 model cache reuse correction
+- Confirmed the selected FP32 ONNX binaries are NOT committed under `tooling/text_to_speech/src/main/assets/ema/`; pinned converter code is stored in the repo, and the old QA Actions artifact has expired. `feature/ema-selected-quantization` does not contain `dist/ema-selected/manifest.json` as a tracked file.
+- Both `.github/workflows/ema-clone-build.yml` and `.github/workflows/ema-android-build.yml` now use the same revision-pinned GitHub Actions cache key for `ema-tools/dist/ema-selected/`.
+- Cache hit skips PyTorch installation and ONNX export; both paths verify manifest source revision, recipe, precision, model sizes/digests and vocabulary before packaging. Cache miss regenerates once using the original pinned pipeline, then saves the verified bundle.
+- GitHub Actions caches can expire or be evicted: this change improves repeated-build speed but is NOT permanent model storage. A durable release asset or Git LFS transfer requires an explicit new storage decision and a verified original binary source.
+- No post-change successful workflow run, model download from cache, signed APK or on-device playback has been confirmed at this writing. Do not merge PR #2 without those validations.
