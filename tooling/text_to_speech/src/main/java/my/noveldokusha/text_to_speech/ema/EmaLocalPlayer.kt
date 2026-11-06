@@ -21,7 +21,7 @@ class EmaLocalPlayer(private val context: Context) {
         fun available(context: Context) = EmaOnnxEngine.available(context)
     }
 
-    @Volatile private var generation = 0
+    private val generation = java.util.concurrent.atomic.AtomicInteger(0)
     @Volatile private var track: AudioTrack? = null
     private val engineLock = Any()
     private var engine: EmaOnnxEngine? = null
@@ -32,7 +32,7 @@ class EmaLocalPlayer(private val context: Context) {
     }
 
     fun stop() {
-        generation++
+        generation.incrementAndGet()
         val old = track
         track = null
         runCatching { old?.pause(); old?.flush(); old?.release() }
@@ -40,7 +40,7 @@ class EmaLocalPlayer(private val context: Context) {
 
     suspend fun play(text: String, speed: Float, onStart: () -> Unit): Boolean =
         withContext(Dispatchers.IO) {
-            val token = generation
+            val token = generation.get()
             var audio: AudioTrack? = null
             try {
                 coroutineScope {
@@ -51,17 +51,17 @@ class EmaLocalPlayer(private val context: Context) {
                         try {
                             val phrases = text.trim().split(Regex("(?<=[.!?])\\s+|(?<=.{160})\\s+"))
                             for ((index, phrase) in phrases.withIndex()) {
-                                if (token != generation) break
+                                if (token != generation.get()) break
                                 if (phrase.isBlank()) continue
                                 val started = SystemClock.elapsedRealtime()
                                 // Never run two ONNX sessions against a shared engine simultaneously.
                                 val pcm = synchronized(engineLock) {
                                     val active = engine ?: EmaOnnxEngine(context).also { engine = it }
                                     active.render(phrase, speed.coerceIn(0.25f, 4f),
-                                        phrase.hashCode().toLong() + index) { token != generation }
+                                        phrase.hashCode().toLong() + index) { token != generation.get() }
                                 }
                                 Log.i("EmaTTS", "PCM phrase index=$index renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${pcm.size * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
-                                if (token != generation) break
+                                if (token != generation.get()) break
                                 if (pcm.isNotEmpty()) pcmQueue.send(pcm)
                             }
                             pcmQueue.close()
@@ -72,8 +72,10 @@ class EmaLocalPlayer(private val context: Context) {
                     }
                     try {
                         // Do not begin playback or issue onStart until audible PCM is ready.
-                        val first = pcmQueue.receiveCatching().getOrNull() ?: return@coroutineScope false
-                        if (token != generation) return@coroutineScope false
+                        val firstResult = pcmQueue.receiveCatching()
+                        firstResult.exceptionOrNull()?.let { throw it }
+                        val first = firstResult.getOrNull() ?: return@coroutineScope false
+                        if (token != generation.get()) return@coroutineScope false
                         val minBytes = AudioTrack.getMinBufferSize(EmaOnnxEngine.SAMPLE_RATE,
                             AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT).coerceAtLeast(8192)
                         audio = AudioTrack.Builder()
@@ -86,29 +88,34 @@ class EmaLocalPlayer(private val context: Context) {
                                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
                             .setBufferSizeInBytes(minBytes)
                             .setTransferMode(AudioTrack.MODE_STREAM).build()
-                        if (token != generation || audio?.state != AudioTrack.STATE_INITIALIZED) return@coroutineScope false
+                        if (token != generation.get() || audio?.state != AudioTrack.STATE_INITIALIZED) return@coroutineScope false
                         track = audio
                         onStart()
                         audio?.play()
                         var totalFramesWritten = 0L
                         var pcm: ShortArray? = first
-                        while (pcm != null && token == generation) {
+                        while (pcm != null && token == generation.get()) {
                             var offset = 0
-                            while (offset < pcm.size && token == generation) {
+                            while (offset < pcm.size && token == generation.get()) {
                                 val written = audio!!.write(pcm, offset, pcm.size - offset, AudioTrack.WRITE_BLOCKING)
                                 if (written <= 0) error("AudioTrack write failed: $written")
                                 offset += written
                                 totalFramesWritten += written
                             }
-                            pcm = pcmQueue.receiveCatching().getOrNull()
+                            val nextResult = pcmQueue.receiveCatching()
+                            nextResult.exceptionOrNull()?.let { throw it }
+                            pcm = nextResult.getOrNull()
                         }
-                        if (token != generation) return@coroutineScope false
+                        if (token != generation.get()) return@coroutineScope false
                         // Let the last queued samples reach the output before advancing.
-                        while (token == generation && audio?.playState == AudioTrack.PLAYSTATE_PLAYING &&
+                        while (token == generation.get() && audio?.playState == AudioTrack.PLAYSTATE_PLAYING &&
                             audio!!.playbackHeadPosition.toLong() < totalFramesWritten) {
                             kotlinx.coroutines.delay(20)
                         }
-                        token == generation
+                        if (token == generation.get()) {
+                            Log.i("EmaTTS", "Playback finished frames=$totalFramesWritten underruns=${audio?.underrunCount}")
+                        }
+                        token == generation.get()
                     } finally {
                         producer.cancel()
                         pcmQueue.cancel()
