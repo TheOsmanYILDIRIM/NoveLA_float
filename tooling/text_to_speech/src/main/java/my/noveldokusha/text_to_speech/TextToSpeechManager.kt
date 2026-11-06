@@ -256,7 +256,15 @@ class TextToSpeechManager<T : Utterance<T>>(
     fun getCurrentEnginePackage(): String = if (emaSelected) EmaLocalPlayer.ENGINE_ID else currentEnginePackage
 
     fun reinitWithEngine(enginePackage: String, voiceId: String) {
-        if (enginePackage == EmaLocalPlayer.ENGINE_ID && EmaLocalPlayer.available(context)) {
+        if (enginePackage == EmaLocalPlayer.ENGINE_ID) {
+            if (!EmaLocalPlayer.available(context)) {
+                // A plain IDE build may not bundle ONNX assets: retain Android system TTS.
+                Timber.w("EMA model unavailable, keeping Android system TTS")
+                emaSelected = false
+                updateActiveVoice()
+                scope.launch { reinitDoneFlow.emit(Unit) }
+                return
+            }
             stop()
             emaSelected = true
             activeVoice.value = VoiceData(EmaLocalPlayer.VOICE_ID, "Türkçe", false,
