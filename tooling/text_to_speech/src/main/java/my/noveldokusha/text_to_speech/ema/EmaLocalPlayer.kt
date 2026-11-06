@@ -46,7 +46,7 @@ class EmaLocalPlayer(private val context: Context) {
             if (first.id != id) return@synchronized null
             lookaheadQueue.removeFirst()
             if (first.text == text && first.speed == speed && first.token == token)
-                first.chunks else null
+                first.chunks?.takeIf { it.isNotEmpty() } else null
         }
 
     private fun prepareLookahead(token: Int) {
@@ -65,7 +65,7 @@ class EmaLocalPlayer(private val context: Context) {
             }
             synchronized(lookaheadLock) {
                 if (token == generation.get() && lookaheadQueue.firstOrNull() === next) {
-                    next.chunks = samples
+                    if (samples.isNotEmpty()) next.chunks = samples
                     Log.i("EmaTTS", "Prepared next paragraph first phrase, windows=" + samples.size)
                 }
             }
