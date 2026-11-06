@@ -8,3 +8,4 @@
 2026-11-06: rebuild after exact Kotlin Unit return mismatch fix identified in failed run 42255971043.
 2026-11-06: rebuild after Unicode TTS sanitization, ONNX phrase failure recovery, 30-second duration cap, and AudioTrack drain stall guard.
 2026-11-06: build EMA diagnostic copy UI, ONNX stage tracing, bounded PCM reader waits and detached lookahead.
+2026-11-06: verify short-title AudioTrack streaming start threshold (0.5s, API 31+ and API 24-30), 4-second drain timeout and corrected diagnostics from user-provided chapter 741 logs.
