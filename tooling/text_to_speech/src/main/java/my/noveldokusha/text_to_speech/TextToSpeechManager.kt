@@ -431,8 +431,13 @@ class TextToSpeechManager<T : Utterance<T>>(
             }
             return
         }
+        // Preserve UTF-16 offsets for Android's onRangeStart highlighting.
+        // Replace symbols/emoji/control code points with equal-width spaces.
+        val speechText = text.replace(Regex("[\\p{S}\\p{C}]")) { match ->
+            " ".repeat(match.value.length)
+        }
         val subItems = delimiterAwareTextSplitter(
-            fullText = text,
+            fullText = speechText,
             maxSliceLength = maxStringLengthPerTextUnit(),
             charDelimiter = '.'
         )
