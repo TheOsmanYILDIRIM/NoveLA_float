@@ -94,7 +94,8 @@ class EmaLocalPlayer(private val context: Context) {
      * chunks and prefer a natural pause near the target.
      */
     private fun splitForSpeech(text: String, targetChars: Int = 110): List<String> {
-        val clean = text.replace("🔻", " ").replace("🔺", " ")
+        // Speech-only cleanup: retain the visible text and spoken letters.
+        val clean = text.replace(Regex("[\\p{S}\\p{C}]"), " ")
             .replace(Regex("\\s+"), " ").trim()
         if (clean.isEmpty()) return emptyList()
         val out = mutableListOf<String>()
@@ -144,8 +145,8 @@ class EmaLocalPlayer(private val context: Context) {
                                 val started = SystemClock.elapsedRealtime()
                                 var totalSamples = 0L
                                 var firstWindowMs = -1L
-                                // ONNX sessions remain serialized, but decoded windows
-                                // are sent to the consumer immediately with bounded backpressure.
+                                // Recover from a single failed piece without aborting the reader.
+                                try {
                                 synchronized(engineLock) {
                                     val active = engine ?: EmaOnnxEngine(context).also { engine = it }
                                     active.renderChunks(phrase, speed.coerceIn(0.25f, 4f),
@@ -159,6 +160,11 @@ class EmaLocalPlayer(private val context: Context) {
                                         // Bounded channel: never build an unbounded multi-minute PCM queue.
                                         runBlocking { pcmQueue.send(pcm) }
                                     }
+                                }
+                                } catch (cancel: CancellationException) {
+                                    throw cancel
+                                } catch (failure: Exception) {
+                                    Log.w("EmaTTS", "Skipping failed PCM phrase index=$index", failure)
                                 }
                                 Log.i("EmaTTS", "PCM phrase=$index chars=${phrase.length} firstMs=$firstWindowMs renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${totalSamples * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
                             }
@@ -208,8 +214,10 @@ class EmaLocalPlayer(private val context: Context) {
                         }
                         if (token != generation.get()) return@coroutineScope false
                         // Let the last queued samples reach the output before advancing.
+                        val drainDeadline = SystemClock.elapsedRealtime() + 15_000L
                         while (token == generation.get() && audio?.playState == AudioTrack.PLAYSTATE_PLAYING &&
-                            audio!!.playbackHeadPosition.toLong() < totalFramesWritten) {
+                            audio!!.playbackHeadPosition.toLong() < totalFramesWritten &&
+                            SystemClock.elapsedRealtime() < drainDeadline) {
                             kotlinx.coroutines.delay(20)
                         }
                         if (token == generation.get()) {
