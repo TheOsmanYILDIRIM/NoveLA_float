@@ -8,6 +8,9 @@ import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -25,6 +28,8 @@ class EmaLocalPlayer(private val context: Context) {
     private val generation = java.util.concurrent.atomic.AtomicInteger(0)
     @Volatile private var track: AudioTrack? = null
     private val engineLock = Any()
+    private val lookaheadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Volatile private var lookaheadJob: Job? = null
     private var engine: EmaOnnxEngine? = null
 
     private data class Lookahead(val id: String, val text: String, val speed: Float,
@@ -77,11 +82,14 @@ class EmaLocalPlayer(private val context: Context) {
 
     fun close() {
         stop()
+        lookaheadScope.coroutineContext[Job]?.cancel()
         synchronized(engineLock) { engine?.close(); engine = null }
     }
 
     fun stop() {
         generation.incrementAndGet()
+        lookaheadJob?.cancel()
+        EmaDiagnostics.record(context, "STOP generation=${generation.get()}")
         synchronized(lookaheadLock) { lookaheadQueue.clear() }
         val old = track
         track = null
@@ -173,7 +181,10 @@ class EmaLocalPlayer(private val context: Context) {
                                 Log.i("EmaTTS", "PCM phrase=$index chars=${phrase.length} firstMs=$firstWindowMs renderMs=${SystemClock.elapsedRealtime() - started} audioMs=${totalSamples * 1000L / EmaOnnxEngine.SAMPLE_RATE}")
                             }
                             pcmQueue.close()
-                            if (token == generation.get()) prepareLookahead(token)
+                            if (token == generation.get()) {
+                                lookaheadJob?.cancel()
+                                lookaheadJob = lookaheadScope.launch { prepareLookahead(token) }
+                            }
                         } catch (failure: Throwable) {
                             pcmQueue.close(failure)
                             if (failure is CancellationException) throw failure
