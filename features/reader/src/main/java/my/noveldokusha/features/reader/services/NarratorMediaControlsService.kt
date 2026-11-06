@@ -89,7 +89,7 @@ internal class NarratorMediaControlsService : Service() {
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                 .build()
-            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                 .setAudioAttributes(attrs)
                 .setAcceptsDelayedFocusGain(true)
                 // Речь (TTS): при запросе фокуса с duck'ом ставим паузу,
@@ -125,7 +125,7 @@ internal class NarratorMediaControlsService : Service() {
             audioFocusRequest = request
         }
         audioManager.requestAudioFocus(audioFocusRequest!!)
-        Timber.d("AudioFocus requested AUDIOFOCUS_GAIN")
+        Timber.d("AudioFocus requested AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK")
     }
 
     private fun onFocusGained() {
