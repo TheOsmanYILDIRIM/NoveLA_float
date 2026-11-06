@@ -23,7 +23,8 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
         private const val CONTEXT = 8
         private const val FIRST_WINDOW = 25
         private const val NEXT_WINDOW = 100
-        private const val MAX_FRAMES = 3000
+        // 30 seconds is a safety ceiling for one ~110-character speech phrase.
+        private const val MAX_FRAMES = 750
 
         fun available(context: Context): Boolean = runCatching {
             val files = context.assets.list("ema")?.toSet() ?: emptySet()
@@ -114,7 +115,7 @@ internal class EmaOnnxEngine(context: Context) : AutoCloseable {
         val scaledDurations = FloatArray(n) { durations[it] / speed }
         val counts = FloatArray(n)
         for (i in 0 until n) counts[words[i].toInt()] += scaledDurations[i]
-        val wordFrames = IntArray(word.toInt() + 1) { counts[it].roundToInt().coerceIn(1, 250) }
+        val wordFrames = IntArray(word.toInt() + 1) { counts[it].roundToInt().coerceIn(1, 100) }
         val frameCount = min(wordFrames.sum(), MAX_FRAMES)
         val fw = LongArray(frameCount)
         val fp = FloatArray(frameCount)
