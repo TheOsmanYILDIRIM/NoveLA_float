@@ -1,10 +1,6 @@
 package my.noveldokusha.features.reader.features
 
 import android.content.Context
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
 import my.noveldokusha.features.reader.services.NarratorMediaControlsService
 import timber.log.Timber
 import androidx.compose.runtime.MutableState
@@ -23,7 +19,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import my.noveldokusha.core.appPreferences.VoicePredefineState
 import my.noveldokusha.features.reader.domain.ChapterIndex
@@ -379,61 +374,12 @@ internal class ReaderTextToSpeech(
         }
     }
 
-    @Volatile
-    private var activeClaimTrack: AudioTrack? = null
-
     private val lifecycleLock = java.util.concurrent.locks.ReentrantLock()
-
-    private fun claimMediaSession() {
-        try {
-            // Освобождаем предыдущий трек, если он ещё не был релизнут
-            // (защита от утечки при множественных вызовах start())
-            activeClaimTrack?.let { runCatching { it.release() } }
-            activeClaimTrack = null
-
-            val sampleRate = 44100
-            val durationSec = 0.1
-            val bufferSize = (sampleRate * durationSec).toInt()
-            val audioTrack = AudioTrack(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build(),
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build(),
-                bufferSize * 2,
-                AudioTrack.MODE_STATIC,
-                AudioManager.AUDIO_SESSION_ID_GENERATE
-            )
-            activeClaimTrack = audioTrack
-            val silence = ShortArray(bufferSize)
-            audioTrack.write(silence, 0, silence.size)
-            audioTrack.play()
-            // NonCancellable гарантирует, что release() выполнится даже при отмене coroutineScope
-            coroutineScope.launch(NonCancellable) {
-                try {
-                    delay(200)
-                } finally {
-                    runCatching { audioTrack.stop() }
-                    runCatching { audioTrack.release() }
-                    if (activeClaimTrack === audioTrack) activeClaimTrack = null
-                }
-            }
-            Timber.v("claimMediaSession OK")
-        } catch (e: Exception) {
-            Timber.w(e, "claimMediaSession failed")
-        }
-    }
 
     fun start() {
         lifecycleLock.lock()
         try {
             Timber.d("start()")
-            claimMediaSession()
-            NarratorMediaControlsService.reacquireFocus()
             switchVoiceForMode()
             state.isPlaying.value = true
             updateJob?.cancel()
