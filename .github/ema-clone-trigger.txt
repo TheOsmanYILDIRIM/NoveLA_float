@@ -3,3 +3,4 @@
 2026-11-06: rebuild EMA Clone after visibility diagnostics, voice-ID search, and background music coexistence changes.
 2026-11-06: include media callback focus-reference cleanup in corrected Clone build.
 2026-11-06: verify shared revision-pinned EMA FP32 cache, APK asset hashes, and Clone build from latest branch.
+2026-11-06: test window-streamed PCM, short speech chunks and long Turkish/English mixed dialogue with audio underrun logs.
