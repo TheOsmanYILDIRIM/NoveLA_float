@@ -44,6 +44,25 @@ jobs:
             echo "keyAlias=$ALIAS"
             echo "keyPassword=$KEY_PASSWORD"
           } > custom.properties
+      - name: Verify signing key before Gradle build
+        env:
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          test -s app/storeFile.jks || { echo "::error::Decoded signing keystore is empty"; exit 1; }
+          keytool -list -keystore app/storeFile.jks -storepass "$KEY_STORE_PASSWORD" >/dev/null 2>&1 || {
+            echo "::error::Keystore cannot be opened. Verify SIGNING_KEY base64 and KEY_STORE_PASSWORD secrets."
+            exit 1
+          }
+          keytool -list -keystore app/storeFile.jks -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" >/dev/null 2>&1 || {
+            echo "::error::ALIAS does not match a key entry in the keystore."
+            exit 1
+          }
+          keytool -certreq -alias "$ALIAS" -keystore app/storeFile.jks -storepass "$KEY_STORE_PASSWORD" -keypass "$KEY_PASSWORD" -file /tmp/novela-signing-check.csr >/dev/null 2>&1 || {
+            echo "::error::KEY_PASSWORD cannot unlock the signing key, or the keystore is invalid."
+            exit 1
+          }
       - run: sed -i '/org\\.gradle\\.java\\.home/d' gradle.properties
       - name: Build signed release
         run: ./gradlew assembleRelease -PlocalPropertiesFilePath=custom.properties --no-configuration-cache
