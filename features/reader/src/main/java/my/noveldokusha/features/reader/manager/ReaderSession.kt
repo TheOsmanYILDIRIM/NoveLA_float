@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import my.noveldokusha.data.AppRepository
+import my.noveldokusha.data.NovelLexService
 import my.noveldokusha.core.appPreferences.AppPreferences
 import my.noveldokusha.core.appPreferences.TranslationSettingsResolver
 import my.noveldokusha.features.reader.ReaderRepository
@@ -59,6 +60,7 @@ internal class ReaderSession(
     translationManager: TranslationManager,
     translationSettingsResolver: TranslationSettingsResolver,
     private val chapterTranslationDao: ChapterTranslationDao,
+    private val novelLexService: NovelLexService,
 ) {
     private val scope: CoroutineScope = CoroutineScope(
         SupervisorJob() + Dispatchers.Default + CoroutineName("ReaderSession") +
@@ -125,7 +127,15 @@ internal class ReaderSession(
 
     val readerChaptersLoader = ReaderChaptersLoader(
         readerRepository = readerRepository,
-        translatorTranslateOrNull = { readerLiveTranslation.translatorState?.translate?.invoke(it) },
+        translatorTranslateOrNull = { original ->
+            readerLiveTranslation.translatorState?.let { active ->
+                novelLexService.translateBatch(bookUrl, active.source, active.target, listOf(original)) { marked ->
+                    val answers = LinkedHashMap<String, String>()
+                    for (text in marked) answers[text] = active.translate(text)
+                    answers
+                }[original]
+            }
+        },
         translatorIsActive = { readerLiveTranslation.translatorState != null },
         translatorSourceLanguageOrNull = { readerLiveTranslation.translatorState?.sourceLocale?.language },
         translatorTargetLanguageOrNull = { readerLiveTranslation.translatorState?.targetLocale?.language },
@@ -139,7 +149,16 @@ internal class ReaderSession(
             }
         },
         translatorIsOnline = { readerLiveTranslation.isUsingOnlineTranslation() },
-        translatorBatchTranslateOrNull = { readerLiveTranslation.getBatchTranslator() },
+        translatorBatchTranslateOrNull = {
+            readerLiveTranslation.getBatchTranslator()?.let { delegate ->
+                val wrapped: suspend (List<String>) -> Map<String, String> = { texts ->
+                    val pair = readerLiveTranslation.translatorState
+                    if (pair == null) delegate(texts) else
+                        novelLexService.translateBatch(bookUrl, pair.source, pair.target, texts, delegate)
+                }
+                wrapped
+            }
+        },
         translatorTranslateTitleOrNull = { title, sourceLang, targetLang ->
             translationManager.translateTitle(title, sourceLang, targetLang)
         },
@@ -269,6 +288,9 @@ internal class ReaderSession(
             // Иначе getBatchTranslator() вернёт null (translatorState ещё не создан)
             // и онлайн-провайдер (Gemini/OpenAI) упадёт в поабзацный перевод или ошибку.
             readerLiveTranslation.init()
+            readerLiveTranslation.translatorState?.let {
+                novelLexService.refresh(bookUrl, it.source, it.target)
+            }
 
             bookCoverUrl = book.await()?.coverImageUrl
             bookTitle = book.await()?.title

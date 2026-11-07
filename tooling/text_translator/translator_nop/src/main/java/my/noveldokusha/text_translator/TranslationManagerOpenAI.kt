@@ -118,7 +118,7 @@ class TranslationManagerOpenAI(
         targetLanguage: String,
         systemPromptOverride: String? = null,
     ): String = withContext(Dispatchers.IO) {
-        val systemPrompt = buildPrompt(sourceLanguage, targetLanguage, systemPromptOverride)
+        val systemPrompt = appendNovelLexGuard(buildPrompt(sourceLanguage, targetLanguage, systemPromptOverride), text.contains("⟦NLX"))
         val responseText = sendWithKeyRotation(systemPrompt, text)
         responseText.trim().ifEmpty { text }
     }
@@ -147,7 +147,7 @@ class TranslationManagerOpenAI(
 
         Timber.d( "translateBatch: ${normalizedTexts.size} paragraphs, $sourceLanguage→$targetLanguage, override='${systemPromptOverride?.take(200)}'")
 
-        val systemPrompt = buildPrompt(sourceLanguage, targetLanguage, systemPromptOverride)
+        val systemPrompt = appendNovelLexGuard(buildPrompt(sourceLanguage, targetLanguage, systemPromptOverride), normalizedTexts.any { it.contains("⟦NLX") })
         Timber.d( "translateBatch: systemPrompt='${systemPrompt.take(200)}'")
 
         // All format instructions are in the system prompt.

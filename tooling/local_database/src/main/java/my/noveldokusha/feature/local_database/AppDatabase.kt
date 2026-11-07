@@ -17,6 +17,7 @@ import my.noveldokusha.feature.local_database.DAOs.DownloadTaskDao
 import my.noveldokusha.feature.local_database.DAOs.DownloadedPageChaptersDao
 import my.noveldokusha.feature.local_database.DAOs.ExtensionDao
 import my.noveldokusha.feature.local_database.DAOs.LibraryDao
+import my.noveldokusha.feature.local_database.DAOs.NovelLexTermDao
 import my.noveldokusha.feature.local_database.DAOs.NovelMigrationDao
 import my.noveldokusha.feature.local_database.DAOs.ReadingHistoryDao
 import my.noveldokusha.feature.local_database.tables.Book
@@ -28,6 +29,7 @@ import my.noveldokusha.feature.local_database.tables.ChapterTranslation
 import my.noveldokusha.feature.local_database.tables.DownloadTaskEntity
 import my.noveldokusha.feature.local_database.tables.DownloadedPageChapter
 import my.noveldokusha.feature.local_database.tables.Extension
+import my.noveldokusha.feature.local_database.tables.NovelLexTerm
 import my.noveldokusha.feature.local_database.tables.MigrationRecord
 import my.noveldokusha.feature.local_database.tables.ReadingHistory
 import java.io.InputStream
@@ -40,6 +42,7 @@ interface AppDatabase {
     fun chapterPagesDao(): ChapterPagesDao
     fun downloadedPageChaptersDao(): DownloadedPageChaptersDao
     fun chapterTranslationDao(): ChapterTranslationDao
+    fun novelLexTermDao(): NovelLexTermDao
     fun bookTranslationDao(): BookTranslationDao
     fun downloadTaskDao(): DownloadTaskDao
     fun extensionDao(): ExtensionDao
@@ -126,13 +129,14 @@ interface AppDatabase {
         ChapterBody::class,
         ChapterPages::class,
         ChapterTranslation::class,
+        NovelLexTerm::class,
         DownloadTaskEntity::class,
         DownloadedPageChapter::class,
         Extension::class,
         MigrationRecord::class,
         ReadingHistory::class
     ],
-    version = 35,
+    version = 36,
     exportSchema = true
 )
 internal abstract class AppRoomDatabase : RoomDatabase(), AppDatabase {
@@ -142,6 +146,7 @@ internal abstract class AppRoomDatabase : RoomDatabase(), AppDatabase {
     abstract override fun chapterPagesDao(): ChapterPagesDao
     abstract override fun downloadedPageChaptersDao(): DownloadedPageChaptersDao
     abstract override fun chapterTranslationDao(): ChapterTranslationDao
+    abstract override fun novelLexTermDao(): NovelLexTermDao
     abstract override fun bookTranslationDao(): BookTranslationDao
     abstract override fun downloadTaskDao(): DownloadTaskDao
     abstract override fun extensionDao(): ExtensionDao

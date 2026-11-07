@@ -3,6 +3,7 @@ package my.noveldokusha.features.reader.manager
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import my.noveldokusha.data.AppRepository
+import my.noveldokusha.data.NovelLexService
 import my.noveldokusha.core.appPreferences.AppPreferences
 import my.noveldokusha.core.appPreferences.TranslationSettingsResolver
 import my.noveldokusha.features.reader.ReaderRepository
@@ -23,6 +24,7 @@ internal class ReaderSessionProvider @Inject constructor(
     private val readerRepository: ReaderRepository,
     private val readerViewHandlersActions: ReaderViewHandlersActions,
     private val chapterTranslationDao: ChapterTranslationDao,
+    private val novelLexService: NovelLexService,
 ) {
     fun create(
         bookUrl: String,
@@ -40,6 +42,7 @@ internal class ReaderSessionProvider @Inject constructor(
             readerRepository = readerRepository,
             readerViewHandlersActions = readerViewHandlersActions,
             chapterTranslationDao = chapterTranslationDao,
+            novelLexService = novelLexService,
         )
     }
 }

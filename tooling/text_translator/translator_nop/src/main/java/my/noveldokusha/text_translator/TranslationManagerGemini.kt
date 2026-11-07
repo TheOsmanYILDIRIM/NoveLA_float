@@ -107,8 +107,8 @@ class TranslationManagerGemini(
 
         val useEnglish = appPreferences.TRANSLATION_PROMPT_USE_ENGLISH_LOCALE.value
         val templatePrompt = resolveTemplatePrompt(appPreferences, systemPromptOverride)
-        val systemPrompt = buildSystemPrompt(templatePrompt, sourceLanguage, targetLanguage, useEnglish)
-        val builtFallbackPrompt = buildSystemPrompt(fallbackSystemPrompt, sourceLanguage, targetLanguage, useEnglish)
+        val systemPrompt = appendNovelLexGuard(buildSystemPrompt(templatePrompt, sourceLanguage, targetLanguage, useEnglish), text.contains("⟦NLX"))
+        val builtFallbackPrompt = appendNovelLexGuard(buildSystemPrompt(fallbackSystemPrompt, sourceLanguage, targetLanguage, useEnglish), text.contains("⟦NLX"))
 
         val startIndex = Math.floorMod(keyIndex.getAndIncrement(), keys.size)
         var lastException: Exception? = null
@@ -211,7 +211,7 @@ class TranslationManagerGemini(
 
         val useEnglish = appPreferences.TRANSLATION_PROMPT_USE_ENGLISH_LOCALE.value
         val templatePrompt = resolveTemplatePrompt(appPreferences, systemPromptOverride)
-        val systemPrompt = buildSystemPrompt(templatePrompt, sourceLanguage, targetLanguage, useEnglish)
+        val systemPrompt = appendNovelLexGuard(buildSystemPrompt(templatePrompt, sourceLanguage, targetLanguage, useEnglish), normalizedTexts.any { it.contains("⟦NLX") })
         Timber.d( "translateBatch: systemPrompt='${systemPrompt.take(200)}'")
 
         // Numbered input keeps Gemini aligned to the existing batch parser with minimal overhead.

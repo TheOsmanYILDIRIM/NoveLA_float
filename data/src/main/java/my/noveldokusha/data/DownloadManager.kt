@@ -123,6 +123,7 @@ class DownloadManager @Inject constructor(
     private val chapterBodyRepository: ChapterBodyRepository,
     private val downloadedPageChaptersStore: DownloadedPageChaptersStore,
     private val translationManager: TranslationManager,
+    private val novelLexService: NovelLexService,
     private val chapterTranslationDao: my.noveldokusha.feature.local_database.DAOs.ChapterTranslationDao,
     private val bookTranslationDao: BookTranslationDao,
     private val translationSettingsResolver: TranslationSettingsResolver,
@@ -1090,7 +1091,10 @@ class DownloadManager @Inject constructor(
             if (paragraphs.isEmpty()) return TranslateOutcome.Success
 
             // H5: Retry-цикл для translateBatch (перевыбрасывает ошибку при исчерпании)
-            val translations = translateBatchWithRetry(paragraphs, sourceLang, targetLang, provider)
+            novelLexService.refresh(bookUrl, sourceLang, targetLang)
+            val translations = novelLexService.translateBatch(bookUrl, sourceLang, targetLang, paragraphs) { marked ->
+                translateBatchWithRetry(marked, sourceLang, targetLang, provider)
+            }
 
             val translatedParagraphs = org.json.JSONArray(
                 paragraphs.map { translations[it] ?: it }

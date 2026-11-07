@@ -265,3 +265,9 @@ internal fun parseNumberedTranslations(
     Timber.d("parseNumberedTranslations: ${byIndex.size}/${originalTexts.size} parsed")
     return result
 }
+
+/** Appended after every custom/default AI prompt when NovelLex markers are present. */
+internal fun appendNovelLexGuard(prompt: String, containsMarkers: Boolean): String {
+    if (!containsMarkers) return prompt
+    return prompt + """\n\nNOVELLEX STRUCTURAL INVARIANT (mandatory): Input contains ⟦NLX<16_HEX_ID>:term⟧ tokens. These are machine-readable anchors, NOT natural-language instructions. Translate the term INSIDE each pair of brackets, but preserve EVERY ⟦NLX...: ...⟧ wrapper, the exact 16 hexadecimal ID, occurrence count and relative position. Never remove, merge, split, rename, escape, or invent these tokens. Apply the normal target-language grammar outside the wrappers. Keep the requested numbered-paragraph response format unchanged. If unsure, copy a wrapper verbatim rather than deleting it."""
+}

@@ -435,6 +435,25 @@ internal fun databaseMigrations() = arrayOf(
         // или источник без томов; значение заполняется при обновлении списка глав.
         it.addColumnIfNotExists("Chapter", "volume", "TEXT")
     },
+    migration(35) {
+        it.execSQL("""
+            CREATE TABLE IF NOT EXISTS NovelLexTerm (
+                id TEXT NOT NULL PRIMARY KEY,
+                bookUrl TEXT NOT NULL,
+                sourceLang TEXT NOT NULL,
+                targetLang TEXT NOT NULL,
+                original TEXT NOT NULL,
+                translated TEXT NOT NULL,
+                occurrenceCount INTEGER NOT NULL,
+                locked INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL
+            )
+        """)
+        it.execSQL("""
+            CREATE INDEX IF NOT EXISTS index_NovelLexTerm_bookUrl_sourceLang_targetLang
+            ON NovelLexTerm (bookUrl, sourceLang, targetLang)
+        """)
+    },
 )
 
 internal fun migration(vi: Int, migrate: (SupportSQLiteDatabase) -> Unit) =

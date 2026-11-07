@@ -571,6 +571,31 @@ class RestoreDataService : Service() {
                         }
                     )
 
+
+                    // Restore book-scoped NovelLex terminology, without clobbering local user locks.
+                    val lexDao = appDatabase.novelLexTermDao()
+                    val totalLexTerms = backupDatabase.newDatabase.novelLexTermDao().count()
+                    processInChunks(
+                        total = totalLexTerms, initialChunkSize = 500, label = "novellex",
+                        fetchChunk = { limit, offset ->
+                            backupDatabase.newDatabase.novelLexTermDao().getChunk(limit, offset)
+                        },
+                        processChunk = { chunk ->
+                            val valid = chunk.filter { it.bookUrl in restoredBookUrls }
+                            val groups = valid.groupBy { Triple(it.bookUrl, it.sourceLang, it.targetLang) }
+                            for ((key, incoming) in groups) {
+                                val current = lexDao.forBook(key.first, key.second, key.third)
+                                    .associateBy { it.id }
+                                val accepted = incoming.filter { entry ->
+                                    val local = current[entry.id]
+                                    local == null || (!local.locked &&
+                                        (entry.locked || entry.updatedAt > local.updatedAt))
+                                }
+                                if (accepted.isNotEmpty()) lexDao.upsert(accepted)
+                            }
+                        }
+                    )
+
                     // Restore extensions (plugins)
                     notificationsCenter.modifyNotification(
                         notificationBuilder,

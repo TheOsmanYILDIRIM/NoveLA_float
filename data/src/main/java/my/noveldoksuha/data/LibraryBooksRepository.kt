@@ -111,6 +111,7 @@ class LibraryBooksRepository @Inject constructor(
         appDatabase.transaction {
             // 1. Delete chapter translations
             chapterTranslationDao.deleteTranslationsByBookUrls(listOf(bookUrl))
+            appDatabase.novelLexTermDao().deleteForBooks(listOf(bookUrl))
             // 2. Delete chapter bodies
             chapterBodyDao.removeChapterBodiesByBookUrls(listOf(bookUrl))
             // 3. Delete chapters
@@ -133,6 +134,7 @@ class LibraryBooksRepository @Inject constructor(
             // Process in chunks to avoid SQLite variable limit
             bookUrls.chunked(500).forEach { chunk ->
                 chapterTranslationDao.deleteTranslationsByBookUrls(chunk)
+                appDatabase.novelLexTermDao().deleteForBooks(chunk)
                 chapterBodyDao.removeChapterBodiesByBookUrls(chunk)
                 chapterDao.removeAllFromBooks(chunk)
                 libraryDao.removeBooksByUrls(chunk)
@@ -314,6 +316,7 @@ class LibraryBooksRepository @Inject constructor(
             if (oldUrl == newUrl) return@withContext
             appDatabase.transaction {
                 chapterDao.updateBookUrl(oldUrl, newUrl)
+                appDatabase.novelLexTermDao().moveBook(oldUrl, newUrl)
                 libraryDao.updateUrl(oldUrl, newUrl)
                 val downloadTaskDao = appDatabase.downloadTaskDao()
                 downloadTaskDao.get(oldUrl)?.let { task ->

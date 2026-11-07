@@ -21,6 +21,14 @@ interface ChapterBodyDao {
     @Query("SELECT * FROM ChapterBody WHERE url = :url")
     suspend fun get(url: String): ChapterBody?
 
+    @Query("""
+        SELECT ChapterBody.* FROM ChapterBody
+        INNER JOIN Chapter ON Chapter.url = ChapterBody.url
+        WHERE Chapter.bookUrl = :bookUrl
+        ORDER BY Chapter.position
+    """)
+    suspend fun getBodiesForBook(bookUrl: String): List<ChapterBody>
+
     @Query("SELECT * FROM ChapterBody WHERE url IN (:urls)")
     suspend fun getBodiesByUrls(urls: List<String>): List<ChapterBody>
 
