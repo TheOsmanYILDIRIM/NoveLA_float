@@ -45,7 +45,7 @@ android {
 
     defaultConfig {
         applicationId = "my.novela"
-        versionCode = 39
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 39000 + it } ?: 39
         versionName = "1.6.1"
         base.archivesName.set("NoveLA_v$versionName")
         manifestPlaceholders["appLabel"] = "NoveLA"

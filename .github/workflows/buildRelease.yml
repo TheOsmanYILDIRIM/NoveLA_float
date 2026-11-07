@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 jobs:
-  clean-debug:
+  signed-update-apk:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -29,12 +29,29 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Configure signing
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          test -n "$SIGNING_KEY" && test -n "$KEY_STORE_PASSWORD" && test -n "$ALIAS" && test -n "$KEY_PASSWORD"
+          printf '%s' "$SIGNING_KEY" | base64 -d > app/storeFile.jks
+          {
+            echo 'storeFile=storeFile.jks'
+            printf 'storePassword=%s\\n' "$KEY_STORE_PASSWORD"
+            printf 'keyAlias=%s\\n' "$ALIAS"
+            printf 'keyPassword=%s\\n' "$KEY_PASSWORD"
+          } > custom.properties
       - run: sed -i '/org\\.gradle\\.java\\.home/d' gradle.properties
-      - run: ./gradlew assembleDebug
+      - name: Build signed release
+        run: ./gradlew assembleRelease -PlocalPropertiesFilePath=custom.properties
       - uses: actions/upload-artifact@v4
         with:
-          name: NoveLA-clean-TTS-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: NoveLA-signed-update-release
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
           retention-days: 14
 
   build:

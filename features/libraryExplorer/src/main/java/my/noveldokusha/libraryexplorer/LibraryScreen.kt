@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,6 +19,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -199,27 +205,6 @@ fun LibraryScreen(
                                             )
                                         }
                                     }
-                                    latestReading?.let { last ->
-                                        IconButton(
-                                            onClick = {
-                                                val chapter = last.lastReadChapterUrl
-                                                if (!chapter.isNullOrBlank()) {
-                                                    context.startActivity(
-                                                        navigationRouteViewModel.reader(
-                                                            context = context,
-                                                            bookUrl = last.bookUrl,
-                                                            chapterUrl = chapter
-                                                        )
-                                                    )
-                                                }
-                                            }
-                                        ) {
-                                            Icon(
-                                                Icons.Filled.MenuBook,
-                                                contentDescription = "Resume reading"
-                                            )
-                                        }
-                                    }
                                     IconButton(onClick = { libraryModel.setToolbarMode(ToolbarMode.SEARCH) }) {
                                         Icon(Icons.Filled.Search, stringResource(R.string.search_for_title))
                                     }
@@ -276,6 +261,36 @@ fun LibraryScreen(
                                 placeholderText = stringResource(R.string.search_here),
                                 onSearchTextChange = { pageViewModel.updateSearchQuery(it) }
                             )
+                        }
+                    }
+                }
+            }
+        },
+        floatingActionButton = {
+            if (!uiState.isSelectionMode) {
+                latestReading?.let { last ->
+                    FloatingActionButton(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        onClick = {
+                            last.lastReadChapterUrl?.takeIf { it.isNotBlank() }?.let { chapter ->
+                                context.startActivity(
+                                    navigationRouteViewModel.reader(
+                                        context = context,
+                                        bookUrl = last.bookUrl,
+                                        chapterUrl = chapter
+                                    )
+                                )
+                            }
+                        }
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                            Text("Resume reading")
                         }
                     }
                 }
