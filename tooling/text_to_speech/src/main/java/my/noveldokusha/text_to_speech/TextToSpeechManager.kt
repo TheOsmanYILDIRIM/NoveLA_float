@@ -1,6 +1,8 @@
 package my.noveldokusha.text_to_speech
 
 import android.content.Context
+import my.noveldokusha.text_to_speech.ema.EmaLocalPlayer
+import my.noveldokusha.text_to_speech.ema.EmaDiagnostics
 import android.os.Bundle
 import android.os.SystemClock
 import android.speech.tts.TextToSpeech
@@ -220,6 +222,11 @@ class TextToSpeechManager<T : Utterance<T>>(
     val spokenWordRange = mutableStateOf<IntRange?>(null)
 
     private val auxiliaryServices = mutableListOf<TextToSpeech>()
+    private val voiceScanGeneration = java.util.concurrent.atomic.AtomicInteger(0)
+    private val emaPlayer = EmaLocalPlayer(context)
+    private var emaSelected = false
+    private var emaJob: Job? = null
+    private val emaJobs = mutableListOf<Job>()
 
     // Храним enginePackage сами — service.defaultEngine всегда возвращает системный дефолт,
     // независимо от того с каким enginePackage был создан этот конкретный service объект.
@@ -231,9 +238,10 @@ class TextToSpeechManager<T : Utterance<T>>(
     val currentActiveItemState = mutableStateOf(initialItemState)
 
     fun init() {
-        service = appTtsEngine.getOrCreate(onReady = ::onServiceReady)
+        service = appTtsEngine.getOrCreate()
         currentEnginePackage = appTtsEngine.getBoundEnginePackage() ?: (service.defaultEngine ?: "")
-        onServiceReady()
+        // Register only after service assignment; an already-ready engine can call back synchronously.
+        appTtsEngine.whenReady(::onServiceReady)
     }
 
     private fun onServiceReady() {
@@ -246,9 +254,27 @@ class TextToSpeechManager<T : Utterance<T>>(
         collectVoicesFromAllEngines()
     }
 
-    fun getCurrentEnginePackage(): String = currentEnginePackage
+    fun getCurrentEnginePackage(): String = if (emaSelected) EmaLocalPlayer.ENGINE_ID else currentEnginePackage
 
     fun reinitWithEngine(enginePackage: String, voiceId: String) {
+        if (enginePackage == EmaLocalPlayer.ENGINE_ID) {
+            if (!EmaLocalPlayer.available(context)) {
+                // A plain IDE build may not bundle ONNX assets: retain Android system TTS.
+                Timber.w("EMA model unavailable, keeping Android system TTS")
+                emaSelected = false
+                updateActiveVoice()
+                scope.launch { reinitDoneFlow.emit(Unit) }
+                return
+            }
+            stop()
+            emaSelected = true
+            activeVoice.value = VoiceData(EmaLocalPlayer.VOICE_ID, "Türkçe", false,
+                Voice.QUALITY_HIGH, EmaLocalPlayer.ENGINE_ID)
+            loadRatio()
+            scope.launch { reinitDoneFlow.emit(Unit) }
+            return
+        }
+        emaSelected = false
         Timber.d( "reinitWithEngine engine=$enginePackage voice=$voiceId")
         auxiliaryServices.forEach { runCatching { it.shutdown() } }
         auxiliaryServices.clear()
@@ -276,58 +302,71 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     private fun collectVoicesFromAllEngines() {
-        val engines = service.engines
-        var pending = engines.size
+        val scan = voiceScanGeneration.incrementAndGet()
+        val installedEngines = service.engines.toList()
+        val remaining = java.util.concurrent.atomic.AtomicInteger(installedEngines.size)
+        val discovered = java.util.Collections.synchronizedList(mutableListOf<VoiceData>())
+        val emaBundled = EmaLocalPlayer.available(context)
+        if (!emaBundled) {
+            // No voice is advertised without ONNX weights: installing the standard
+            // APK instead of the model-bearing EMA Clone is the usual cause.
+            Timber.w("EMA voice unavailable: FP32 model assets absent from installed APK")
+        }
+        val local = if (emaBundled) listOf(
+            VoiceData(EmaLocalPlayer.VOICE_ID, "Türkçe", false,
+                Voice.QUALITY_HIGH, EmaLocalPlayer.ENGINE_ID)
+        ) else emptyList()
 
-        if (engines.isEmpty()) {
-            return
+        fun finishIfComplete() {
+            if (remaining.get() != 0) return
+            val stableVoices = (local + synchronized(discovered) { discovered.toList() })
+                .distinctBy { it.enginePackage to it.id }
+            scope.launch(Dispatchers.Main) {
+                if (scan != voiceScanGeneration.get()) return@launch
+                availableVoices.clear()
+                availableVoices.addAll(stableVoices)
+                serviceLoadedFlow.emit(Unit)
+            }
         }
 
-        // onServiceReady вызывается дважды (синхронно и из onInit движка) —
-        // сбрасываем, чтобы голоса не дублировались в списке.
-        availableVoices.clear()
-        engines.forEach { engineInfo ->
-            if (engineInfo.name == currentEnginePackage) {
-                val voices = service.voices
-                    ?.map { it.toVoiceData(engineInfo.name) }
-                    ?: emptyList()
-                availableVoices.addAll(voices)
-                // Эмитим «голоса собраны» при завершении сбора (даже пустой список):
-                // стартовый восстановитель в ReaderTextToSpeech применяет speed/pitch на
-                // первой эмиссии, а голос — на последующей наполненной. Если эмитить
-                // только при непустом списке, при сбое инициализации движка take(1)-подписка
-                // зависла бы навсегда и speed/pitch не применились.
-                if (--pending == 0) {
-                    scope.launch { serviceLoadedFlow.emit(Unit) }
-                }
+        if (installedEngines.isEmpty()) {
+            finishIfComplete()
+            return
+        }
+        installedEngines.forEach { info ->
+            if (info.name == currentEnginePackage) {
+                discovered.addAll(service.voices.orEmpty().map { it.toVoiceData(info.name) })
+                remaining.decrementAndGet()
+                finishIfComplete()
             } else {
-                var aux: TextToSpeech? = null
-                aux = TextToSpeech(context, { auxStatus ->
-                    if (auxStatus == TextToSpeech.SUCCESS) {
-                        val voices = aux?.voices
-                            ?.map { it.toVoiceData(engineInfo.name) }
-                            ?: emptyList()
-                        availableVoices.addAll(voices)
+                var auxiliary: TextToSpeech? = null
+                auxiliary = TextToSpeech(context, { status ->
+                    if (scan == voiceScanGeneration.get() && status == TextToSpeech.SUCCESS) {
+                        discovered.addAll(auxiliary?.voices.orEmpty().map { it.toVoiceData(info.name) })
                     }
-                    runCatching { aux?.shutdown() }
-                    auxiliaryServices.remove(aux)
-                    if (--pending == 0) {
-                        scope.launch { serviceLoadedFlow.emit(Unit) }
-                    }
-                }, engineInfo.name)
-                auxiliaryServices.add(aux)
+                    runCatching { auxiliary?.shutdown() }
+                    synchronized(auxiliaryServices) { auxiliaryServices.remove(auxiliary) }
+                    remaining.decrementAndGet()
+                    finishIfComplete()
+                }, info.name)
+                synchronized(auxiliaryServices) { auxiliaryServices.add(auxiliary) }
             }
         }
     }
 
     fun stop() {
         Timber.d( "stop() queueSize=${_queueList.size}")
+        emaPlayer.stop()
+        synchronized(emaJobs) { emaJobs.forEach { it.cancel() }; emaJobs.clear() }
+        emaJob = null
         service.stop()
         cancelDelayedRanges()
         clearAllTracking()
     }
 
     fun shutdown() {
+        emaPlayer.close()
+        synchronized(emaJobs) { emaJobs.forEach { it.cancel() }; emaJobs.clear() }
         runCatching { service.stop() }
         auxiliaryServices.forEach { runCatching { it.shutdown() } }
         auxiliaryServices.clear()
@@ -337,6 +376,8 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     fun clearQueue() {
+        emaPlayer.stop()
+        synchronized(emaJobs) { emaJobs.forEach { it.cancel() }; emaJobs.clear() }
         Timber.d("clearQueue() queueSize=${_queueList.size}")
         cancelDelayedRanges()
         clearAllTracking()
@@ -363,8 +404,49 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     fun speak(text: String, textSynthesis: T, leadingOffset: Int = 0) {
+        if (emaSelected) {
+            val previous = emaJob
+            EmaDiagnostics.record(context, "QUEUED paragraph=${textSynthesis.utteranceId} chars=${text.length} speed=${voiceSpeed.floatValue} pending=${_queueList.size}")
+            _queueList[textSynthesis.utteranceId] = textSynthesis
+            currentSpeakingText.value = text
+            // The reader queues multiple paragraphs; reserve the next one for
+            // first-phrase generation while the current paragraph drains PCM.
+            if (previous != null) {
+                emaPlayer.queueLookahead(textSynthesis.utteranceId, text, voiceSpeed.floatValue)
+            }
+            emaJob = scope.launch {
+                if (previous != null) {
+                    EmaDiagnostics.record(context, "WAIT_PREVIOUS paragraph=${textSynthesis.utteranceId}")
+                    previous.join()
+                }
+                EmaDiagnostics.record(context, "PREVIOUS_DONE paragraph=${textSynthesis.utteranceId}")
+                if (!_queueList.containsKey(textSynthesis.utteranceId)) return@launch
+                val success = emaPlayer.play(text, voiceSpeed.floatValue, onStart = {
+                    EmaDiagnostics.record(context, "START_PLAY paragraph=${textSynthesis.utteranceId}")
+                    val playing = textSynthesis.copyWithState(Utterance.PlayState.PLAYING)
+                    currentActiveItemState.value = playing
+                    scope.launch { _currentTextSpeakFlow.emit(playing) }
+                }, prefetchId = textSynthesis.utteranceId)
+                EmaDiagnostics.record(context, "END_PLAY paragraph=${textSynthesis.utteranceId} success=$success")
+                if (_queueList.containsKey(textSynthesis.utteranceId)) {
+                    if (!success) Timber.w("EMA PCM playback failed")
+                    completeItem(textSynthesis.copyWithState(Utterance.PlayState.FINISHED))
+                    EmaDiagnostics.record(context, "FINISHED_EMITTED paragraph=${textSynthesis.utteranceId}")
+                }
+            }
+            emaJob?.let { job ->
+                synchronized(emaJobs) { emaJobs.add(job) }
+                job.invokeOnCompletion { synchronized(emaJobs) { emaJobs.remove(job) } }
+            }
+            return
+        }
+        // Preserve UTF-16 offsets for Android's onRangeStart highlighting.
+        // Replace symbols/emoji/control code points with equal-width spaces.
+        val speechText = text.replace(Regex("[\\p{S}\\p{C}]")) { match ->
+            " ".repeat(match.value.length)
+        }
         val subItems = delimiterAwareTextSplitter(
-            fullText = text,
+            fullText = speechText,
             maxSliceLength = maxStringLengthPerTextUnit(),
             charDelimiter = '.'
         )
@@ -413,6 +495,14 @@ class TextToSpeechManager<T : Utterance<T>>(
         _itemMarkerMs.remove(item.utteranceId)
         currentActiveItemState.value = item
         scope.launch { _currentTextSpeakFlow.emit(item) }
+        if (emaSelected && _queueList.isEmpty()) {
+            // Keep music ducked briefly at chapter boundaries, but restore its
+            // volume automatically when narration finishes naturally.
+            scope.launch {
+                delay(1_500L)
+                if (emaSelected && _queueList.isEmpty()) emaPlayer.releaseDuckFocus()
+            }
+        }
     }
 
     fun setCurrentSpeakState(textSynthesis: T) {
@@ -432,6 +522,14 @@ class TextToSpeechManager<T : Utterance<T>>(
     }
 
     fun trySetVoiceById(id: String): Boolean {
+        if (id == EmaLocalPlayer.VOICE_ID && EmaLocalPlayer.available(context)) {
+            emaSelected = true
+            activeVoice.value = VoiceData(id, "Türkçe", false, Voice.QUALITY_HIGH,
+                EmaLocalPlayer.ENGINE_ID)
+            loadRatio()
+            return true
+        }
+        emaSelected = false
         val voice = service.voices?.find { it.name == id }
         if (voice == null) {
             Timber.w("trySetVoiceById($id) -> not found in ${service.voices?.size ?: 0} voices")
@@ -449,7 +547,7 @@ class TextToSpeechManager<T : Utterance<T>>(
             Timber.w( "trySetVoicePitch: invalid $value")
             return false
         }
-        val result = service.setPitch(value)
+        val result = if (emaSelected) TextToSpeech.SUCCESS else service.setPitch(value)
         val success = result == TextToSpeech.SUCCESS
         Timber.d( "trySetVoicePitch($value) -> $success")
         if (success) {
@@ -464,7 +562,7 @@ class TextToSpeechManager<T : Utterance<T>>(
             Timber.w( "trySetVoiceSpeed: invalid $value")
             return false
         }
-        val result = service.setSpeechRate(value)
+        val result = if (emaSelected) TextToSpeech.SUCCESS else service.setSpeechRate(value)
         val success = result == TextToSpeech.SUCCESS
         Timber.d( "trySetVoiceSpeed($value) -> $success")
         if (success) {
@@ -480,6 +578,7 @@ class TextToSpeechManager<T : Utterance<T>>(
     private fun maxStringLengthPerTextUnit() = TextToSpeech.getMaxSpeechInputLength()
 
     private fun updateActiveVoice() {
+        if (emaSelected) return
         activeVoice.value = service.voice?.toVoiceData(currentEnginePackage)
         // Калибровка грузится событийно под фактически активный голос (а не по точкам вызова):
         // сетевой голос после рестарта может подгрузиться позже — ratio применится в момент

@@ -1,0 +1,77 @@
+name: EMA Lightning FP32 reference WAV
+on:
+  push:
+    paths:
+      - .github/workflows/ema-reference-wav.yml
+      - .github/ema-reference-wav-trigger.txt
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reference-wav:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: TheOsmanYILDIRIM/NoveLA_float
+          ref: 2d7a1fa45857b3e09dbc76cf2b1b6f5bae4fde0d
+          path: reference-tools
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install original pinned EMA engine
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu
+          python -m pip install ema-lightning==1.0.4 huggingface-hub soundfile numpy
+      - name: Synthesize and verify Turkish reference
+        env:
+          HF_HUB_OFFLINE: '0'
+        run: |
+          python - <<'PY'
+          import hashlib, wave
+          from pathlib import Path
+          import numpy as np
+          import torch
+          from huggingface_hub import hf_hub_download
+          from ema_lightning.model import load_acoustic
+          from ema_lightning.decoder import load_decoder
+          from ema_lightning.frontend import Frontend
+          from ema_lightning.engine import Engine
+          from ema_lightning.chunker import chunk
+          REV="7a6ba1ad216bb2f1da9863f80ac8770a6a807632"
+          SRC="canberkkkkkk/ema-lightning"
+          text="Merhaba! Bugün hava çok güzel. NoveLA ile kitap okumaya hazır mısın?"
+          torch.set_num_threads(4)
+          acoustic=load_acoustic(hf_hub_download(SRC,"ema.pt",revision=REV),torch.device("cpu"))
+          decoder=load_decoder(hf_hub_download(SRC,"decoder.pt",revision=REV),torch.device("cpu"))
+          frontend=Frontend(acoustic.vocab)
+          engine=Engine(acoustic,decoder,torch.device("cpu"))
+          normalized=frontend(text)
+          pieces=[engine.piece(t,p,(42*1000003+i)%(2**63)) for i,(t,p) in enumerate(chunk(normalized,1.0))]
+          assert pieces, "No speech pieces"
+          engine.plan(pieces,1.0)
+          engine.think(pieces)
+          from ema_lightning.engine import windows, FIRST_WINDOW, CONTEXT
+          samples=[]
+          for p in pieces:
+              for start,end in windows(p.frames,FIRST_WINDOW):
+                  a,b=max(0,start-CONTEXT),min(p.frames,end+CONTEXT)
+                  with torch.inference_mode():
+                      audio=engine.decoder(p.latents[a:b].T[None]).cpu().numpy()[0]
+                  samples.extend(audio[(start-a)*engine.hop:(end-a)*engine.hop])
+          samples=np.asarray(samples,dtype=np.float32)
+          assert len(samples)>48000 and np.isfinite(samples).all()
+          assert np.max(np.abs(samples))>0.001, "Silent audio"
+          out=Path("ema-reference-tr.wav")
+          pcm=(np.clip(samples,-1,1)*32767).astype("<i2")
+          with wave.open(str(out),"wb") as f:
+              f.setnchannels(1);f.setsampwidth(2);f.setframerate(48000);f.writeframes(pcm.tobytes())
+          print("WAV",out,"samples",len(samples),"duration_s",len(samples)/48000,"sha256",hashlib.sha256(out.read_bytes()).hexdigest())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EMA-FP32-Turkish-Reference-WAV
+          path: ema-reference-tr.wav
+          retention-days: 14

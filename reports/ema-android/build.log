@@ -1,0 +1,699 @@
+Downloading https://services.gradle.org/distributions/gradle-9.6.0-bin.zip
+......................................................................................................................................
+Unzipping /home/runner/.gradle/wrapper/dists/gradle-9.6.0-bin/42k10rwplmzkhuboz9kdazi7s/gradle-9.6.0-bin.zip to /home/runner/.gradle/wrapper/dists/gradle-9.6.0-bin/42k10rwplmzkhuboz9kdazi7s
+Set executable permissions for: /home/runner/.gradle/wrapper/dists/gradle-9.6.0-bin/42k10rwplmzkhuboz9kdazi7s/gradle-9.6.0/bin/gradle
+
+Welcome to Gradle 9.6.0!
+
+Here are the highlights of this release:
+ - Improved Configuration Cache hit rates
+ - Additional CLI rendering options
+ - Important project hierarchy lookup deprecations
+
+For more details see https://docs.gradle.org/9.6.0/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+Calculating task graph as no cached configuration is available for tasks: :app:assembleDebug
+Type-safe project accessors is an incubating feature.
+> Task :build-logic:convention:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :build-logic:convention:pluginDescriptors
+> Task :build-logic:convention:processResources
+> Task :build-logic:convention:compileKotlin
+> Task :build-logic:convention:compileJava NO-SOURCE
+> Task :build-logic:convention:classes
+> Task :build-logic:convention:jar
+
+> Configure project :app
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/app/build.gradle.kts:22:17: 'val properties: (Mutable)Map<String, out Any?>' is deprecated. Deprecated in Java.
+localPropertiesFilePath: local.properties
+hasDefaultSigningConfigData: false
+
+> Configure project :tooling:local_database
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/local_database/build.gradle.kts:18:34: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+
+> Task :core:preBuild UP-TO-DATE
+> Task :core:preDebugBuild UP-TO-DATE
+> Task :data:preBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :data:preDebugBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :coreui:preBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :coreui:preDebugBuild UP-TO-DATE
+> Task :core:generateDebugResources
+> Task :app:generateDebugResources
+> Task :coreui:generateDebugResources
+> Task :data:generateDebugResources FROM-CACHE
+> Task :data:packageDebugResources
+> Task :core:packageDebugResources
+> Task :navigation:preBuild UP-TO-DATE
+> Task :networking:preBuild UP-TO-DATE
+> Task :navigation:preDebugBuild UP-TO-DATE
+> Task :networking:preDebugBuild UP-TO-DATE
+> Task :networking:generateDebugResources FROM-CACHE
+> Task :navigation:generateDebugResources FROM-CACHE
+> Task :networking:packageDebugResources
+> Task :navigation:packageDebugResources
+> Task :strings:preBuild UP-TO-DATE
+> Task :scraper:preBuild UP-TO-DATE
+> Task :scraper:preDebugBuild UP-TO-DATE
+> Task :strings:preDebugBuild UP-TO-DATE
+> Task :scraper:generateDebugResources FROM-CACHE
+> Task :strings:generateDebugResources
+> Task :scraper:packageDebugResources
+> Task :features:catalogExplorer:preBuild UP-TO-DATE
+> Task :features:catalogExplorer:preDebugBuild UP-TO-DATE
+> Task :features:catalogExplorer:generateDebugResources FROM-CACHE
+> Task :features:catalogExplorer:packageDebugResources
+> Task :features:chaptersList:preBuild UP-TO-DATE
+> Task :features:chaptersList:preDebugBuild UP-TO-DATE
+> Task :features:chaptersList:generateDebugResources FROM-CACHE
+> Task :features:chaptersList:packageDebugResources
+> Task :features:databaseExplorer:preBuild UP-TO-DATE
+> Task :features:databaseExplorer:preDebugBuild UP-TO-DATE
+> Task :features:databaseExplorer:generateDebugResources FROM-CACHE
+> Task :features:databaseExplorer:packageDebugResources
+> Task :features:extensions:preBuild UP-TO-DATE
+> Task :features:extensions:preDebugBuild UP-TO-DATE
+> Task :features:extensions:generateDebugResources
+> Task :coreui:packageDebugResources
+> Task :features:globalSourceSearch:preBuild UP-TO-DATE
+> Task :features:globalSourceSearch:preDebugBuild UP-TO-DATE
+> Task :features:globalSourceSearch:generateDebugResources FROM-CACHE
+> Task :features:extensions:packageDebugResources
+> Task :features:historyExplorer:preBuild UP-TO-DATE
+> Task :features:historyExplorer:preDebugBuild UP-TO-DATE
+> Task :features:historyExplorer:generateDebugResources FROM-CACHE
+> Task :features:globalSourceSearch:packageDebugResources
+> Task :features:historyExplorer:packageDebugResources
+> Task :features:libraryExplorer:preBuild UP-TO-DATE
+> Task :features:libraryExplorer:preDebugBuild UP-TO-DATE
+> Task :features:reader:preBuild UP-TO-DATE
+> Task :features:reader:preDebugBuild UP-TO-DATE
+> Task :features:libraryExplorer:generateDebugResources FROM-CACHE
+> Task :features:reader:generateDebugResources
+> Task :features:libraryExplorer:packageDebugResources
+> Task :features:settings:preBuild UP-TO-DATE
+> Task :features:settings:preDebugBuild UP-TO-DATE
+> Task :features:settings:generateDebugResources FROM-CACHE
+> Task :features:settings:packageDebugResources
+> Task :features:sourceExplorer:preBuild UP-TO-DATE
+> Task :features:sourceExplorer:preDebugBuild UP-TO-DATE
+> Task :features:sourceExplorer:generateDebugResources FROM-CACHE
+> Task :features:sourceExplorer:packageDebugResources
+> Task :features:webview:preBuild UP-TO-DATE
+> Task :features:webview:preDebugBuild UP-TO-DATE
+> Task :features:webview:generateDebugResources FROM-CACHE
+> Task :features:webview:packageDebugResources
+> Task :tooling:application_workers:preBuild UP-TO-DATE
+> Task :tooling:application_workers:preDebugBuild UP-TO-DATE
+> Task :tooling:application_workers:generateDebugResources FROM-CACHE
+> Task :tooling:application_workers:packageDebugResources
+> Task :tooling:backup_create:preBuild UP-TO-DATE
+> Task :tooling:backup_create:preDebugBuild UP-TO-DATE
+> Task :tooling:backup_create:generateDebugResources FROM-CACHE
+> Task :tooling:backup_create:packageDebugResources
+> Task :tooling:backup_restore:preBuild UP-TO-DATE
+> Task :tooling:backup_restore:preDebugBuild UP-TO-DATE
+> Task :tooling:backup_restore:generateDebugResources FROM-CACHE
+> Task :tooling:backup_restore:packageDebugResources
+> Task :tooling:epub_importer:preBuild UP-TO-DATE
+> Task :tooling:epub_importer:preDebugBuild UP-TO-DATE
+> Task :tooling:epub_importer:generateDebugResources FROM-CACHE
+> Task :tooling:epub_importer:packageDebugResources
+> Task :tooling:epub_parser:preBuild UP-TO-DATE
+> Task :tooling:epub_parser:preDebugBuild UP-TO-DATE
+> Task :tooling:epub_parser:generateDebugResources FROM-CACHE
+> Task :tooling:epub_parser:packageDebugResources
+> Task :tooling:local_database:preBuild UP-TO-DATE
+> Task :tooling:local_database:preDebugBuild UP-TO-DATE
+> Task :tooling:local_database:generateDebugResources FROM-CACHE
+> Task :tooling:local_database:packageDebugResources
+> Task :tooling:local_source:preBuild UP-TO-DATE
+> Task :tooling:local_source:preDebugBuild UP-TO-DATE
+> Task :tooling:local_source:generateDebugResources FROM-CACHE
+> Task :tooling:local_source:packageDebugResources
+> Task :tooling:novel_migration:preBuild UP-TO-DATE
+> Task :tooling:novel_migration:preDebugBuild UP-TO-DATE
+> Task :tooling:novel_migration:generateDebugResources
+> Task :tooling:novel_migration:packageDebugResources
+> Task :tooling:text_to_speech:preBuild UP-TO-DATE
+> Task :tooling:text_to_speech:preDebugBuild UP-TO-DATE
+> Task :tooling:text_to_speech:generateDebugResources FROM-CACHE
+> Task :tooling:text_to_speech:packageDebugResources
+> Task :tooling:text_translator:domain:preBuild UP-TO-DATE
+> Task :tooling:text_translator:domain:preDebugBuild UP-TO-DATE
+> Task :tooling:text_translator:domain:generateDebugResources FROM-CACHE
+> Task :tooling:text_translator:domain:packageDebugResources
+> Task :tooling:text_translator:translator_nop:preBuild UP-TO-DATE
+> Task :tooling:text_translator:translator_nop:preDebugBuild UP-TO-DATE
+> Task :tooling:text_translator:translator_nop:generateDebugResources FROM-CACHE
+> Task :tooling:text_translator:translator_nop:packageDebugResources
+> Task :features:reader:packageDebugResources
+> Task :strings:packageDebugResources
+> Task :app:generateDebugBuildConfig
+> Task :app:packageDebugResources
+> Task :core:processDebugNavigationResources
+> Task :coreui:processDebugNavigationResources
+> Task :data:processDebugNavigationResources FROM-CACHE
+> Task :navigation:processDebugNavigationResources FROM-CACHE
+> Task :networking:processDebugNavigationResources FROM-CACHE
+> Task :scraper:processDebugNavigationResources FROM-CACHE
+> Task :strings:processDebugNavigationResources
+> Task :features:catalogExplorer:processDebugNavigationResources FROM-CACHE
+> Task :features:chaptersList:processDebugNavigationResources FROM-CACHE
+> Task :features:databaseExplorer:processDebugNavigationResources FROM-CACHE
+> Task :features:extensions:processDebugNavigationResources
+> Task :features:globalSourceSearch:processDebugNavigationResources FROM-CACHE
+> Task :features:historyExplorer:processDebugNavigationResources FROM-CACHE
+> Task :features:libraryExplorer:processDebugNavigationResources FROM-CACHE
+> Task :features:reader:processDebugNavigationResources
+> Task :features:settings:processDebugNavigationResources FROM-CACHE
+> Task :features:sourceExplorer:processDebugNavigationResources FROM-CACHE
+> Task :features:webview:processDebugNavigationResources FROM-CACHE
+> Task :tooling:application_workers:processDebugNavigationResources FROM-CACHE
+> Task :tooling:backup_create:processDebugNavigationResources FROM-CACHE
+> Task :tooling:backup_restore:processDebugNavigationResources FROM-CACHE
+> Task :tooling:epub_importer:processDebugNavigationResources FROM-CACHE
+> Task :tooling:epub_parser:processDebugNavigationResources FROM-CACHE
+> Task :tooling:local_database:processDebugNavigationResources FROM-CACHE
+> Task :tooling:local_source:processDebugNavigationResources FROM-CACHE
+> Task :tooling:novel_migration:processDebugNavigationResources
+> Task :tooling:text_to_speech:processDebugNavigationResources FROM-CACHE
+> Task :tooling:text_translator:domain:processDebugNavigationResources FROM-CACHE
+> Task :tooling:text_translator:translator_nop:processDebugNavigationResources FROM-CACHE
+> Task :features:reader:dataBindingMergeDependencyArtifactsDebug
+> Task :app:dataBindingMergeDependencyArtifactsDebug
+> Task :app:processDebugNavigationResources
+> Task :features:reader:dataBindingGenBaseClassesDebug
+> Task :core:parseDebugLocalResources
+> Task :app:parseDebugLocalResources
+> Task :tooling:local_database:parseDebugLocalResources FROM-CACHE
+> Task :tooling:text_translator:domain:parseDebugLocalResources FROM-CACHE
+> Task :coreui:parseDebugLocalResources
+> Task :data:parseDebugLocalResources FROM-CACHE
+> Task :networking:parseDebugLocalResources FROM-CACHE
+> Task :scraper:parseDebugLocalResources FROM-CACHE
+> Task :tooling:epub_parser:parseDebugLocalResources FROM-CACHE
+> Task :navigation:parseDebugLocalResources FROM-CACHE
+> Task :features:catalogExplorer:parseDebugLocalResources FROM-CACHE
+> Task :features:extensions:parseDebugLocalResources
+> Task :features:globalSourceSearch:parseDebugLocalResources FROM-CACHE
+> Task :tooling:novel_migration:parseDebugLocalResources FROM-CACHE
+> Task :features:chaptersList:parseDebugLocalResources FROM-CACHE
+> Task :strings:parseDebugLocalResources
+> Task :features:reader:parseDebugLocalResources
+> Task :features:settings:parseDebugLocalResources FROM-CACHE
+> Task :tooling:application_workers:parseDebugLocalResources FROM-CACHE
+> Task :tooling:backup_create:parseDebugLocalResources FROM-CACHE
+> Task :tooling:backup_restore:parseDebugLocalResources FROM-CACHE
+> Task :tooling:text_translator:translator_nop:parseDebugLocalResources FROM-CACHE
+> Task :tooling:text_to_speech:parseDebugLocalResources FROM-CACHE
+> Task :tooling:text_translator:domain:generateDebugRFile
+> Task :features:databaseExplorer:parseDebugLocalResources FROM-CACHE
+> Task :features:historyExplorer:parseDebugLocalResources FROM-CACHE
+> Task :features:libraryExplorer:parseDebugLocalResources FROM-CACHE
+> Task :tooling:epub_importer:parseDebugLocalResources FROM-CACHE
+> Task :features:sourceExplorer:parseDebugLocalResources FROM-CACHE
+> Task :features:webview:parseDebugLocalResources FROM-CACHE
+> Task :tooling:local_source:parseDebugLocalResources FROM-CACHE
+> Task :core:generateDebugBuildConfig
+> Task :strings:generateDebugBuildConfig
+> Task :strings:javaPreCompileDebug
+> Task :tooling:text_to_speech:generateDebugRFile
+> Task :coreui:generateDebugBuildConfig
+> Task :tooling:local_database:generateDebugBuildConfig
+> Task :strings:generateDebugRFile
+> Task :core:generateDebugRFile
+> Task :core:javaPreCompileDebug
+> Task :tooling:local_database:javaPreCompileDebug
+> Task :tooling:epub_parser:generateDebugRFile
+> Task :strings:compileDebugKotlin NO-SOURCE
+> Task :tooling:local_database:generateDebugRFile
+> Task :networking:generateDebugRFile
+> Task :navigation:generateDebugRFile
+> Task :coreui:generateDebugRFile
+> Task :scraper:generateDebugRFile
+> Task :tooling:text_translator:translator_nop:generateDebugRFile
+> Task :data:generateDebugRFile
+> Task :features:webview:generateDebugRFile
+> Task :features:globalSourceSearch:generateDebugRFile
+> Task :features:extensions:generateDebugRFile
+> Task :app:mergeDebugResources
+> Task :tooling:novel_migration:generateDebugRFile
+> Task :tooling:backup_create:generateDebugRFile
+> Task :app:dataBindingGenBaseClassesDebug
+> Task :features:catalogExplorer:generateDebugRFile
+> Task :tooling:application_workers:generateDebugRFile
+> Task :tooling:backup_restore:generateDebugRFile
+> Task :features:historyExplorer:generateDebugRFile
+> Task :features:databaseExplorer:generateDebugRFile
+> Task :features:settings:generateDebugRFile
+> Task :features:sourceExplorer:generateDebugRFile
+> Task :tooling:epub_importer:generateDebugRFile
+> Task :features:libraryExplorer:generateDebugRFile
+> Task :tooling:text_translator:domain:generateDebugBuildConfig
+> Task :features:reader:generateDebugRFile
+> Task :features:chaptersList:generateDebugRFile
+> Task :tooling:text_translator:domain:javaPreCompileDebug FROM-CACHE
+> Task :coreui:javaPreCompileDebug FROM-CACHE
+> Task :data:generateDebugBuildConfig
+> Task :networking:generateDebugBuildConfig
+> Task :networking:javaPreCompileDebug FROM-CACHE
+> Task :scraper:generateDebugBuildConfig
+> Task :scraper:javaPreCompileDebug FROM-CACHE
+> Task :tooling:epub_parser:generateDebugBuildConfig
+> Task :tooling:epub_parser:javaPreCompileDebug FROM-CACHE
+> Task :data:javaPreCompileDebug FROM-CACHE
+> Task :navigation:generateDebugBuildConfig
+> Task :navigation:javaPreCompileDebug FROM-CACHE
+> Task :features:catalogExplorer:generateDebugBuildConfig
+> Task :features:extensions:generateDebugBuildConfig
+> Task :features:extensions:javaPreCompileDebug FROM-CACHE
+> Task :features:globalSourceSearch:generateDebugBuildConfig
+> Task :features:globalSourceSearch:javaPreCompileDebug FROM-CACHE
+> Task :tooling:novel_migration:generateDebugBuildConfig
+> Task :tooling:novel_migration:javaPreCompileDebug FROM-CACHE
+> Task :features:catalogExplorer:javaPreCompileDebug FROM-CACHE
+> Task :features:chaptersList:generateDebugBuildConfig
+> Task :features:reader:generateDebugBuildConfig
+> Task :features:settings:generateDebugBuildConfig
+> Task :tooling:application_workers:generateDebugBuildConfig
+> Task :tooling:backup_create:generateDebugBuildConfig
+> Task :tooling:backup_create:javaPreCompileDebug FROM-CACHE
+> Task :tooling:application_workers:javaPreCompileDebug FROM-CACHE
+> Task :tooling:backup_restore:generateDebugBuildConfig
+> Task :tooling:backup_restore:javaPreCompileDebug FROM-CACHE
+> Task :tooling:text_translator:translator_nop:generateDebugBuildConfig
+> Task :tooling:text_translator:translator_nop:javaPreCompileDebug FROM-CACHE
+> Task :features:settings:javaPreCompileDebug FROM-CACHE
+> Task :tooling:text_to_speech:generateDebugBuildConfig
+> Task :tooling:local_source:generateDebugRFile
+> Task :app:generateDebugRFile
+> Task :tooling:text_to_speech:javaPreCompileDebug FROM-CACHE
+> Task :features:reader:javaPreCompileDebug FROM-CACHE
+> Task :features:chaptersList:javaPreCompileDebug FROM-CACHE
+> Task :features:databaseExplorer:generateDebugBuildConfig
+> Task :features:databaseExplorer:javaPreCompileDebug FROM-CACHE
+> Task :features:historyExplorer:generateDebugBuildConfig
+> Task :features:historyExplorer:javaPreCompileDebug FROM-CACHE
+> Task :features:libraryExplorer:generateDebugBuildConfig
+> Task :tooling:epub_importer:generateDebugBuildConfig
+> Task :tooling:epub_importer:javaPreCompileDebug FROM-CACHE
+> Task :features:libraryExplorer:javaPreCompileDebug FROM-CACHE
+> Task :features:sourceExplorer:generateDebugBuildConfig
+> Task :features:sourceExplorer:javaPreCompileDebug FROM-CACHE
+> Task :features:webview:generateDebugBuildConfig
+> Task :features:webview:javaPreCompileDebug FROM-CACHE
+> Task :tooling:local_source:generateDebugBuildConfig
+> Task :tooling:local_source:javaPreCompileDebug FROM-CACHE
+> Task :app:javaPreCompileDebug FROM-CACHE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets
+> Task :coreui:generateDebugAssets UP-TO-DATE
+> Task :coreui:mergeDebugAssets
+> Task :data:generateDebugAssets UP-TO-DATE
+> Task :data:mergeDebugAssets
+> Task :navigation:generateDebugAssets UP-TO-DATE
+> Task :navigation:mergeDebugAssets
+> Task :networking:generateDebugAssets UP-TO-DATE
+> Task :networking:mergeDebugAssets
+> Task :scraper:generateDebugAssets UP-TO-DATE
+> Task :scraper:mergeDebugAssets
+> Task :strings:generateDebugAssets UP-TO-DATE
+> Task :strings:mergeDebugAssets
+> Task :features:catalogExplorer:generateDebugAssets UP-TO-DATE
+> Task :features:catalogExplorer:mergeDebugAssets
+> Task :features:chaptersList:generateDebugAssets UP-TO-DATE
+> Task :features:chaptersList:mergeDebugAssets
+> Task :features:databaseExplorer:generateDebugAssets UP-TO-DATE
+> Task :features:databaseExplorer:mergeDebugAssets
+> Task :features:extensions:generateDebugAssets UP-TO-DATE
+> Task :features:extensions:mergeDebugAssets
+> Task :features:globalSourceSearch:generateDebugAssets UP-TO-DATE
+> Task :features:globalSourceSearch:mergeDebugAssets
+> Task :features:historyExplorer:generateDebugAssets UP-TO-DATE
+> Task :features:historyExplorer:mergeDebugAssets
+> Task :features:libraryExplorer:generateDebugAssets UP-TO-DATE
+> Task :features:libraryExplorer:mergeDebugAssets
+> Task :features:reader:generateDebugAssets UP-TO-DATE
+> Task :features:reader:mergeDebugAssets
+> Task :features:settings:generateDebugAssets UP-TO-DATE
+> Task :features:settings:mergeDebugAssets
+> Task :features:sourceExplorer:generateDebugAssets UP-TO-DATE
+> Task :strings:compileDebugJavaWithJavac
+> Task :features:sourceExplorer:mergeDebugAssets
+> Task :strings:bundleLibCompileToJarDebug
+> Task :strings:bundleLibRuntimeToJarDebug
+> Task :features:webview:generateDebugAssets UP-TO-DATE
+> Task :features:webview:mergeDebugAssets
+> Task :tooling:application_workers:generateDebugAssets UP-TO-DATE
+> Task :tooling:application_workers:mergeDebugAssets
+> Task :tooling:backup_create:generateDebugAssets UP-TO-DATE
+> Task :tooling:backup_create:mergeDebugAssets
+> Task :tooling:backup_restore:generateDebugAssets UP-TO-DATE
+> Task :tooling:backup_restore:mergeDebugAssets
+> Task :tooling:epub_importer:generateDebugAssets UP-TO-DATE
+> Task :tooling:epub_importer:mergeDebugAssets
+> Task :tooling:epub_parser:generateDebugAssets UP-TO-DATE
+> Task :tooling:epub_parser:mergeDebugAssets
+> Task :tooling:local_database:generateDebugAssets UP-TO-DATE
+> Task :tooling:local_database:mergeDebugAssets
+> Task :tooling:local_source:generateDebugAssets UP-TO-DATE
+> Task :tooling:local_source:mergeDebugAssets
+> Task :tooling:novel_migration:generateDebugAssets UP-TO-DATE
+> Task :tooling:novel_migration:mergeDebugAssets
+> Task :tooling:text_to_speech:generateDebugAssets UP-TO-DATE
+> Task :tooling:text_to_speech:mergeDebugAssets
+> Task :tooling:text_translator:domain:generateDebugAssets UP-TO-DATE
+> Task :tooling:text_translator:domain:mergeDebugAssets
+> Task :tooling:text_translator:translator_nop:generateDebugAssets UP-TO-DATE
+> Task :tooling:text_translator:translator_nop:mergeDebugAssets
+> Task :app:mergeDebugAssets
+> Task :app:compressDebugAssets
+> Task :tooling:text_to_speech:kspDebugKotlin
+> Task :tooling:text_translator:domain:kspDebugKotlin
+> Task :app:generateDebugGlobalSynthetics
+> Task :strings:processDebugJavaRes NO-SOURCE
+> Task :core:kspDebugKotlin
+> Task :app:checkDebugDuplicateClasses
+> Task :app:desugarDebugFileDependencies
+
+> Task :tooling:text_translator:domain:compileDebugKotlin
+w: The argument '-Xjvm-default' is deprecated since Kotlin 2.2.0. It will be removed in one of the future releases. Use `-jvm-default` instead.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_translator/domain/src/main/java/my/noveldokusha/text_translator/domain/TranslationManager.kt:17:15 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_translator/domain/src/main/java/my/noveldokusha/text_translator/domain/TranslationManager.kt:17:57 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_translator/domain/src/main/java/my/noveldokusha/text_translator/domain/TranslationManager.kt:36:24 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_translator/domain/src/main/java/my/noveldokusha/text_translator/domain/TranslationManager.kt:37:24 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+
+> Task :tooling:text_to_speech:compileDebugKotlin FAILED
+w: The argument '-Xjvm-default' is deprecated since Kotlin 2.2.0. It will be removed in one of the future releases. Use `-jvm-default` instead.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaOnnxEngine.kt:4:25 Unresolved reference 'RuleBasedNumberFormat'.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaOnnxEngine.kt:47:34 Unresolved reference 'RuleBasedNumberFormat'.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaOnnxEngine.kt:48:51 Unresolved reference 'RuleBasedNumberFormat'.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:14 Function 'onGetDefaultVoiceNameFor' without a body must be abstract.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:104 Syntax error: Expecting an expression.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:104 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:105 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:114 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:117 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:118 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:139 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:140 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:144 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:146 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:153 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:155 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:162 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:164 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:167 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:179 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:180 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:195 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:198 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:211 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:212 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:221 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:222 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:226 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:227 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:229 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:238 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:243 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:247 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:248 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:249 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaTextToSpeechService.kt:55:250 Syntax error: Expecting member declaration.
+
+> Task :core:compileDebugKotlin
+> Task :app:mergeExtDexDebug
+
+> Task :core:compileDebugKotlin
+w: The argument '-Xjvm-default' is deprecated since Kotlin 2.2.0. It will be removed in one of the future releases. Use `-jvm-default` instead.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:16:41 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:19:41 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:20:44 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:21:41 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:23:40 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:24:44 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:25:43 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:27:39 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:28:44 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:29:41 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:31:38 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:32:39 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppLanguage.kt:33:40 'constructor(p0: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppPreferences.kt:1027:32 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/appPreferences/AppPreferences.kt:1050:32 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///home/runner/work/NoveLA_float/NoveLA_float/core/src/main/java/my/noveldokusha/core/utils/SavedStateHandleComposeDelegates.kt:41:9 'fun bundleOf(vararg pairs: Pair<String, Any?>): Bundle' is deprecated. This method does not provide type safety at compile time. Use the platform `Bundle` class directly instead.
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/compile-1791623083409.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/NoveLA_float/NoveLA_float/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':tooling:text_to_speech:compileDebugKotlin' (registered by plugin 'com.android.internal.library').
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Kotlin compiler: UNRESOLVED_IMPORT
+       Kotlin compiler error
+         Unresolved reference 'RuleBasedNumberFormat'.
+         Location: /home/runner/work/NoveLA_float/NoveLA_float/tooling/text_to_speech/src/main/java/my/noveldokusha/text_to_speech/ema/EmaOnnxEngine.kt line 4
+
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':tooling:text_to_speech:compileDebugKotlin' (registered by plugin 'com.android.internal.library').
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:135)
+	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:288)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:133)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:121)
+	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:41)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.DefaultNodeExecutor.executeLocalTaskNode(DefaultNodeExecutor.java:55)
+	at org.gradle.execution.plan.DefaultNodeExecutor.execute(DefaultNodeExecutor.java:34)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:355)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:343)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:339)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:84)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:339)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:328)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.execution.plan.DefaultPlanExecutor.process(DefaultPlanExecutor.java:111)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.executeWithServices(DefaultTaskExecutionGraph.java:146)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.execute(DefaultTaskExecutionGraph.java:131)
+	at org.gradle.execution.SelectedTaskExecutionAction.execute(SelectedTaskExecutionAction.java:35)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:54)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:43)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor.execute(BuildOperationFiringBuildWorkerExecutor.java:40)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.lambda$executeTasks$11(DefaultBuildLifecycleController.java:323)
+	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:304)
+	at org.gradle.internal.model.StateTransitionController.lambda$tryTransition$9(StateTransitionController.java:215)
+	at org.gradle.internal.work.DefaultSynchronizer.withLock(DefaultSynchronizer.java:45)
+	at org.gradle.internal.model.StateTransitionController.tryTransition(StateTransitionController.java:215)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.executeTasks(DefaultBuildLifecycleController.java:314)
+	at org.gradle.internal.build.DefaultBuildWorkGraphController$DefaultBuildWorkGraph.runWork(DefaultBuildWorkGraphController.java:220)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.lambda$runAndReleaseLocks$0(DefaultWorkerLeaseService.java:300)
+	at org.gradle.internal.work.ResourceLockStatistics$1.measure(ResourceLockStatistics.java:43)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAndReleaseLocks(DefaultWorkerLeaseService.java:298)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocksAcquired(DefaultWorkerLeaseService.java:294)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:286)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:130)
+	at org.gradle.composite.internal.DefaultBuildController.doRun(DefaultBuildController.java:182)
+	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.lambda$run$0(DefaultBuildController.java:199)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:84)
+	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:199)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:278)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:132)
+	at org.gradle.internal.Factories$1.create(Factories.java:30)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.lambda$withoutLocksBlocking$3(DefaultWorkerLeaseService.java:410)
+	at org.gradle.internal.work.ResourceLockStatistics$1.measure(ResourceLockStatistics.java:43)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocksBlocking(DefaultWorkerLeaseService.java:405)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.blocking(DefaultWorkerLeaseService.java:255)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.blocking(DefaultWorkerLeaseService.java:237)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$3(DefaultAsyncWorkTracker.java:128)
+	at org.gradle.internal.Factories$1.create(Factories.java:30)
+	at org.gradle.internal.resources.AbstractResourceLockRegistry.whileDisallowingLockChanges(AbstractResourceLockRegistry.java:50)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.whileDisallowingProjectLockChanges(DefaultWorkerLeaseService.java:260)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:127)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:93)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:79)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:67)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:267)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:244)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:227)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:210)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:176)
+	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:167)
+	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:47)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:137)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:134)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:134)
+	at org.gradle.internal.execution.steps.ExecuteStep$Mutable.execute(ExecuteStep.java:80)
+	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
+	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
+	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:51)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:29)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.executeMutable(RemovePreviousOutputsStep.java:67)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.executeMutable(RemovePreviousOutputsStep.java:39)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:42)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:24)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.executeMutable(ResolveInputChangesStep.java:39)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.executeMutable(ResolveInputChangesStep.java:28)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeAndStoreInCache(BuildCacheStep.java:145)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$4(BuildCacheStep.java:104)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$5(BuildCacheStep.java:104)
+	at org.gradle.internal.Try$Success.map(Try.java:170)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithCache(BuildCacheStep.java:88)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$0(BuildCacheStep.java:75)
+	at org.gradle.internal.Either$Left.fold(Either.java:116)
+	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:74)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:49)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.executeMutable(StoreExecutionStateStep.java:46)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.executeMutable(StoreExecutionStateStep.java:35)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+	at org.gradle.internal.execution.steps.ResolveMutableCachingStateStep.executeDelegate(ResolveMutableCachingStateStep.java:70)
+	at org.gradle.internal.execution.steps.ResolveMutableCachingStateStep.executeDelegate(ResolveMutableCachingStateStep.java:32)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:69)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:37)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.executeMutable(ResolveChangesStep.java:63)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.executeMutable(ResolveChangesStep.java:34)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.ValidateStep$Mutable.executeDelegate(ValidateStep.java:79)
+	at org.gradle.internal.execution.steps.ValidateStep$Mutable.executeDelegate(ValidateStep.java:65)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:105)
+	at org.gradle.internal.execution.steps.ValidateStep$Mutable.execute(ValidateStep.java:65)
+	at org.gradle.internal.execution.steps.CaptureMutableStateBeforeExecutionStep.executeMutable(CaptureMutableStateBeforeExecutionStep.java:86)
+	at org.gradle.internal.execution.steps.CaptureMutableStateBeforeExecutionStep.execute(CaptureMutableStateBeforeExecutionStep.java:65)
+	at org.gradle.internal.execution.steps.CaptureMutableStateBeforeExecutionStep.execute(CaptureMutableStateBeforeExecutionStep.java:45)
+	at org.gradle.internal.execution.steps.SkipEmptyMutableWorkStep.executeWithNonEmptySources(SkipEmptyMutableWorkStep.java:210)
+	at org.gradle.internal.execution.steps.SkipEmptyMutableWorkStep.executeMutable(SkipEmptyMutableWorkStep.java:90)
+	at org.gradle.internal.execution.steps.SkipEmptyMutableWorkStep.executeMutable(SkipEmptyMutableWorkStep.java:53)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.executeMutable(LoadPreviousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.executeMutable(LoadPreviousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.executeMutable(HandleStaleOutputsStep.java:77)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.executeMutable(HandleStaleOutputsStep.java:43)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$executeMutable$0(AssignMutableWorkspaceStep.java:34)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:305)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.executeMutable(AssignMutableWorkspaceStep.java:30)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.executeMutable(AssignMutableWorkspaceStep.java:21)
+	at org.gradle.internal.execution.steps.MutableStep.execute(MutableStep.java:26)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:56)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:38)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:68)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:132)
+	... 61 more
+Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Unresolved reference 'RuleBasedNumberFormat'.
+	at org.jetbrains.kotlin.gradle.plugin.diagnostics.DefaultCompilerDiagnosticsProblemsReporter.reportCompilerMessage(CompilerDiagnosticsProblemsReporter.kt:63)
+	at org.jetbrains.kotlin.compilerRunner.btapi.ProblemsApiCompilerMessageRenderer.replayTo(ProblemsApiCompilerMessageRenderer.kt:88)
+	at org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork.execute(BuildToolsApiCompilationWork.kt:251)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:68)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:64)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:61)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:102)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:61)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:58)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:191)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$500(DefaultConditionalExecutionQueue.java:112)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:168)
+	at org.gradle.internal.Factories$1.create(Factories.java:30)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.lambda$runAndReleaseLocks$0(DefaultWorkerLeaseService.java:300)
+	at org.gradle.internal.work.ResourceLockStatistics$1.measure(ResourceLockStatistics.java:43)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAndReleaseLocks(DefaultWorkerLeaseService.java:298)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocksAcquired(DefaultWorkerLeaseService.java:294)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:286)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:130)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:135)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:163)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:125)
+	... 2 more
+
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 5m 43s
+263 actionable tasks: 166 executed, 97 from cache
+Configuration cache entry stored.

@@ -45,7 +45,7 @@ android {
 
     defaultConfig {
         applicationId = "my.novela"
-        versionCode = 39
+        versionCode = System.getenv("NOVELA_CLONE_VERSION_CODE")?.toIntOrNull() ?: 39
         versionName = "1.6.1"
         base.archivesName.set("NoveLA_v$versionName")
         manifestPlaceholders["appLabel"] = "NoveLA"
@@ -60,6 +60,14 @@ android {
     }
 
     signingConfigs {
+        if (System.getenv("NOVELA_CLONE_KEYSTORE_PATH")?.isNotBlank() == true) {
+            create("clone") {
+                storeFile = file(System.getenv("NOVELA_CLONE_KEYSTORE_PATH"))
+                storePassword = System.getenv("NOVELA_CLONE_STORE_PASSWORD")
+                keyAlias = System.getenv("NOVELA_CLONE_KEY_ALIAS") ?: "novela-clone"
+                keyPassword = System.getenv("NOVELA_CLONE_KEY_PASSWORD")
+            }
+        }
         if (hasDefaultSigningConfigData) create("default") {
             storeFile = file(defaultSigningConfigData.getProperty("storeFile"))
             storePassword = defaultSigningConfigData.getProperty("storePassword")
@@ -74,6 +82,17 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             manifestPlaceholders["appLabel"] = "NoveLA Debug"
+        }
+
+        create("clone") {
+            initWith(getByName("debug"))
+            // A separate install ID, not a replacement for official NoveLA.
+            matchingFallbacks += listOf("debug")
+            applicationIdSuffix = ".clone"
+            versionNameSuffix = "-clone"
+            manifestPlaceholders["appLabel"] = "NoveLA EMA Clone"
+            isDebuggable = false
+            signingConfigs.findByName("clone")?.let { signingConfig = it }
         }
 
         named("release") {

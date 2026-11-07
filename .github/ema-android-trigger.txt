@@ -1,0 +1,1 @@
+2026-10-10 build #3: verified APK and model assets; fix git report commit rebase autostash after Gradle modifications.

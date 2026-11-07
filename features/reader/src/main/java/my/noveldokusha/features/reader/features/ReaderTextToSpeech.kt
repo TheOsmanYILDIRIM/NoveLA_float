@@ -1,10 +1,7 @@
 package my.noveldokusha.features.reader.features
 
 import android.content.Context
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
+import android.os.SystemClock
 import my.noveldokusha.features.reader.services.NarratorMediaControlsService
 import timber.log.Timber
 import androidx.compose.runtime.MutableState
@@ -23,13 +20,13 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import my.noveldokusha.core.appPreferences.VoicePredefineState
 import my.noveldokusha.features.reader.domain.ChapterIndex
 import my.noveldokusha.features.reader.domain.ChapterLoaded
 import my.noveldokusha.features.reader.domain.ReaderItem
 import my.noveldokusha.features.reader.domain.indexOfReaderItem
+import my.noveldokusha.text_to_speech.ema.EmaDiagnostics
 import my.noveldokusha.text_to_speech.AppTtsEngine
 import my.noveldokusha.text_to_speech.TextToSpeechManager
 import my.noveldokusha.text_to_speech.Utterance
@@ -68,6 +65,8 @@ internal data class TextToSpeechSettingData(
     val originalVoiceId: State<String>,
     val setOriginalVoiceId: (String) -> Unit,
     val spokenWordRange: State<IntRange?>,
+    val sleepTimerRemainingSeconds: State<Int> = mutableStateOf(0),
+    val setSleepTimer: (Int) -> Unit = {},
 )
 
 internal data class TextSynthesis(
@@ -136,6 +135,33 @@ internal class ReaderTextToSpeech(
             playState = Utterance.PlayState.FINISHED
         )
     )
+
+    private val sleepTimerSeconds = mutableStateOf(0)
+    private var sleepTimerJob: Job? = null
+
+    private fun setSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        if (minutes <= 0) {
+            sleepTimerSeconds.value = 0
+            return
+        }
+        val deadline = SystemClock.elapsedRealtime() + minutes * 60_000L
+        sleepTimerSeconds.value = minutes * 60
+        sleepTimerJob = coroutineScope.launch {
+            while (true) {
+                val remaining = ((deadline - SystemClock.elapsedRealtime() + 999L) / 1000L)
+                    .coerceAtLeast(0L).toInt()
+                sleepTimerSeconds.value = remaining
+                if (remaining == 0) {
+                    sleepTimerJob = null
+                    if (state.isPlaying.value) setPlaying(false)
+                    break
+                }
+                delay(1000L)
+            }
+        }
+    }
 
     val scrolledToTheTop = MutableSharedFlow<Unit>()
     val scrolledToTheBottom = MutableSharedFlow<Unit>()
@@ -274,6 +300,8 @@ internal class ReaderTextToSpeech(
             onOriginalVoiceChanged()
         },
         spokenWordRange = manager.spokenWordRange,
+        sleepTimerRemainingSeconds = sleepTimerSeconds,
+        setSleepTimer = ::setSleepTimer,
     )
 
     val isActive = derivedStateOf { state.isThereActiveItem.value || state.isPlaying.value }
@@ -379,61 +407,12 @@ internal class ReaderTextToSpeech(
         }
     }
 
-    @Volatile
-    private var activeClaimTrack: AudioTrack? = null
-
     private val lifecycleLock = java.util.concurrent.locks.ReentrantLock()
-
-    private fun claimMediaSession() {
-        try {
-            // Освобождаем предыдущий трек, если он ещё не был релизнут
-            // (защита от утечки при множественных вызовах start())
-            activeClaimTrack?.let { runCatching { it.release() } }
-            activeClaimTrack = null
-
-            val sampleRate = 44100
-            val durationSec = 0.1
-            val bufferSize = (sampleRate * durationSec).toInt()
-            val audioTrack = AudioTrack(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build(),
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build(),
-                bufferSize * 2,
-                AudioTrack.MODE_STATIC,
-                AudioManager.AUDIO_SESSION_ID_GENERATE
-            )
-            activeClaimTrack = audioTrack
-            val silence = ShortArray(bufferSize)
-            audioTrack.write(silence, 0, silence.size)
-            audioTrack.play()
-            // NonCancellable гарантирует, что release() выполнится даже при отмене coroutineScope
-            coroutineScope.launch(NonCancellable) {
-                try {
-                    delay(200)
-                } finally {
-                    runCatching { audioTrack.stop() }
-                    runCatching { audioTrack.release() }
-                    if (activeClaimTrack === audioTrack) activeClaimTrack = null
-                }
-            }
-            Timber.v("claimMediaSession OK")
-        } catch (e: Exception) {
-            Timber.w(e, "claimMediaSession failed")
-        }
-    }
 
     fun start() {
         lifecycleLock.lock()
         try {
             Timber.d("start()")
-            claimMediaSession()
-            NarratorMediaControlsService.reacquireFocus()
             switchVoiceForMode()
             state.isPlaying.value = true
             updateJob?.cancel()
@@ -443,6 +422,7 @@ internal class ReaderTextToSpeech(
                     .filter { it.playState == Utterance.PlayState.FINISHED }
                     .collect {
                         Timber.d("collect FINISHED queueSize=${manager.queueList.size}")
+                        EmaDiagnostics.record(context, "READER_FINISHED chapter=${it.itemPos.chapterIndex} item=${it.itemPos.chapterItemPosition} pending=${manager.queueList.size}")
                         withContext(Dispatchers.Main) {
                             when (manager.queueList.size) {
                                 halfBuffer -> {
@@ -460,6 +440,7 @@ internal class ReaderTextToSpeech(
                                 }
                                 0 -> {
                                     Timber.w("TTS-JUMP queueSize==0 emit reachedChapterEnd: finished=(${it.itemPos.chapterIndex},${it.itemPos.chapterItemPosition})")
+                                    EmaDiagnostics.record(context, "REACHED_CHAPTER_END chapter=${it.itemPos.chapterIndex} item=${it.itemPos.chapterItemPosition}")
                                     launch {
                                         reachedChapterEndFlowChapterIndex.emit(it.itemPos.chapterIndex)
                                     }
@@ -973,7 +954,11 @@ internal class ReaderTextToSpeech(
             chapterIndex = chapterIndex,
             quantity = quantity
         )
-        if (nextItems.isEmpty()) return
+        if (nextItems.isEmpty()) {
+            EmaDiagnostics.record(context, "NEXT_CHUNK_EMPTY chapter=$chapterIndex item=$chapterItemPosition")
+            return
+        }
+        EmaDiagnostics.record(context, "NEXT_CHUNK chapter=$chapterIndex count=${nextItems.size}")
         nextItems.forEach(::speakItem)
     }
 
@@ -1029,6 +1014,7 @@ internal class ReaderTextToSpeech(
                 if (cleanText.isBlank()) return
 
                 Timber.d("TTS-JUMP speakItem: (${item.chapterIndex},${item.chapterItemPosition}) chars=${cleanText.length}")
+                EmaDiagnostics.record(context, "READER_QUEUE chapter=${item.chapterIndex} item=${item.chapterItemPosition} chars=${cleanText.length} type=${item.javaClass.simpleName}")
 
                 val leadingOffset = displayText.lines().firstOrNull()?.let { line ->
                     LEADING_DECORATIVE.find(line)?.value?.length
