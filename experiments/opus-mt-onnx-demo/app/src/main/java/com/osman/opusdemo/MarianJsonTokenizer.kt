@@ -125,7 +125,7 @@ class MarianJsonTokenizer(file: File) {
     }
 
     fun decode(ids: LongArray): String {
-        return ids.mapNotNull { id ->
+        return ids.asIterable().mapNotNull { id ->
             val piece = inverse[id.toInt()]
             if (piece == null || piece == "</s>" || piece == "<pad>" || piece == "<s>") null
             else piece
