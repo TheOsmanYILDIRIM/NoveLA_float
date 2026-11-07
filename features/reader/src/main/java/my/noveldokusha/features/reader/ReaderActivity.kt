@@ -10,6 +10,8 @@ import android.os.Bundle
 import android.os.SystemClock
 import timber.log.Timber
 import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.AbsListView
 import androidx.activity.compose.setContent
@@ -803,6 +805,12 @@ class ReaderActivity : BaseActivity() {
                         )
                     )
                     updateInfoView()
+                    // Each cached text glyph mask is stable, but the sampled wallpaper
+                    // depends on the row's CURRENT screen position during scrolling.
+                    // Hardware display lists otherwise replay the previous frame's texture.
+                    if (appPreferences.READER_TEXT_ENGRAVED.value) {
+                        view?.let { invalidateVisibleEngravedText(it) }
+                    }
                     // Only trigger chapter loading when the user is actually scrolling,
                     // not during programmatic layout changes (e.g. after notifyDataSetChanged).
                     if (listIsScrolling) {
@@ -913,6 +921,18 @@ class ReaderActivity : BaseActivity() {
      * Keep the top/bottom screen bands clear through every chapter. Preserve
      * the first visible item's offset relative to the padded reading area.
      */
+    /** Refresh only visible engraved TextViews, without rebinding paragraphs. */
+    private fun invalidateVisibleEngravedText(list: AbsListView) {
+        fun invalidateDescendants(view: View) {
+            if (view is my.noveldokusha.features.reader.ui.RecessedTextView) {
+                if (view.isEngraved) view.invalidate()
+            } else if (view is ViewGroup) {
+                for (i in 0 until view.childCount) invalidateDescendants(view.getChildAt(i))
+            }
+        }
+        for (i in 0 until list.childCount) invalidateDescendants(list.getChildAt(i))
+    }
+
     private fun applyReaderViewportMargins(topDp: Float, bottomDp: Float) {
         val list = viewBind.listView
         val density = resources.displayMetrics.density
