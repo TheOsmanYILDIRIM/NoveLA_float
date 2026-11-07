@@ -1,6 +1,9 @@
 name: Build & Publish
 
 on:
+  push:
+    branches:
+      - ci/engraved-apk-test-20261107
   workflow_dispatch:
     inputs:
       build_type:
@@ -70,7 +73,7 @@ jobs:
 
       # ── Test build: upload as workflow artifact (no release) ────────────────
       - name: Upload APK artifact (test build)
-        if: inputs.build_type == 'test'
+        if: inputs.build_type == 'test' || github.event_name == 'push'
         uses: actions/upload-artifact@v7
         with:
           name: NoveLA-v${{ env.APP_VERSION }}-test
@@ -79,7 +82,7 @@ jobs:
 
       # ── Release build: create a draft GitHub Release ─────────────────────────
       - name: Create draft release
-        if: inputs.build_type == 'release'
+        if: inputs.build_type == 'release' && github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v3
         with:
           name: NoveLA v${{ env.APP_VERSION }}
