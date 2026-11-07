@@ -90,7 +90,7 @@ android {
             matchingFallbacks += listOf("debug")
             applicationIdSuffix = ".clone"
             versionNameSuffix = "-clone"
-            manifestPlaceholders["appLabel"] = "NoveLA EMA Clone"
+            manifestPlaceholders["appLabel"] = "NoveLA Clone"
             isDebuggable = false
             signingConfigs.findByName("clone")?.let { signingConfig = it }
         }

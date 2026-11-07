@@ -1,6 +1,9 @@
 name: Build & Publish
 
 on:
+  push:
+    branches:
+      - feature/ema-native-tts-integration
   workflow_dispatch:
     inputs:
       build_type:
@@ -17,7 +20,7 @@ permissions:
 
 jobs:
   build:
-    name: Build APK (${{ inputs.build_type }})
+    name: Build APK
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
@@ -70,7 +73,7 @@ jobs:
 
       # ── Test build: upload as workflow artifact (no release) ────────────────
       - name: Upload APK artifact (test build)
-        if: inputs.build_type == 'test'
+        if: github.event_name == 'push' || inputs.build_type == 'test'
         uses: actions/upload-artifact@v7
         with:
           name: NoveLA-v${{ env.APP_VERSION }}-test
@@ -79,7 +82,7 @@ jobs:
 
       # ── Release build: create a draft GitHub Release ─────────────────────────
       - name: Create draft release
-        if: inputs.build_type == 'release'
+        if: github.event_name == 'workflow_dispatch' && inputs.build_type == 'release'
         uses: softprops/action-gh-release@v3
         with:
           name: NoveLA v${{ env.APP_VERSION }}

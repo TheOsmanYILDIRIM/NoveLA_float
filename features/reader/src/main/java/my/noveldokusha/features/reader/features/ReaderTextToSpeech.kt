@@ -26,7 +26,6 @@ import my.noveldokusha.features.reader.domain.ChapterIndex
 import my.noveldokusha.features.reader.domain.ChapterLoaded
 import my.noveldokusha.features.reader.domain.ReaderItem
 import my.noveldokusha.features.reader.domain.indexOfReaderItem
-import my.noveldokusha.text_to_speech.ema.EmaDiagnostics
 import my.noveldokusha.text_to_speech.AppTtsEngine
 import my.noveldokusha.text_to_speech.TextToSpeechManager
 import my.noveldokusha.text_to_speech.Utterance
@@ -422,7 +421,6 @@ internal class ReaderTextToSpeech(
                     .filter { it.playState == Utterance.PlayState.FINISHED }
                     .collect {
                         Timber.d("collect FINISHED queueSize=${manager.queueList.size}")
-                        EmaDiagnostics.record(context, "READER_FINISHED chapter=${it.itemPos.chapterIndex} item=${it.itemPos.chapterItemPosition} pending=${manager.queueList.size}")
                         withContext(Dispatchers.Main) {
                             when (manager.queueList.size) {
                                 halfBuffer -> {
@@ -440,7 +438,6 @@ internal class ReaderTextToSpeech(
                                 }
                                 0 -> {
                                     Timber.w("TTS-JUMP queueSize==0 emit reachedChapterEnd: finished=(${it.itemPos.chapterIndex},${it.itemPos.chapterItemPosition})")
-                                    EmaDiagnostics.record(context, "REACHED_CHAPTER_END chapter=${it.itemPos.chapterIndex} item=${it.itemPos.chapterItemPosition}")
                                     launch {
                                         reachedChapterEndFlowChapterIndex.emit(it.itemPos.chapterIndex)
                                     }
@@ -955,10 +952,8 @@ internal class ReaderTextToSpeech(
             quantity = quantity
         )
         if (nextItems.isEmpty()) {
-            EmaDiagnostics.record(context, "NEXT_CHUNK_EMPTY chapter=$chapterIndex item=$chapterItemPosition")
             return
         }
-        EmaDiagnostics.record(context, "NEXT_CHUNK chapter=$chapterIndex count=${nextItems.size}")
         nextItems.forEach(::speakItem)
     }
 
@@ -1014,7 +1009,6 @@ internal class ReaderTextToSpeech(
                 if (cleanText.isBlank()) return
 
                 Timber.d("TTS-JUMP speakItem: (${item.chapterIndex},${item.chapterItemPosition}) chars=${cleanText.length}")
-                EmaDiagnostics.record(context, "READER_QUEUE chapter=${item.chapterIndex} item=${item.chapterItemPosition} chars=${cleanText.length} type=${item.javaClass.simpleName}")
 
                 val leadingOffset = displayText.lines().firstOrNull()?.let { line ->
                     LEADING_DECORATIVE.find(line)?.value?.length
