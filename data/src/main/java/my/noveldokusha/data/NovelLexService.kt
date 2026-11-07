@@ -17,6 +17,11 @@ import javax.inject.Singleton
 @Singleton
 class NovelLexService @Inject constructor(private val database: AppDatabase) {
     private val updateMutex = Mutex()
+    private data class CachedIndex(
+        val book: String, val source: String, val target: String,
+        val size: Int, val matcher: NovelLexMarkers
+    )
+    @Volatile private var cachedIndex: CachedIndex? = null
     private val englishPhrase = Regex("(?<![\\p{L}])[A-Z][a-z]+(?:[ \\t]+[A-Z][a-z]+){1,3}(?![\\p{L}])")
 
     /**
@@ -53,7 +58,10 @@ class NovelLexService @Inject constructor(private val database: AppDatabase) {
                     )
                 }
             }.toList()
-            if (updates.isNotEmpty()) withContext(Dispatchers.IO) { dao.upsert(updates) }
+            if (updates.isNotEmpty()) {
+                withContext(Dispatchers.IO) { dao.upsert(updates) }
+                cachedIndex = null
+            }
         }
     }
 
@@ -67,11 +75,24 @@ class NovelLexService @Inject constructor(private val database: AppDatabase) {
         texts: List<String>, request: suspend (List<String>) -> Map<String, String>,
     ): Map<String, String> {
         if (texts.isEmpty()) return emptyMap()
-        val entries = withContext(Dispatchers.IO) {
-            database.novelLexTermDao().forBook(bookUrl, sourceLang, targetLang)
+        val snapshot = cachedIndex?.takeIf {
+            it.book == bookUrl && it.source == sourceLang && it.target == targetLang
+        } ?: updateMutex.withLock {
+            cachedIndex?.takeIf {
+                it.book == bookUrl && it.source == sourceLang && it.target == targetLang
+            } ?: withContext(Dispatchers.IO) {
+                database.novelLexTermDao().forBook(bookUrl, sourceLang, targetLang)
+            }.let { entries ->
+                CachedIndex(
+                    bookUrl, sourceLang, targetLang, entries.size,
+                    NovelLexMarkers(entries.map {
+                        NovelLexTermRef(it.id, it.original, it.translated, it.locked)
+                    })
+                ).also { cachedIndex = it }
+            }
         }
-        if (entries.isEmpty()) return request(texts)
-        val index = NovelLexMarkers(entries.map { NovelLexTermRef(it.id, it.original, it.translated, it.locked) })
+        if (snapshot.size == 0) return request(texts)
+        val index = snapshot.matcher
         val prepared = texts.map(index::prepare)
         if (prepared.none { it.occurrences.isNotEmpty() }) return request(texts)
         val tagged = request(prepared.map { it.markedText })
@@ -109,7 +130,10 @@ class NovelLexService @Inject constructor(private val database: AppDatabase) {
                     term.copy(translated = suggestion)
                 else null
             }
-            if (changes.isNotEmpty()) withContext(Dispatchers.IO) { dao.upsert(changes) }
+            if (changes.isNotEmpty()) {
+                withContext(Dispatchers.IO) { dao.upsert(changes) }
+                cachedIndex = null
+            }
         }
         return result
     }
