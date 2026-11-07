@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.ComposeShader
 import android.graphics.Matrix
@@ -19,7 +20,6 @@ import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
-import android.view.View
 import androidx.appcompat.widget.AppCompatTextView
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -63,6 +63,14 @@ class RecessedTextView @JvmOverloads constructor(
     var wallpaperBitmap: Bitmap? = null
         set(value) { if (field !== value) { field = value; invalidate() } }
 
+    var wallpaperBoundsOnScreen: Rect? = null
+        set(value) {
+            if (field != value) { field = value?.let { Rect(it) }; invalidate() }
+        }
+
+    private val clearPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+    }
     private val eraser = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
     }
@@ -85,6 +93,7 @@ class RecessedTextView @JvmOverloads constructor(
     private val rect = RectF()
     private var lastLayout: Layout? = null
     private var lastString: String? = null
+    private var lastProtectedRanges: String? = null
     private var lastTextSize = -1f
     private var lastLetterSpacing = -1f
     private var lastTypeface: android.graphics.Typeface? = null
@@ -96,15 +105,32 @@ class RecessedTextView @JvmOverloads constructor(
         factorMask = null
     }
 
-    private fun maskFor(textLayout: Layout, content: String): Bitmap? {
+    private fun protectedRanges(content: CharSequence): List<Pair<Int, Int>> {
+        if (content !is Spanned) return emptyList()
+        val spans = buildList<Any> {
+            addAll(content.getSpans(0, content.length, ReplacementSpan::class.java))
+            addAll(content.getSpans(0, content.length, BackgroundColorSpan::class.java))
+            addAll(content.getSpans(0, content.length, ForegroundColorSpan::class.java))
+        }
+        return spans.mapNotNull { span ->
+            val start = content.getSpanStart(span).coerceIn(0, content.length)
+            val end = content.getSpanEnd(span).coerceIn(0, content.length)
+            if (end > start) start to end else null
+        }.distinct()
+    }
+
+    private fun maskFor(textLayout: Layout, content: CharSequence,
+                        protected: List<Pair<Int, Int>>): Bitmap? {
         val w = textLayout.width + 4
         val h = textLayout.height + 4
         // Guard the UI thread against extremely large bitmap masks.
         if (w <= 4 || h <= 4 || w > 2048 || h > 4096 ||
-            w.toLong() * h > 800_000L) return null
+            w.toLong() * h > 1_600_000L) return null
+        val rangeKey = protected.joinToString(";") { "${it.first}:${it.second}" }
         val cached = glyphMask
         if (cached != null && !cached.isRecycled && lastLayout === textLayout &&
-            lastString == content && lastTextSize == textSize &&
+            lastString == content.toString() && lastProtectedRanges == rangeKey &&
+            lastTextSize == textSize &&
             lastLetterSpacing == letterSpacing && lastTypeface === typeface &&
             cached.width == w && cached.height == h) return cached
 
@@ -122,12 +148,33 @@ class RecessedTextView @JvmOverloads constructor(
                 paint.color = Color.WHITE
                 paint.alpha = 255
                 textLayout.draw(maskCanvas)
+                // Preserve highlighted word/background as normal text.
+                // All OTHER glyphs in its paragraph are still engraved.
+                for ((from, to) in protected) {
+                    val firstLine = textLayout.getLineForOffset(from)
+                    val lastLine = textLayout.getLineForOffset(to - 1)
+                    for (line in firstLine..lastLine) {
+                        val start = maxOf(from, textLayout.getLineStart(line))
+                        val end = minOf(to, textLayout.getLineEnd(line))
+                        if (end <= start) continue
+                        val startX = textLayout.getPrimaryHorizontal(start)
+                        val endX = textLayout.getPrimaryHorizontal(end)
+                        maskCanvas.drawRect(
+                            minOf(startX, endX) - 3f,
+                            textLayout.getLineTop(line).toFloat() - 3f,
+                            maxOf(startX, endX) + 3f,
+                            textLayout.getLineBottom(line).toFloat() + 3f,
+                            clearPaint
+                        )
+                    }
+                }
             } finally {
                 paint.color = savedColor
                 paint.alpha = savedAlpha
             }
             lastLayout = textLayout
-            lastString = content
+            lastString = content.toString()
+            lastProtectedRanges = rangeKey
             lastTextSize = textSize
             lastLetterSpacing = letterSpacing
             lastTypeface = typeface
@@ -165,7 +212,13 @@ class RecessedTextView @JvmOverloads constructor(
                 for (x in 0 until w) {
                     val i = y * w + x
                     val alpha = (pixels[i] ushr 24) / 255f
-                    if (alpha <= 0f) continue
+                    if (alpha <= 0f) {
+                        // Neutral multiplication outside the glyph edges,
+                        // preventing bilinear samples from blending with black.
+                        val neutral = (255f / 3.40f).roundToInt()
+                        output[i] = Color.rgb(neutral, neutral, neutral)
+                        continue
+                    }
                     // roll_zero(alpha, -shift, -shift) = source at x+shift,y+shift
                     val rightBottom = if (x + shift < w && y + shift < h)
                         (pixels[(y + shift) * w + x + shift] ushr 24) / 255f else 0f
@@ -176,7 +229,7 @@ class RecessedTextView @JvmOverloads constructor(
                     val factor = (1f - depth * alpha + light * rimRB - dark * rimLT)
                         .coerceIn(0.10f, 3.40f)
                     val encoded = ((factor / 3.40f) * 255f).roundToInt().coerceIn(0, 255)
-                    output[i] = Color.argb(255, encoded, encoded, encoded)
+                    output[i] = Color.rgb(encoded, encoded, encoded)
                 }
             }
             Bitmap.createBitmap(output, w, h, Bitmap.Config.ARGB_8888).also {
@@ -190,17 +243,12 @@ class RecessedTextView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         val content = text
         val textLayout = layout
-        val specialSpans = content is Spanned && (
-            content.getSpans(0, content.length, ReplacementSpan::class.java).isNotEmpty() ||
-            content.getSpans(0, content.length, BackgroundColorSpan::class.java).isNotEmpty() ||
-            content.getSpans(0, content.length, ForegroundColorSpan::class.java).isNotEmpty()
-        )
-        if (!isEngraved || content.isEmpty() || textLayout == null || specialSpans ||
+        if (!isEngraved || content.isEmpty() || textLayout == null ||
             (selectionStart >= 0 && selectionEnd >= 0 && selectionStart != selectionEnd)) {
             super.onDraw(canvas)
             return
         }
-        val mask = maskFor(textLayout, content.toString())
+        val mask = maskFor(textLayout, content, protectedRanges(content))
         if (mask == null) { super.onDraw(canvas); return }
 
         val x = compoundPaddingLeft.toFloat() - 2f
@@ -232,18 +280,17 @@ class RecessedTextView @JvmOverloads constructor(
     private fun drawWallpaperFactor(
         canvas: Canvas, wallpaper: Bitmap, factor: Bitmap, x: Float, y: Float
     ): Boolean {
-        val contentView = rootView.findViewById<View>(android.R.id.content) ?: return false
-        if (contentView.width <= 0 || contentView.height <= 0) return false
+        // Match the Compose image's actual SCREEN rect, including insets.
+        val bounds = wallpaperBoundsOnScreen ?: return false
+        if (bounds.width() <= 0 || bounds.height() <= 0) return false
         val viewPos = IntArray(2)
-        val contentPos = IntArray(2)
         getLocationOnScreen(viewPos)
-        contentView.getLocationOnScreen(contentPos)
-        val scale = max(contentView.width.toFloat() / wallpaper.width,
-                        contentView.height.toFloat() / wallpaper.height)
-        val originX = (contentView.width - wallpaper.width * scale) / 2f -
-            (viewPos[0] - contentPos[0])
-        val originY = (contentView.height - wallpaper.height * scale) / 2f -
-            (viewPos[1] - contentPos[1])
+        val scale = max(bounds.width().toFloat() / wallpaper.width,
+                        bounds.height().toFloat() / wallpaper.height)
+        val originX = bounds.left - viewPos[0] +
+            (bounds.width() - wallpaper.width * scale) / 2f
+        val originY = bounds.top - viewPos[1] +
+            (bounds.height() - wallpaper.height * scale) / 2f
 
         val wallpaperShader = BitmapShader(wallpaper, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
         wallpaperShader.setLocalMatrix(Matrix().apply {
@@ -260,7 +307,7 @@ class RecessedTextView @JvmOverloads constructor(
             canvas.drawRect(rect, surfacePaint)
             // factor ARGB has alpha 255 exactly where the original glyph has
             // nonzero coverage; its factor already includes antialias coverage.
-            canvas.drawBitmap(factor, x, y, clipPaint)
+            canvas.drawBitmap(mask, x, y, clipPaint)
         } finally {
             surfacePaint.shader = null
             canvas.restoreToCount(layer)
