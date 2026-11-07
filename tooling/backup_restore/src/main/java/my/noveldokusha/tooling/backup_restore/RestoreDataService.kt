@@ -639,6 +639,74 @@ class RestoreDataService : Service() {
                     val settingsString = settingsInputStream.bufferedReader().readText()
                     val settingsJson = JSONObject(settingsString)
 
+                    // Restore portable visual preferences when present in newer backups.
+                    if (settingsJson.has("APP_THEME") && !settingsJson.isNull("APP_THEME")) {
+                        appPreferences.APP_THEME.value = settingsJson.getString("APP_THEME")
+                    }
+                    if (settingsJson.has("THEME_DARK_MODE") && !settingsJson.isNull("THEME_DARK_MODE")) {
+                        appPreferences.THEME_DARK_MODE.value = settingsJson.getString("THEME_DARK_MODE")
+                    }
+                    if (settingsJson.has("READER_FONT_SIZE") && !settingsJson.isNull("READER_FONT_SIZE")) {
+                        appPreferences.READER_FONT_SIZE.value = settingsJson.getDouble("READER_FONT_SIZE").toFloat()
+                    }
+                    if (settingsJson.has("READER_FONT_FAMILY") && !settingsJson.isNull("READER_FONT_FAMILY")) {
+                        appPreferences.READER_FONT_FAMILY.value = settingsJson.getString("READER_FONT_FAMILY")
+                    }
+                    if (settingsJson.has("READER_LINE_HEIGHT") && !settingsJson.isNull("READER_LINE_HEIGHT")) {
+                        appPreferences.READER_LINE_HEIGHT.value = settingsJson.getDouble("READER_LINE_HEIGHT").toFloat()
+                    }
+                    if (settingsJson.has("READER_PARAGRAPH_SPACING") && !settingsJson.isNull("READER_PARAGRAPH_SPACING")) {
+                        appPreferences.READER_PARAGRAPH_SPACING.value = settingsJson.getDouble("READER_PARAGRAPH_SPACING").toFloat()
+                    }
+                    if (settingsJson.has("READER_LETTER_SPACING") && !settingsJson.isNull("READER_LETTER_SPACING")) {
+                        appPreferences.READER_LETTER_SPACING.value = settingsJson.getDouble("READER_LETTER_SPACING").toFloat()
+                    }
+                    if (settingsJson.has("READER_TEXT_COLOR") && !settingsJson.isNull("READER_TEXT_COLOR")) {
+                        appPreferences.READER_TEXT_COLOR.value = settingsJson.getString("READER_TEXT_COLOR")
+                    }
+                    if (settingsJson.has("READER_TEXT_JUSTIFY") && !settingsJson.isNull("READER_TEXT_JUSTIFY")) {
+                        appPreferences.READER_TEXT_JUSTIFY.value = settingsJson.getBoolean("READER_TEXT_JUSTIFY")
+                    }
+                    if (settingsJson.has("READER_TEXT_HYPHENATION") && !settingsJson.isNull("READER_TEXT_HYPHENATION")) {
+                        appPreferences.READER_TEXT_HYPHENATION.value = settingsJson.getBoolean("READER_TEXT_HYPHENATION")
+                    }
+                    if (settingsJson.has("READER_PARAGRAPH_INDENT") && !settingsJson.isNull("READER_PARAGRAPH_INDENT")) {
+                        appPreferences.READER_PARAGRAPH_INDENT.value = settingsJson.getBoolean("READER_PARAGRAPH_INDENT")
+                    }
+                    if (settingsJson.has("READER_PARAGRAPH_FIRST_LETTER_BOLD") && !settingsJson.isNull("READER_PARAGRAPH_FIRST_LETTER_BOLD")) {
+                        appPreferences.READER_PARAGRAPH_FIRST_LETTER_BOLD.value = settingsJson.getBoolean("READER_PARAGRAPH_FIRST_LETTER_BOLD")
+                    }
+                    if (settingsJson.has("READER_SENTENCE_SPLITTING") && !settingsJson.isNull("READER_SENTENCE_SPLITTING")) {
+                        appPreferences.READER_SENTENCE_SPLITTING.value = settingsJson.getBoolean("READER_SENTENCE_SPLITTING")
+                    }
+                    if (settingsJson.has("READER_TEXT_BOLD") && !settingsJson.isNull("READER_TEXT_BOLD")) {
+                        appPreferences.READER_TEXT_BOLD.value = settingsJson.getBoolean("READER_TEXT_BOLD")
+                    }
+                    if (settingsJson.has("READER_TEXT_ITALIC") && !settingsJson.isNull("READER_TEXT_ITALIC")) {
+                        appPreferences.READER_TEXT_ITALIC.value = settingsJson.getBoolean("READER_TEXT_ITALIC")
+                    }
+                    if (settingsJson.has("READER_TEXT_UNDERLINE") && !settingsJson.isNull("READER_TEXT_UNDERLINE")) {
+                        appPreferences.READER_TEXT_UNDERLINE.value = settingsJson.getBoolean("READER_TEXT_UNDERLINE")
+                    }
+                    if (settingsJson.has("READER_TEXT_SHADOW") && !settingsJson.isNull("READER_TEXT_SHADOW")) {
+                        appPreferences.READER_TEXT_SHADOW.value = settingsJson.getBoolean("READER_TEXT_SHADOW")
+                    }
+                    if (settingsJson.has("READER_TEXT_SMOOTH") && !settingsJson.isNull("READER_TEXT_SMOOTH")) {
+                        appPreferences.READER_TEXT_SMOOTH.value = settingsJson.getBoolean("READER_TEXT_SMOOTH")
+                    }
+                    if (settingsJson.has("READER_MARGIN_LEFT") && !settingsJson.isNull("READER_MARGIN_LEFT")) {
+                        appPreferences.READER_MARGIN_LEFT.value = settingsJson.getDouble("READER_MARGIN_LEFT").toFloat()
+                    }
+                    if (settingsJson.has("READER_MARGIN_RIGHT") && !settingsJson.isNull("READER_MARGIN_RIGHT")) {
+                        appPreferences.READER_MARGIN_RIGHT.value = settingsJson.getDouble("READER_MARGIN_RIGHT").toFloat()
+                    }
+                    if (settingsJson.has("READER_MARGIN_TOP") && !settingsJson.isNull("READER_MARGIN_TOP")) {
+                        appPreferences.READER_MARGIN_TOP.value = settingsJson.getDouble("READER_MARGIN_TOP").toFloat()
+                    }
+                    if (settingsJson.has("READER_MARGIN_BOTTOM") && !settingsJson.isNull("READER_MARGIN_BOTTOM")) {
+                        appPreferences.READER_MARGIN_BOTTOM.value = settingsJson.getDouble("READER_MARGIN_BOTTOM").toFloat()
+                    }
+
                     // Restore API keys
                     if (settingsJson.has("TRANSLATION_GOOGLE_PA_API_KEYS")) {
                         val backupValue = settingsJson.getString("TRANSLATION_GOOGLE_PA_API_KEYS")
