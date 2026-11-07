@@ -46,7 +46,7 @@ jobs:
           } > custom.properties
       - run: sed -i '/org\\.gradle\\.java\\.home/d' gradle.properties
       - name: Build signed release
-        run: ./gradlew assembleRelease -PlocalPropertiesFilePath=custom.properties
+        run: ./gradlew assembleRelease -PlocalPropertiesFilePath=custom.properties --no-configuration-cache
       - uses: actions/upload-artifact@v4
         with:
           name: NoveLA-signed-update-release
