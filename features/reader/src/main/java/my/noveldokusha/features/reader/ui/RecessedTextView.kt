@@ -120,13 +120,13 @@ class RecessedTextView @JvmOverloads constructor(
     }
 
     private fun maskFor(textLayout: Layout, content: CharSequence,
-                        protected: List<Pair<Int, Int>>): Bitmap? {
+                        excluded: List<Pair<Int, Int>>): Bitmap? {
         val w = textLayout.width + 4
         val h = textLayout.height + 4
         // Guard the UI thread against extremely large bitmap masks.
         if (w <= 4 || h <= 4 || w > 2048 || h > 4096 ||
             w.toLong() * h > 1_600_000L) return null
-        val rangeKey = protected.joinToString(";") { "${it.first}:${it.second}" }
+        val rangeKey = excluded.joinToString(";") { "${it.first}:${it.second}" }
         val cached = glyphMask
         if (cached != null && !cached.isRecycled && lastLayout === textLayout &&
             lastString == content.toString() && lastProtectedRanges == rangeKey &&
@@ -150,7 +150,7 @@ class RecessedTextView @JvmOverloads constructor(
                 textLayout.draw(maskCanvas)
                 // Preserve highlighted word/background as normal text.
                 // All OTHER glyphs in its paragraph are still engraved.
-                for ((from, to) in protected) {
+                for ((from, to) in excluded) {
                     val firstLine = textLayout.getLineForOffset(from)
                     val lastLine = textLayout.getLineForOffset(to - 1)
                     for (line in firstLine..lastLine) {
