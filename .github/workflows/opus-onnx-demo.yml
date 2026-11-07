@@ -22,9 +22,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android 36 platform
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      # GitHub's Ubuntu runner already ships Android command-line tools.
+      # setup-android@v3 attempts to install obsolete "tools" and fails.
+      - name: Install Android 36 platform using runner SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_HOME:-}"
+          sdkmanager --version
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
       - name: Restore stable PUBLIC TEST-ONLY signer
         shell: bash
