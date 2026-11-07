@@ -2,6 +2,8 @@ package my.noveldokusha.features.reader
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -47,6 +49,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -240,6 +243,7 @@ class ReaderActivity : BaseActivity() {
                 currentTextUnderline = { appPreferences.READER_TEXT_UNDERLINE.value },
                 currentTextShadow = { appPreferences.READER_TEXT_SHADOW.value },
                 currentTextEngraved = { appPreferences.READER_TEXT_ENGRAVED.value },
+                currentEngravingWallpaper = { engravedWallpaper },
                 currentEngravingIntensity = { appPreferences.READER_ENGRAVING_INTENSITY.value },
                 currentEngravingTransparency = { appPreferences.READER_ENGRAVING_TRANSPARENCY.value },
                 currentTextSmooth = { appPreferences.READER_TEXT_SMOOTH.value },
@@ -257,6 +261,9 @@ class ReaderActivity : BaseActivity() {
     // — below в onCreate, после super.onCreate(). Статический appContext заполняется
     // до setContent → ReaderScreen → backgroundLayer → resolveFile.
     private val backgroundLoader by lazy { BackgroundImageLoader(this) }
+    // Shared bitmap reference for the same imported wallpaper rendered by Compose.
+    // Old references stay valid until recycled ListView rows have been rebound.
+    private var engravedWallpaper: Bitmap? = null
 
     private val backPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
@@ -278,6 +285,30 @@ class ReaderActivity : BaseActivity() {
         // Гарантируем инициализацию фонового лоадера (заполняет статический
         // appContext) до setContent → ReaderScreen → backgroundLayer.
         backgroundLoader
+        lifecycleScope.launch {
+            snapshotFlow { appPreferences.READER_BACKGROUND_IMAGE.value }
+                .distinctUntilChanged()
+                .collectLatest { selection ->
+                    val wallpaper = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val file = BackgroundImageLoader.resolveFile(selection)
+                                ?: return@runCatching null
+                            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                            BitmapFactory.decodeFile(file.absolutePath, bounds)
+                            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+                            var sample = 1
+                            while (bounds.outWidth / sample > 2560 || bounds.outHeight / sample > 2560) {
+                                sample *= 2
+                            }
+                            BitmapFactory.decodeFile(file.absolutePath,
+                                BitmapFactory.Options().apply { inSampleSize = sample })
+                        }.getOrNull()
+                    }
+                    engravedWallpaper = wallpaper
+                    // The background file can change independently of the text style.
+                    viewAdapter.listView.notifyDataSetChanged()
+                }
+        }
 
         // Гейт: тип книги решается по сохранённому в БД contentType — без сетевого
         // probe и без обращения к viewModel (её создание запускает ReaderSession
