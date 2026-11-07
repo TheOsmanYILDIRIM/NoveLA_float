@@ -10,6 +10,7 @@ plugins {
 }
 
 class CLICustomSettings(private val project: Project) {
+    val cloneBuild = propExist(key = "cloneBuild")
     val splitByAbi = propExist(key = "splitByAbi")
     val splitByAbiDoUniversal = splitByAbi && propExist(key = "splitByAbiDoUniversal")
     val localPropertiesFilePath = propString(
@@ -44,11 +45,14 @@ android {
     }
 
     defaultConfig {
-        applicationId = "my.novela"
-        versionCode = 39
+        applicationId = if (cliCustomSettings.cloneBuild) "my.novela.clone" else "my.novela"
+        // Preserve the original clone update track: GITHUB_RUN_NUMBER + 39000.
+        versionCode = if (cliCustomSettings.cloneBuild)
+            (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 39000 + it } ?: 39)
+        else 39
         versionName = "1.6.1"
-        base.archivesName.set("NoveLA_v$versionName")
-        manifestPlaceholders["appLabel"] = "NoveLA"
+        base.archivesName.set(if (cliCustomSettings.cloneBuild) "NoveLA_Clone_v$versionName" else "NoveLA_v$versionName")
+        manifestPlaceholders["appLabel"] = if (cliCustomSettings.cloneBuild) "NoveLA Clone" else "NoveLA"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
@@ -73,7 +77,7 @@ android {
         named("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appLabel"] = "NoveLA Debug"
+            manifestPlaceholders["appLabel"] = if (cliCustomSettings.cloneBuild) "NoveLA Clone Debug" else "NoveLA Debug"
         }
 
         named("release") {

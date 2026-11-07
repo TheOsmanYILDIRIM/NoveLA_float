@@ -3,6 +3,14 @@ name: Build & Publish
 on:
   workflow_dispatch:
     inputs:
+      apk_variant:
+        description: 'APK identity (clone updates installed NoveLA Clone)'
+        required: true
+        default: 'clone'
+        type: choice
+        options:
+          - clone
+          - original
       build_type:
         description: 'Build type'
         required: true
@@ -17,7 +25,7 @@ permissions:
 
 jobs:
   build:
-    name: Build APK (${{ inputs.build_type }})
+    name: Build ${{ inputs.apk_variant }} APK (${{ inputs.build_type }})
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
@@ -44,7 +52,12 @@ jobs:
         run: sed -i '/org\.gradle\.java\.home/d' gradle.properties
 
       - name: Build release APK
-        run: ./gradlew assembleRelease -PlocalPropertiesFilePath=custom.properties
+        run: |
+          if [ "${{ inputs.apk_variant }}" = "clone" ]; then
+            ./gradlew assembleRelease -PcloneBuild -PlocalPropertiesFilePath=custom.properties
+          else
+            ./gradlew assembleRelease -PlocalPropertiesFilePath=custom.properties
+          fi
 
       - name: Set app version
         run: |
@@ -73,7 +86,7 @@ jobs:
         if: inputs.build_type == 'test'
         uses: actions/upload-artifact@v7
         with:
-          name: NoveLA-v${{ env.APP_VERSION }}-test
+          name: NoveLA-${{ inputs.apk_variant }}-v${{ env.APP_VERSION }}-test
           path: release-artifacts/
           retention-days: 14
 
@@ -82,8 +95,8 @@ jobs:
         if: inputs.build_type == 'release'
         uses: softprops/action-gh-release@v3
         with:
-          name: NoveLA v${{ env.APP_VERSION }}
-          tag_name: v${{ env.APP_VERSION }}
+          name: NoveLA ${{ inputs.apk_variant }} v${{ env.APP_VERSION }}
+          tag_name: ${{ inputs.apk_variant }}-v${{ env.APP_VERSION }}-${{ env.SHORT_SHA }}
           draft: true
           body: |
             # <img src="https://github.com/HnDK0/NoveLA/raw/default/screenshots/NoveLA.png" width="36" valign="middle"> NoveLA — Light Novel Reader & Parser
