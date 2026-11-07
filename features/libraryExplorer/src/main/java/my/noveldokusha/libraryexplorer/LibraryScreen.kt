@@ -20,6 +20,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -70,6 +74,10 @@ fun LibraryScreen(
     val lastClickTime = remember { mutableStateOf(0L) }
 
     val gridColumns = uiState.gridColumns
+    val libraryGridState = rememberLazyGridState()
+    val showResumeLabel by remember(libraryGridState) {
+        derivedStateOf { libraryGridState.firstVisibleItemIndex == 0 && libraryGridState.firstVisibleItemScrollOffset < 100 }
+    }
 
     // Dialog states
     var showCreateCategoryDialog by remember { mutableStateOf(false) }
@@ -270,6 +278,7 @@ fun LibraryScreen(
             if (!uiState.isSelectionMode) {
                 latestReading?.let { last ->
                     FloatingActionButton(
+                        modifier = Modifier.offset(y = (-96).dp),
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                         onClick = {
@@ -290,7 +299,9 @@ fun LibraryScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         ) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                            Text("Resume reading")
+                            AnimatedVisibility(visible = showResumeLabel) {
+                                Text(stringResource(id = my.noveldokusha.coreui.R.string.resume_reading))
+                            }
                         }
                     }
                 }
@@ -303,6 +314,7 @@ fun LibraryScreen(
                 onBookClick = handleBookClick,
                 onBookLongClick = handleBookLongClick,
                 gridColumns = gridColumns,
+                gridState = libraryGridState,
                 sourceStripPosition = uiState.sourceStripPosition,
                 selectedBooks = libraryModel.selectedBooks,
                 isSelectionMode = uiState.isSelectionMode,
