@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.CenterFocusWeak
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.VolumeDown
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.StarRate
 import androidx.compose.material.icons.outlined.Save
@@ -51,6 +53,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -170,51 +173,8 @@ internal fun VoiceReaderSettingDialog(
                     onValueChangeFinished = { state.setVoiceSpeed(localSpeed) },
                 )
 
-                Text(
-                    text = "Arka plan müziği",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                AssistChip(
-                    onClick = { state.setMusicDuckingEnabled(!state.musicDuckingEnabled.value) },
-                    label = {
-                        Text(if (state.musicDuckingEnabled.value) "Müziği kıs: Açık" else "Müziği kıs: Kapalı")
-                    }
-                )
-                Text(
-                    text = "Okuma sırasında diğer uygulamaların müziğini azaltmayı dener. Android ve müzik uygulamasının desteğine bağlıdır.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Text(
-                    text = "Sleep timer",
-                    style = MaterialTheme.typography.titleSmall
-                )
                 val sleepRemaining = state.sleepTimerRemainingSeconds.value
-                if (sleepRemaining > 0) {
-                    val minutesLeft = (sleepRemaining + 59) / 60
-                    Text(
-                        text = "TTS stops in $minutesLeft min",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.horizontalScroll(rememberScrollState())
-                ) {
-                    listOf(15, 30, 45, 60, 90).forEach { minutes ->
-                        AssistChip(
-                            onClick = { state.setSleepTimer(minutes) },
-                            label = { Text("$minutes min") }
-                        )
-                    }
-                    if (sleepRemaining > 0) {
-                        AssistChip(
-                            onClick = { state.setSleepTimer(0) },
-                            label = { Text("Cancel") }
-                        )
-                    }
-                }
+                var sleepMenuExpanded by remember { mutableStateOf(false) }
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -279,6 +239,66 @@ internal fun VoiceReaderSettingDialog(
                             leadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             disabledLeadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
+                    )
+                    Box {
+                        AssistChip(
+                            label = {
+                                Text(
+                                    if (sleepRemaining > 0) {
+                                        val mins = sleepRemaining / 60
+                                        val secs = sleepRemaining % 60
+                                        "Uyku %02d:%02d".format(mins, secs)
+                                    } else "Uyku"
+                                )
+                            },
+                            onClick = { sleepMenuExpanded = true },
+                            leadingIcon = { Icon(Icons.Filled.NightsStay, null, Modifier.size(14.dp)) },
+                            modifier = Modifier.heightIn(min = 30.dp),
+                            colors = AssistChipDefaults.assistChipColors(
+                                leadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                        DropdownMenu(
+                            expanded = sleepMenuExpanded,
+                            onDismissRequest = { sleepMenuExpanded = false }
+                        ) {
+                            listOf(15, 30, 45, 60, 90, 120).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = { Text("$minutes dakika") },
+                                    onClick = {
+                                        state.setSleepTimer(minutes)
+                                        sleepMenuExpanded = false
+                                    }
+                                )
+                            }
+                            if (sleepRemaining > 0) {
+                                DropdownMenuItem(
+                                    text = { Text("Zamanlayıcıyı iptal et") },
+                                    onClick = {
+                                        state.setSleepTimer(0)
+                                        sleepMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    AssistChip(
+                        label = { Text("Diğer sesleri kıs") },
+                        onClick = { state.setMusicDuckingEnabled(!state.musicDuckingEnabled.value) },
+                        leadingIcon = {
+                            Icon(
+                                if (state.musicDuckingEnabled.value) Icons.Filled.Check else Icons.Filled.VolumeDown,
+                                null,
+                                Modifier.size(14.dp)
+                            )
+                        },
+                        modifier = Modifier.heightIn(min = 30.dp),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (state.musicDuckingEnabled.value)
+                                MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            leadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                     Box {
                         DropdownCustomSavedVoices(

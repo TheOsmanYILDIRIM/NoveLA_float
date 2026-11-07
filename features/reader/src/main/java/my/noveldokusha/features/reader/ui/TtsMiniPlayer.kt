@@ -404,11 +404,6 @@ private fun FloatingTtsMiniPlayer(
                 exit = fadeOut(tween(200)) + shrinkVertically(tween(200)),
             ) {
                 Column {
-                    FilterChip(
-                        selected = state.musicDuckingEnabled.value,
-                        onClick = { state.setMusicDuckingEnabled(!state.musicDuckingEnabled.value) },
-                        label = { Text("Müziği kıs (TTS boyunca)") }
-                    )
                     MiniPlayerControls(
                         state = state,
                         onClose = onClose,
