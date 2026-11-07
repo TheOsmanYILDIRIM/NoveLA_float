@@ -44,11 +44,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "my.novela"
+        applicationId = "my.novela.clone"
         versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 39000 + it } ?: 39
         versionName = "1.6.1"
-        base.archivesName.set("NoveLA_v$versionName")
-        manifestPlaceholders["appLabel"] = "NoveLA"
+        base.archivesName.set("NoveLA_Clone_v$versionName")
+        manifestPlaceholders["appLabel"] = "NoveLA Clone"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
@@ -73,7 +73,7 @@ android {
         named("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appLabel"] = "NoveLA Debug"
+            manifestPlaceholders["appLabel"] = "NoveLA Clone Debug"
         }
 
         named("release") {
