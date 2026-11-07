@@ -270,7 +270,7 @@ class RecessedTextView @JvmOverloads constructor(
         val x = compoundPaddingLeft.toFloat() - 2f
         val y = extendedPaddingTop.toFloat() - 2f
         val visible = canvas.clipBounds
-        val visibleTop = (visible.top - y - 4).coerceAtLeast(0)
+        val visibleTop = (visible.top - y - 4f).coerceAtLeast(0f)
         val visibleBottom = (visible.bottom - y + 4).toInt().coerceAtMost(textLayout.height)
         val excluded = protectedRanges(content)
         val visibleTiles = ArrayList<MaskTile>()
