@@ -70,6 +70,9 @@ class RecessedTextView @JvmOverloads constructor(
     private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
     }
+    private val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+    }
     private val surfacePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
         // Factors are encoded in 8 bits as (factor/3.4). Undo the encoding.
         colorFilter = ColorMatrixColorFilter(floatArrayOf(
@@ -96,7 +99,9 @@ class RecessedTextView @JvmOverloads constructor(
     private fun maskFor(textLayout: Layout, content: String): Bitmap? {
         val w = textLayout.width + 4
         val h = textLayout.height + 4
-        if (w <= 4 || h <= 4 || w > 2048 || h > 4096) return null
+        // Guard the UI thread against extremely large bitmap masks.
+        if (w <= 4 || h <= 4 || w > 2048 || h > 4096 ||
+            w.toLong() * h > 800_000L) return null
         val cached = glyphMask
         if (cached != null && !cached.isRecycled && lastLayout === textLayout &&
             lastString == content && lastTextSize == textSize &&
@@ -248,10 +253,17 @@ class RecessedTextView @JvmOverloads constructor(
         val factorShader = BitmapShader(factor, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
         factorShader.setLocalMatrix(Matrix().apply { setTranslate(x, y) })
         surfacePaint.shader = ComposeShader(wallpaperShader, factorShader, PorterDuff.Mode.MULTIPLY)
+        // MULTIPLY alpha semantics differ by backend. Clip the shader result
+        // explicitly to glyph coverage; never brighten a whole text rectangle.
+        val layer = canvas.saveLayer(rect, null)
         try {
             canvas.drawRect(rect, surfacePaint)
+            // factor ARGB has alpha 255 exactly where the original glyph has
+            // nonzero coverage; its factor already includes antialias coverage.
+            canvas.drawBitmap(factor, x, y, clipPaint)
         } finally {
             surfacePaint.shader = null
+            canvas.restoreToCount(layer)
         }
         return true
     }
