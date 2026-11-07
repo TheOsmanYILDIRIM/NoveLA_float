@@ -2,6 +2,9 @@ package my.noveldokusha.features.reader
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -47,6 +50,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -239,11 +243,14 @@ class ReaderActivity : BaseActivity() {
                 currentTextItalic = { appPreferences.READER_TEXT_ITALIC.value },
                 currentTextUnderline = { appPreferences.READER_TEXT_UNDERLINE.value },
                 currentTextShadow = { appPreferences.READER_TEXT_SHADOW.value },
+                currentTextEngraved = { appPreferences.READER_TEXT_ENGRAVED.value },
+                currentEngravingWallpaper = { engravedWallpaper },
+                currentEngravingBounds = { engravedWallpaperScreenBounds },
+                currentEngravingIntensity = { appPreferences.READER_ENGRAVING_INTENSITY.value },
+                currentEngravingTransparency = { appPreferences.READER_ENGRAVING_TRANSPARENCY.value },
                 currentTextSmooth = { appPreferences.READER_TEXT_SMOOTH.value },
                 currentMarginLeft = { appPreferences.READER_MARGIN_LEFT.value },
                 currentMarginRight = { appPreferences.READER_MARGIN_RIGHT.value },
-                currentMarginTop = { appPreferences.READER_MARGIN_TOP.value },
-                currentMarginBottom = { appPreferences.READER_MARGIN_BOTTOM.value },
             )
         }
     }
@@ -254,6 +261,10 @@ class ReaderActivity : BaseActivity() {
     // — below в onCreate, после super.onCreate(). Статический appContext заполняется
     // до setContent → ReaderScreen → backgroundLayer → resolveFile.
     private val backgroundLoader by lazy { BackgroundImageLoader(this) }
+    // Shared bitmap reference for the same imported wallpaper rendered by Compose.
+    // Old references stay valid until recycled ListView rows have been rebound.
+    private var engravedWallpaper: Bitmap? = null
+    private var engravedWallpaperScreenBounds: Rect? = null
 
     private val backPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
@@ -275,6 +286,31 @@ class ReaderActivity : BaseActivity() {
         // Гарантируем инициализацию фонового лоадера (заполняет статический
         // appContext) до setContent → ReaderScreen → backgroundLayer.
         backgroundLoader
+        lifecycleScope.launch {
+            // Observe the actual persisted preference flow; snapshotFlow does not
+            // track SharedPreferences writes and can leave the wallpaper mask stale.
+            appPreferences.READER_BACKGROUND_IMAGE.flow()
+                .collectLatest { selection ->
+                    val wallpaper = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val file = BackgroundImageLoader.resolveFile(selection)
+                                ?: return@runCatching null
+                            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                            BitmapFactory.decodeFile(file.absolutePath, bounds)
+                            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+                            var sample = 1
+                            while (bounds.outWidth / sample > 2560 || bounds.outHeight / sample > 2560) {
+                                sample *= 2
+                            }
+                            BitmapFactory.decodeFile(file.absolutePath,
+                                BitmapFactory.Options().apply { inSampleSize = sample })
+                        }.getOrNull()
+                    }
+                    engravedWallpaper = wallpaper
+                    // The background file can change independently of the text style.
+                    viewAdapter.listView.notifyDataSetChanged()
+                }
+        }
 
         // Гейт: тип книги решается по сохранённому в БД contentType — без сетевого
         // probe и без обращения к viewModel (её создание запускает ReaderSession
@@ -320,6 +356,8 @@ class ReaderActivity : BaseActivity() {
         novelReaderInitialized = true
         onBackPressedDispatcher.addCallback(this, backPressedCallback)
         viewBind.listView.adapter = viewAdapter.listView
+        // Clip every row to the same reading band during continuous scroll.
+        viewBind.listView.clipToPadding = true
         readerViewHandlersActions.listView = viewBind.listView
 
         fadeInTextLiveData.distinctUntilChanged().observe(this) {
@@ -529,23 +567,32 @@ class ReaderActivity : BaseActivity() {
                 viewModel.state.settings.style.textItalic.value,
                 viewModel.state.settings.style.textUnderline.value,
                 viewModel.state.settings.style.textShadow.value,
+                viewModel.state.settings.style.textEngraved.value,
+                viewModel.state.settings.style.engravingIntensity.value,
+                viewModel.state.settings.style.engravingTransparency.value,
                 viewModel.state.settings.style.textSmooth.value,
             )
         }.drop(1)
             .asLiveData()
             .observe(this) { viewAdapter.listView.notifyDataSetChanged() }
 
-        // Notify margins changed for list view
+        // Horizontal margins remain per-row padding; only these need rebinding.
         snapshotFlow {
-            listOf(
-                viewModel.state.settings.style.marginLeft.value,
-                viewModel.state.settings.style.marginRight.value,
-                viewModel.state.settings.style.marginTop.value,
-                viewModel.state.settings.style.marginBottom.value,
-            )
+            viewModel.state.settings.style.marginLeft.value to
+                viewModel.state.settings.style.marginRight.value
         }.drop(1)
             .asLiveData()
             .observe(this) { viewAdapter.listView.notifyDataSetChanged() }
+
+        // Vertical margins are persistent screen-edge insets while scrolling.
+        // Do not drop the initial emission: persisted values apply on launch.
+        snapshotFlow {
+            viewModel.state.settings.style.marginTop.value to
+                viewModel.state.settings.style.marginBottom.value
+        }.asLiveData()
+            .observe(this) { (topDp, bottomDp) ->
+                applyReaderViewportMargins(topDp, bottomDp)
+            }
 
         // Periodic refresh for TTS word highlighting while playing
         lifecycleScope.launch {
@@ -612,6 +659,18 @@ class ReaderActivity : BaseActivity() {
                     onTextFontChanged = { appPreferences.READER_FONT_FAMILY.value = it },
                     onTextColorChanged = { appPreferences.READER_TEXT_COLOR.value = it },
                     onBackgroundChanged = { appPreferences.READER_BACKGROUND_IMAGE.value = it },
+                    onBackgroundBoundsChanged = { x, y, w, h ->
+                        if (w > 0 && h > 0) {
+                            val measured = Rect(x, y, x + w, y + h)
+                            if (measured != engravedWallpaperScreenBounds) {
+                                engravedWallpaperScreenBounds = measured
+                                // Avoid changing ListView data during Compose layout.
+                                viewBind.listView.post {
+                                    if (!isFinishing) viewAdapter.listView.notifyDataSetChanged()
+                                }
+                            }
+                        }
+                    },
                     onTextSizeChanged = { appPreferences.READER_FONT_SIZE.value = it },
                     onLineHeightChanged = { appPreferences.READER_LINE_HEIGHT.value = it },
                     onParagraphSpacingChanged = { appPreferences.READER_PARAGRAPH_SPACING.value = it },
@@ -636,6 +695,9 @@ class ReaderActivity : BaseActivity() {
                     onTextItalicChange = { appPreferences.READER_TEXT_ITALIC.value = it },
                     onTextUnderlineChange = { appPreferences.READER_TEXT_UNDERLINE.value = it },
                     onTextShadowChange = { appPreferences.READER_TEXT_SHADOW.value = it },
+                    onTextEngravedChange = { appPreferences.READER_TEXT_ENGRAVED.value = it },
+                    onEngravingIntensityChange = { appPreferences.READER_ENGRAVING_INTENSITY.value = it.coerceIn(0f, 100f) },
+                    onEngravingTransparencyChange = { appPreferences.READER_ENGRAVING_TRANSPARENCY.value = it.coerceIn(0f, 100f) },
                     onTextSmoothChange = { appPreferences.READER_TEXT_SMOOTH.value = it },
                     onMarginLeftChange = { appPreferences.READER_MARGIN_LEFT.value = it },
                     onMarginRightChange = { appPreferences.READER_MARGIN_RIGHT.value = it },
@@ -657,6 +719,9 @@ class ReaderActivity : BaseActivity() {
                         appPreferences.READER_TEXT_ITALIC.value = false
                         appPreferences.READER_TEXT_UNDERLINE.value = false
                         appPreferences.READER_TEXT_SHADOW.value = false
+                        appPreferences.READER_TEXT_ENGRAVED.value = false
+                        appPreferences.READER_ENGRAVING_INTENSITY.value = 50f
+                        appPreferences.READER_ENGRAVING_TRANSPARENCY.value = 100f
                         appPreferences.READER_TEXT_SMOOTH.value = true
                         appPreferences.READER_MARGIN_LEFT.value = 16f
                         appPreferences.READER_MARGIN_RIGHT.value = 16f
@@ -842,6 +907,24 @@ class ReaderActivity : BaseActivity() {
                 )
             }
         }
+    }
+
+    /**
+     * Keep the top/bottom screen bands clear through every chapter. Preserve
+     * the first visible item's offset relative to the padded reading area.
+     */
+    private fun applyReaderViewportMargins(topDp: Float, bottomDp: Float) {
+        val list = viewBind.listView
+        val density = resources.displayMetrics.density
+        val topPx = (topDp.coerceIn(0f, 100f) * density).toInt()
+        val bottomPx = (bottomDp.coerceIn(0f, 100f) * density).toInt()
+        if (list.paddingTop == topPx && list.paddingBottom == bottomPx) return
+
+        val firstChild = list.getChildAt(0)
+        val firstPosition = list.firstVisiblePosition
+        val contentOffset = firstChild?.top?.minus(list.paddingTop)
+        list.setPadding(list.paddingLeft, topPx, list.paddingRight, bottomPx)
+        if (contentOffset != null) list.setSelectionFromTop(firstPosition, contentOffset)
     }
 
     private fun setupNormalScreenMode() {

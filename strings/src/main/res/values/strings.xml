@@ -917,4 +917,7 @@
     <string name="video_gesture_swap_sides">Swap screen halves</string>
     <string name="video_gesture_sensitivity">Swipe sensitivity</string>
     <string name="video_subtitle_track">Subtitle track</string>
+    <string name="reader_text_engraved">Engraved text</string>
+    <string name="reader_engraving_intensity">Depth</string>
+    <string name="reader_engraving_transparency">Text transparency</string>
 </resources>
