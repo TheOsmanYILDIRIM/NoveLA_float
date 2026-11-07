@@ -301,13 +301,17 @@ class RecessedTextView @JvmOverloads constructor(
             return
         }
 
-        // Erase ordinary glyphs only where an engraved tile is available.
-        val cut = canvas.saveLayer(0f, 0f, this.width.toFloat(), height.toFloat(), null)
-        super.onDraw(canvas)
+        // Use bounded saveLayers too: a full-height paragraph layer may exceed
+        // the GPU texture limit even when the masks themselves are small.
+        // Drawing regular text inside each strip keeps excluded TTS spans intact.
         for (tile in visibleTiles) {
-            canvas.drawBitmap(tile.mask, x, y + tile.top, eraser)
+            val tileY = y + tile.top
+            val cut = canvas.saveLayer(x, tileY, x + tile.mask.width,
+                tileY + tile.mask.height, null)
+            super.onDraw(canvas)
+            canvas.drawBitmap(tile.mask, x, tileY, eraser)
+            canvas.restoreToCount(cut)
         }
-        canvas.restoreToCount(cut)
 
         val backdrop = wallpaperBitmap
         val inkOpacity = (1f - engravingTransparency / 100f).coerceIn(0f, 1f)
