@@ -171,6 +171,21 @@ internal fun VoiceReaderSettingDialog(
                 )
 
                 Text(
+                    text = "Arka plan müziği",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                AssistChip(
+                    onClick = { state.setMusicDuckingEnabled(!state.musicDuckingEnabled.value) },
+                    label = {
+                        Text(if (state.musicDuckingEnabled.value) "Müziği kıs: Açık" else "Müziği kıs: Kapalı")
+                    }
+                )
+                Text(
+                    text = "Okuma sırasında diğer uygulamaların müziğini azaltmayı dener. Android ve müzik uygulamasının desteğine bağlıdır.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Text(
                     text = "Sleep timer",
                     style = MaterialTheme.typography.titleSmall
                 )
