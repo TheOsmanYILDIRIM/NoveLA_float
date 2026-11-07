@@ -75,7 +75,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
-import my.noveldokusha.text_to_speech.ema.EmaDiagnostics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -116,8 +115,6 @@ internal fun VoiceReaderSettingDialog(
 ) {
     var openVoicesDialog by rememberSaveable { mutableStateOf(false) }
     var openOriginalVoiceDialog by rememberSaveable { mutableStateOf(false) }
-    val diagnosticContext = LocalContext.current
-    var diagnosticsCopied by remember { mutableStateOf(false) }
     val dropdownCustomSavedVoicesExpanded = rememberSaveable { mutableStateOf(false) }
 
     Column {
@@ -300,21 +297,6 @@ internal fun VoiceReaderSettingDialog(
                         )
                     }
                 }
-
-                    FilledTonalButton(
-                        onClick = {
-                            val clipboard = diagnosticContext.getSystemService(Context.CLIPBOARD_SERVICE)
-                                as ClipboardManager
-                            clipboard.setPrimaryClip(
-                                ClipData.newPlainText("NoveLA EMA diagnostics",
-                                    EmaDiagnostics.report(diagnosticContext))
-                            )
-                            diagnosticsCopied = true
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(if (diagnosticsCopied) "EMA log copied — paste it here" else "Copy EMA diagnostic log")
-                    }
 
                 if (floatingTtsState != null) {
                     Box(
