@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView
+    <my.noveldokusha.features.reader.ui.RecessedTextView
         android:id="@+id/body_translated"
         style="?attr/myReaderTextStyle"
         android:layout_width="match_parent"
@@ -17,7 +17,7 @@
         android:textStyle="normal"
         tools:text="@tools:sample/lorem/random" />
 
-    <TextView
+    <my.noveldokusha.features.reader.ui.RecessedTextView
         android:id="@+id/body_original"
         style="?attr/myReaderTextStyle"
         android:layout_width="match_parent"

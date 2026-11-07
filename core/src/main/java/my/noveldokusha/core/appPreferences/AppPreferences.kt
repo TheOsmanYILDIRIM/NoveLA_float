@@ -373,6 +373,17 @@ class AppPreferences @Inject constructor(
     val READER_TEXT_SHADOW = object : Preference<Boolean>("READER_TEXT_SHADOW") {
         override var value by SharedPreference_Boolean(name, preferences, false)
     }
+    // Opt-in inner-bevel glyph shading; standard type remains the default.
+    val READER_TEXT_ENGRAVED = object : Preference<Boolean>("READER_TEXT_ENGRAVED") {
+        override var value by SharedPreference_Boolean(name, preferences, false)
+    }
+    val READER_ENGRAVING_INTENSITY = object : Preference<Float>("READER_ENGRAVING_INTENSITY") {
+        override var value by SharedPreference_Float(name, preferences, 50f)
+    }
+    // 100% = fully transparent ink: only the carved background texture remains.
+    val READER_ENGRAVING_TRANSPARENCY = object : Preference<Float>("READER_ENGRAVING_TRANSPARENCY") {
+        override var value by SharedPreference_Float(name, preferences, 100f)
+    }
     val READER_TEXT_SMOOTH = object : Preference<Boolean>("READER_TEXT_SMOOTH") {
         override var value by SharedPreference_Boolean(name, preferences, true)
     }

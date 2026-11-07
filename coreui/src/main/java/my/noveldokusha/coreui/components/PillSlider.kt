@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,7 +77,7 @@ fun PillSlider(
             color = labelColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(end = 8.dp),
+            modifier = Modifier.widthIn(max = 124.dp).padding(end = 8.dp),
         )
 
         // Pill-shaped track
@@ -108,14 +109,18 @@ fun PillSlider(
                             drag(down.id) { change ->
                                 change.consume()
                                 dragged = true
-                                val fraction = (change.position.x / size.width).coerceIn(0f, 1f)
-                                localValue = valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
-                                onValueChange(localValue)
+                                if (size.width > 0f) {
+                                    val fraction = (change.position.x / size.width).coerceIn(0f, 1f)
+                                    localValue = valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
+                                    onValueChange(localValue)
+                                }
                             }
                             if (!dragged) {
-                                val fraction = (down.position.x / size.width).coerceIn(0f, 1f)
-                                localValue = valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
-                                onValueChange(localValue)
+                                if (size.width > 0f) {
+                                    val fraction = (down.position.x / size.width).coerceIn(0f, 1f)
+                                    localValue = valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
+                                    onValueChange(localValue)
+                                }
                             }
                         } finally {
                             onValueChangeFinished()
@@ -154,7 +159,14 @@ fun PillSlider(
             drawCircle(
                 color = activeColor,
                 radius = thumbRadiusPx,
-                center = Offset(activeWidth.coerceIn(thumbRadiusPx, width - thumbRadiusPx), centerY),
+                // For very narrow screens / large accessibility fonts the track can
+                // be narrower than its thumb. Avoid coerceIn(min > max) crash.
+                center = Offset(
+                    if (width >= 2f * thumbRadiusPx) {
+                        activeWidth.coerceIn(thumbRadiusPx, width - thumbRadiusPx)
+                    } else width / 2f,
+                    centerY
+                ),
             )
         }
 
@@ -165,7 +177,7 @@ fun PillSlider(
             color = valueColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier.widthIn(max = 72.dp).padding(start = 8.dp),
         )
     }
 }

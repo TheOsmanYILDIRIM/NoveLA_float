@@ -33,6 +33,7 @@ import my.noveldokusha.core.AppFileResolver
 import my.noveldokusha.core.utils.inflater
 import my.noveldokusha.core.utils.refererFor
 import my.noveldokusha.features.reader.features.TextSynthesis
+import my.noveldokusha.features.reader.ui.RecessedTextView
 import my.noveldokusha.reader.R
 import my.noveldokusha.reader.databinding.ActivityReaderListItemBodyBinding
 import my.noveldokusha.reader.databinding.ActivityReaderListItemDividerBinding
@@ -67,11 +68,13 @@ internal class ReaderItemAdapter(
     private val currentTextItalic: () -> Boolean,
     private val currentTextUnderline: () -> Boolean,
     private val currentTextShadow: () -> Boolean,
+    private val currentTextEngraved: () -> Boolean,
+    private val currentEngravingWallpaper: () -> android.graphics.Bitmap?,
+    private val currentEngravingIntensity: () -> Float,
+    private val currentEngravingTransparency: () -> Float,
     private val currentTextSmooth: () -> Boolean,
     private val currentMarginLeft: () -> Float,
     private val currentMarginRight: () -> Float,
-    private val currentMarginTop: () -> Float,
-    private val currentMarginBottom: () -> Float,
     private val currentParallelEnabled: () -> Boolean,
     private val currentParallelOrder: () -> String,
     private val onChapterStartVisible: (chapterUrl: String) -> Unit,
@@ -195,7 +198,15 @@ internal class ReaderItemAdapter(
             }
             textView.typeface = if (style == Typeface.NORMAL) base else Typeface.create(base, style)
             textView.paintFlags = if (currentTextUnderline()) textView.paintFlags or Paint.UNDERLINE_TEXT_FLAG else textView.paintFlags and Paint.UNDERLINE_TEXT_FLAG.inv()
-            if (currentTextShadow()) textView.setShadowLayer(1f, 1f, 1f, 0x66000000.toInt()) else textView.setShadowLayer(0f, 0f, 0f, 0)
+            val inset = currentTextEngraved()
+            (textView as? RecessedTextView)?.apply {
+                isEngraved = inset
+                engravingIntensity = currentEngravingIntensity()
+                engravingTransparency = currentEngravingTransparency()
+                wallpaperBitmap = currentEngravingWallpaper()
+            }
+            // Do not leave an OUTER drop shadow when carving is enabled.
+            if (currentTextShadow() && !inset) textView.setShadowLayer(1f, 1f, 1f, 0x66000000.toInt()) else textView.setShadowLayer(0f, 0f, 0f, 0)
             textView.paint.isAntiAlias = currentTextSmooth()
             textView.justificationMode = if (currentTextJustify()) 1 else 0 // ponytail: TextView.TEXT_JUSTIFICATION_MODE_INTER_WORD/NONE unresolved on compileSdk37; literals are API26-safe
             textView.hyphenationFrequency = if (currentTextHyphenation()) Layout.HYPHENATION_FREQUENCY_FULL else Layout.HYPHENATION_FREQUENCY_NONE
@@ -284,10 +295,10 @@ internal class ReaderItemAdapter(
         ).toInt()
         val marginLeft = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginLeft(), ctx.resources.displayMetrics).toInt()
         val marginRight = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginRight(), ctx.resources.displayMetrics).toInt()
-        val marginTop = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginTop(), ctx.resources.displayMetrics).toInt()
-        val marginBottom = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginBottom(), ctx.resources.displayMetrics).toInt()
-        bind.bodyTranslated.setPadding(marginLeft, marginTop + paddingVertical, marginRight, marginBottom + paddingVertical)
-        bind.bodyOriginal.setPadding(marginLeft, marginTop + paddingVertical, marginRight, marginBottom + paddingVertical)
+        // Paragraph spacing stays with each text row. Top/bottom margins belong
+        // to the fixed reader viewport and are applied once on the ListView.
+        bind.bodyTranslated.setPadding(marginLeft, paddingVertical, marginRight, paddingVertical)
+        bind.bodyOriginal.setPadding(marginLeft, paddingVertical, marginRight, paddingVertical)
 
         when (item.location) {
             ReaderItem.Location.FIRST -> onChapterStartVisible(item.chapterUrl)
@@ -428,6 +439,12 @@ internal class ReaderItemAdapter(
         bind.root.background = getItemReadingStateBackground(item)
         bind.titleTranslated.text = item.textToDisplay
         bind.titleTranslated.typeface = currentTypefaceBold()
+        (bind.titleTranslated as? RecessedTextView)?.apply {
+            isEngraved = currentTextEngraved()
+            engravingIntensity = currentEngravingIntensity()
+            engravingTransparency = currentEngravingTransparency()
+            wallpaperBitmap = currentEngravingWallpaper()
+        }
         applyTextColor(bind.titleTranslated, currentTextColor())
         bind.titleOriginal.visibility = View.GONE
         return bind.root
