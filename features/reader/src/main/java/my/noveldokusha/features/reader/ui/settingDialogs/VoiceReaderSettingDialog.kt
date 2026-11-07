@@ -71,6 +71,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import my.noveldokusha.text_to_speech.ema.EmaDiagnostics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -111,6 +116,8 @@ internal fun VoiceReaderSettingDialog(
 ) {
     var openVoicesDialog by rememberSaveable { mutableStateOf(false) }
     var openOriginalVoiceDialog by rememberSaveable { mutableStateOf(false) }
+    val diagnosticContext = LocalContext.current
+    var diagnosticsCopied by remember { mutableStateOf(false) }
     val dropdownCustomSavedVoicesExpanded = rememberSaveable { mutableStateOf(false) }
 
     Column {
@@ -165,6 +172,37 @@ internal fun VoiceReaderSettingDialog(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     onValueChangeFinished = { state.setVoiceSpeed(localSpeed) },
                 )
+
+                Text(
+                    text = "Sleep timer",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                val sleepRemaining = state.sleepTimerRemainingSeconds.value
+                if (sleepRemaining > 0) {
+                    val minutesLeft = (sleepRemaining + 59) / 60
+                    Text(
+                        text = "TTS stops in $minutesLeft min",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState())
+                ) {
+                    listOf(15, 30, 45, 60, 90).forEach { minutes ->
+                        AssistChip(
+                            onClick = { state.setSleepTimer(minutes) },
+                            label = { Text("$minutes min") }
+                        )
+                    }
+                    if (sleepRemaining > 0) {
+                        AssistChip(
+                            onClick = { state.setSleepTimer(0) },
+                            label = { Text("Cancel") }
+                        )
+                    }
+                }
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -262,6 +300,21 @@ internal fun VoiceReaderSettingDialog(
                         )
                     }
                 }
+
+                    FilledTonalButton(
+                        onClick = {
+                            val clipboard = diagnosticContext.getSystemService(Context.CLIPBOARD_SERVICE)
+                                as ClipboardManager
+                            clipboard.setPrimaryClip(
+                                ClipData.newPlainText("NoveLA EMA diagnostics",
+                                    EmaDiagnostics.report(diagnosticContext))
+                            )
+                            diagnosticsCopied = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (diagnosticsCopied) "EMA log copied — paste it here" else "Copy EMA diagnostic log")
+                    }
 
                 if (floatingTtsState != null) {
                     Box(
@@ -435,15 +488,19 @@ private fun VoiceSelectorDialog(
     val voicesFiltered = remember { mutableStateListOf<VoiceData>() }
 
     LaunchedEffect(availableVoices) {
-        val sorted = withContext(Dispatchers.Default) {
-            availableVoices.sortedWith(
-                compareBy<VoiceData> { it.language }
-                    .thenByDescending { it.quality }
-                    .thenBy { it.needsInternet }
-            )
+        // SnapshotStateList is mutated in place as Android engines finish loading.
+        // A LaunchedEffect keyed only on the list object does not rerun on those changes.
+        snapshotFlow { availableVoices.toList() }.collectLatest { voices ->
+            val sorted = withContext(Dispatchers.Default) {
+                voices.sortedWith(
+                    compareBy<VoiceData> { it.language }
+                        .thenByDescending { it.quality }
+                        .thenBy { it.needsInternet }
+                )
+            }
+            voicesSorted.clear()
+            voicesSorted.addAll(sorted)
         }
-        voicesSorted.clear()
-        voicesSorted.addAll(sorted)
     }
 
     LaunchedEffect(Unit) {
@@ -452,7 +509,11 @@ private fun VoiceSelectorDialog(
             .collectLatest { (filter, sorted) ->
                 val items = withContext(Dispatchers.Default) {
                     if (filter.isEmpty()) sorted
-                    else sorted.filter { it.language.contains(filter, ignoreCase = true) }
+                    else sorted.filter {
+                        it.language.contains(filter, ignoreCase = true) ||
+                            it.id.contains(filter, ignoreCase = true) ||
+                            it.enginePackage.contains(filter, ignoreCase = true)
+                    }
                 }
                 voicesFiltered.clear()
                 voicesFiltered.addAll(items)
