@@ -40,9 +40,9 @@ jobs:
           printf '%s' "$SIGNING_KEY" | base64 -d > app/storeFile.jks
           {
             echo 'storeFile=storeFile.jks'
-            printf 'storePassword=%s\\n' "$KEY_STORE_PASSWORD"
-            printf 'keyAlias=%s\\n' "$ALIAS"
-            printf 'keyPassword=%s\\n' "$KEY_PASSWORD"
+            echo "storePassword=$KEY_STORE_PASSWORD"
+            echo "keyAlias=$ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
           } > custom.properties
       - run: sed -i '/org\\.gradle\\.java\\.home/d' gradle.properties
       - name: Build signed release
