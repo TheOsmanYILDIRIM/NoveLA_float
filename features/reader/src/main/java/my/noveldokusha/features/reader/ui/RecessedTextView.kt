@@ -97,12 +97,22 @@ class RecessedTextView @JvmOverloads constructor(
     private var lastTextSize = -1f
     private var lastLetterSpacing = -1f
     private var lastTypeface: android.graphics.Typeface? = null
-    private var glyphMask: Bitmap? = null
-    private var factorMask: Bitmap? = null
+    // Only keep a handful of visible strips, never a full chapter-sized bitmap.
+    private data class MaskTile(val top: Int, val mask: Bitmap, var factor: Bitmap? = null)
+    private val tiles = LinkedHashMap<Int, MaskTile>(8, 0.75f, true)
+    private val maxCachedTiles = 6
 
     private fun clearFactor() {
-        factorMask?.recycle()
-        factorMask = null
+        tiles.values.forEach { tile ->
+            tile.factor?.recycle()
+            tile.factor = null
+        }
+    }
+
+    private fun clearTiles() {
+        clearFactor()
+        tiles.values.forEach { it.mask.recycle() }
+        tiles.clear()
     }
 
     private fun protectedRanges(content: CharSequence): List<Pair<Int, Int>> {
@@ -119,41 +129,47 @@ class RecessedTextView @JvmOverloads constructor(
         }.distinct()
     }
 
-    private fun maskFor(textLayout: Layout, content: CharSequence,
-                        excluded: List<Pair<Int, Int>>): Bitmap? {
+    // Render a paragraph as independent groups of lines. Each bitmap remains
+    // small even when a ListView row contains thousands of pixels of text.
+    private fun maskFor(
+        textLayout: Layout, content: CharSequence, excluded: List<Pair<Int, Int>>,
+        startLine: Int, endLine: Int
+    ): MaskTile? {
         val w = textLayout.width + 4
-        val h = textLayout.height + 4
-        // Guard the UI thread against extremely large bitmap masks.
+        val top = textLayout.getLineTop(startLine)
+        val bottom = textLayout.getLineTop(endLine)
+        val h = bottom - top + 4
         if (w <= 4 || h <= 4 || w > 2048 || h > 4096 ||
             w.toLong() * h > 1_600_000L) return null
-        val rangeKey = excluded.joinToString(";") { "${it.first}:${it.second}" }
-        val cached = glyphMask
-        if (cached != null && !cached.isRecycled && lastLayout === textLayout &&
-            lastString == content.toString() && lastProtectedRanges == rangeKey &&
-            lastTextSize == textSize &&
-            lastLetterSpacing == letterSpacing && lastTypeface === typeface &&
-            cached.width == w && cached.height == h) return cached
 
-        clearFactor()
-        cached?.recycle()
-        glyphMask = null
+        val rangeKey = excluded.joinToString(";") { "${it.first}:${it.second}" }
+        if (lastLayout !== textLayout || lastString != content.toString() ||
+            lastProtectedRanges != rangeKey || lastTextSize != textSize ||
+            lastLetterSpacing != letterSpacing || lastTypeface !== typeface) {
+            clearTiles()
+            lastLayout = textLayout
+            lastString = content.toString()
+            lastProtectedRanges = rangeKey
+            lastTextSize = textSize
+            lastLetterSpacing = letterSpacing
+            lastTypeface = typeface
+        }
+        tiles[top]?.let { if (!it.mask.isRecycled) return it }
         return try {
-            // ARGB_8888 makes getPixels() alpha deterministic for the factor map.
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val tile = MaskTile(top, bmp)
             val maskCanvas = Canvas(bmp)
-            maskCanvas.translate(2f, 2f)
+            maskCanvas.translate(2f, 2f - top)
             val savedColor = paint.color
             val savedAlpha = paint.alpha
             try {
                 paint.color = Color.WHITE
                 paint.alpha = 255
                 textLayout.draw(maskCanvas)
-                // Preserve highlighted word/background as normal text.
-                // All OTHER glyphs in its paragraph are still engraved.
                 for ((from, to) in excluded) {
-                    val firstLine = textLayout.getLineForOffset(from)
-                    val lastLine = textLayout.getLineForOffset(to - 1)
-                    for (line in firstLine..lastLine) {
+                    val first = maxOf(startLine, textLayout.getLineForOffset(from))
+                    val last = minOf(endLine - 1, textLayout.getLineForOffset(to - 1))
+                    for (line in first..last) {
                         val start = maxOf(from, textLayout.getLineStart(line))
                         val end = minOf(to, textLayout.getLineEnd(line))
                         if (end <= start) continue
@@ -172,14 +188,15 @@ class RecessedTextView @JvmOverloads constructor(
                 paint.color = savedColor
                 paint.alpha = savedAlpha
             }
-            lastLayout = textLayout
-            lastString = content.toString()
-            lastProtectedRanges = rangeKey
-            lastTextSize = textSize
-            lastLetterSpacing = letterSpacing
-            lastTypeface = typeface
-            glyphMask = bmp
-            bmp
+            tiles[top] = tile
+            while (tiles.size > maxCachedTiles) {
+                val oldest = tiles.entries.iterator()
+                val entry = oldest.next()
+                oldest.remove()
+                entry.value.factor?.recycle()
+                entry.value.mask.recycle()
+            }
+            tile
         } catch (_: IllegalArgumentException) {
             null
         } catch (_: OutOfMemoryError) {
@@ -187,8 +204,9 @@ class RecessedTextView @JvmOverloads constructor(
         }
     }
 
-    private fun factorFor(mask: Bitmap): Bitmap? {
-        val cached = factorMask
+    private fun factorFor(tile: MaskTile): Bitmap? {
+        val mask = tile.mask
+        val cached = tile.factor
         if (cached != null && !cached.isRecycled &&
             cached.width == mask.width && cached.height == mask.height) return cached
 
@@ -233,7 +251,7 @@ class RecessedTextView @JvmOverloads constructor(
                 }
             }
             Bitmap.createBitmap(output, w, h, Bitmap.Config.ARGB_8888).also {
-                factorMask = it
+                tile.factor = it
             }
         } catch (_: OutOfMemoryError) {
             null
@@ -248,32 +266,66 @@ class RecessedTextView @JvmOverloads constructor(
             super.onDraw(canvas)
             return
         }
-        val mask = maskFor(textLayout, content, protectedRanges(content))
-        if (mask == null) { super.onDraw(canvas); return }
 
         val x = compoundPaddingLeft.toFloat() - 2f
         val y = extendedPaddingTop.toFloat() - 2f
-        rect.set(x, y, x + mask.width, y + mask.height)
+        val visible = canvas.clipBounds
+        val visibleTop = (visible.top - y - 4).coerceAtLeast(0)
+        val visibleBottom = (visible.bottom - y + 4).toInt().coerceAtMost(textLayout.height)
+        val excluded = protectedRanges(content)
+        val visibleTiles = ArrayList<MaskTile>()
+        val width = textLayout.width + 4
+        if (width <= 4 || width > 2048) {
+            super.onDraw(canvas)
+            return
+        }
+        val maxHeight = minOf(512, 1_600_000 / width - 4)
+        var line = 0
+        while (line < textLayout.lineCount) {
+            val start = line
+            val top = textLayout.getLineTop(start)
+            // Line-aligned strips avoid cutting a glyph at tile boundaries.
+            while (line < textLayout.lineCount &&
+                (line == start ||
+                    textLayout.getLineTop(line + 1) - top <= maxHeight) &&
+                line - start < 8) {
+                line++
+            }
+            val bottom = textLayout.getLineTop(line)
+            if (bottom < visibleTop || top > visibleBottom) continue
+            val tile = maskFor(textLayout, content, excluded, start, line)
+            if (tile != null) visibleTiles.add(tile)
+        }
+        if (visibleTiles.isEmpty()) {
+            super.onDraw(canvas)
+            return
+        }
 
-        // Remove the default flat text; leave the parent wallpaper untouched.
-        val cut = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
+        // Erase ordinary glyphs only where an engraved tile is available.
+        val cut = canvas.saveLayer(0f, 0f, this.width.toFloat(), height.toFloat(), null)
         super.onDraw(canvas)
-        canvas.drawBitmap(mask, x, y, eraser)
+        for (tile in visibleTiles) {
+            canvas.drawBitmap(tile.mask, x, y + tile.top, eraser)
+        }
         canvas.restoreToCount(cut)
 
         val backdrop = wallpaperBitmap
-        val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(mask) else null
-        val correct = backdrop != null && factor != null &&
-            drawWallpaperFactor(canvas, backdrop, factor, mask, x, y)
-        if (!correct) drawGenericSurface(canvas, mask, x, y)
-
         val inkOpacity = (1f - engravingTransparency / 100f).coerceIn(0f, 1f)
-        if (inkOpacity > 0f) {
-            val ink = currentTextColor
-            maskedInk.shader = null
-            maskedInk.color = ink
-            maskedInk.alpha = (Color.alpha(ink) * inkOpacity).roundToInt()
-            canvas.drawBitmap(mask, x, y, maskedInk)
+        for (tile in visibleTiles) {
+            val mask = tile.mask
+            val tileY = y + tile.top
+            rect.set(x, tileY, x + mask.width, tileY + mask.height)
+            val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(tile) else null
+            val correct = backdrop != null && factor != null &&
+                drawWallpaperFactor(canvas, backdrop, factor, mask, x, tileY)
+            if (!correct) drawGenericSurface(canvas, mask, x, tileY)
+            if (inkOpacity > 0f) {
+                val ink = currentTextColor
+                maskedInk.shader = null
+                maskedInk.color = ink
+                maskedInk.alpha = (Color.alpha(ink) * inkOpacity).roundToInt()
+                canvas.drawBitmap(mask, x, tileY, maskedInk)
+            }
         }
     }
 
@@ -341,9 +393,7 @@ class RecessedTextView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
-        clearFactor()
-        glyphMask?.recycle()
-        glyphMask = null
+        clearTiles()
         lastLayout = null
         super.onDetachedFromWindow()
     }
