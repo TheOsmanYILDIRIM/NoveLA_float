@@ -60,10 +60,31 @@ class RecessedTextView @JvmOverloads constructor(
         canvas.translate(compoundPaddingLeft.toFloat(), extendedPaddingTop.toFloat())
         textBounds.set(-2f, -2f, textLayout.width + 2f, textLayout.height + 2f)
         val pixel = resources.displayMetrics.density.coerceAtMost(2f)
+        // Resolve the actual TextView color on every draw: theme, custom font color,
+        // night mode and ColorStateList changes all update the engraving automatically.
+        val ink = currentTextColor
+        val shade = rimColor(ink, Color.BLACK, 0.66f, 0.72f)
+        val gleam = rimColor(ink, Color.WHITE, 0.54f, 0.60f)
         // Light from upper-left: dark upper/left INNER walls, lit lower/right walls.
-        drawInnerRim(canvas, textLayout, pixel, pixel, Color.argb(165, 0, 4, 10))
-        drawInnerRim(canvas, textLayout, -pixel, -pixel, Color.argb(120, 194, 208, 218))
+        drawInnerRim(canvas, textLayout, pixel, pixel, shade)
+        drawInnerRim(canvas, textLayout, -pixel, -pixel, gleam)
         canvas.restoreToCount(checkpoint)
+    }
+
+    /**
+     * Derive recessed shading from the selected text color, without a hard-coded
+     * blue/grey tint. Preserve text opacity (e.g. translucent original translation).
+     */
+    private fun rimColor(ink: Int, target: Int, mix: Float, opacity: Float): Int {
+        fun blend(channel: Int, other: Int): Int =
+            (channel + (other - channel) * mix).toInt().coerceIn(0, 255)
+
+        return Color.argb(
+            (Color.alpha(ink) * opacity).toInt().coerceIn(0, 255),
+            blend(Color.red(ink), Color.red(target)),
+            blend(Color.green(ink), Color.green(target)),
+            blend(Color.blue(ink), Color.blue(target))
+        )
     }
 
     private fun drawInnerRim(
