@@ -264,7 +264,7 @@ class RecessedTextView @JvmOverloads constructor(
         val backdrop = wallpaperBitmap
         val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(mask) else null
         val correct = backdrop != null && factor != null &&
-            drawWallpaperFactor(canvas, backdrop, factor, x, y)
+            drawWallpaperFactor(canvas, backdrop, factor, mask, x, y)
         if (!correct) drawGenericSurface(canvas, mask, x, y)
 
         val inkOpacity = (1f - engravingTransparency / 100f).coerceIn(0f, 1f)
@@ -278,7 +278,7 @@ class RecessedTextView @JvmOverloads constructor(
     }
 
     private fun drawWallpaperFactor(
-        canvas: Canvas, wallpaper: Bitmap, factor: Bitmap, x: Float, y: Float
+        canvas: Canvas, wallpaper: Bitmap, factor: Bitmap, mask: Bitmap, x: Float, y: Float
     ): Boolean {
         // Match the Compose image's actual SCREEN rect, including insets.
         val bounds = wallpaperBoundsOnScreen ?: return false
