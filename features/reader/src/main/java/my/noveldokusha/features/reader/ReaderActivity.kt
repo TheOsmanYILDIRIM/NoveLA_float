@@ -286,8 +286,9 @@ class ReaderActivity : BaseActivity() {
         // appContext) до setContent → ReaderScreen → backgroundLayer.
         backgroundLoader
         lifecycleScope.launch {
-            snapshotFlow { appPreferences.READER_BACKGROUND_IMAGE.value }
-                .distinctUntilChanged()
+            // Observe the actual persisted preference flow; snapshotFlow does not
+            // track SharedPreferences writes and can leave the wallpaper mask stale.
+            appPreferences.READER_BACKGROUND_IMAGE.flow()
                 .collectLatest { selection ->
                     val wallpaper = withContext(Dispatchers.IO) {
                         runCatching {
