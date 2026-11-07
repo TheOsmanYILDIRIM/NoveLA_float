@@ -249,8 +249,6 @@ class ReaderActivity : BaseActivity() {
                 currentTextSmooth = { appPreferences.READER_TEXT_SMOOTH.value },
                 currentMarginLeft = { appPreferences.READER_MARGIN_LEFT.value },
                 currentMarginRight = { appPreferences.READER_MARGIN_RIGHT.value },
-                currentMarginTop = { appPreferences.READER_MARGIN_TOP.value },
-                currentMarginBottom = { appPreferences.READER_MARGIN_BOTTOM.value },
             )
         }
     }
@@ -355,6 +353,8 @@ class ReaderActivity : BaseActivity() {
         novelReaderInitialized = true
         onBackPressedDispatcher.addCallback(this, backPressedCallback)
         viewBind.listView.adapter = viewAdapter.listView
+        // Clip every row to the same reading band during continuous scroll.
+        viewBind.listView.clipToPadding = true
         readerViewHandlersActions.listView = viewBind.listView
 
         fadeInTextLiveData.distinctUntilChanged().observe(this) {
@@ -573,17 +573,23 @@ class ReaderActivity : BaseActivity() {
             .asLiveData()
             .observe(this) { viewAdapter.listView.notifyDataSetChanged() }
 
-        // Notify margins changed for list view
+        // Horizontal margins remain per-row padding; only these need rebinding.
         snapshotFlow {
-            listOf(
-                viewModel.state.settings.style.marginLeft.value,
-                viewModel.state.settings.style.marginRight.value,
-                viewModel.state.settings.style.marginTop.value,
-                viewModel.state.settings.style.marginBottom.value,
-            )
+            viewModel.state.settings.style.marginLeft.value to
+                viewModel.state.settings.style.marginRight.value
         }.drop(1)
             .asLiveData()
             .observe(this) { viewAdapter.listView.notifyDataSetChanged() }
+
+        // Vertical margins are persistent screen-edge insets while scrolling.
+        // Do not drop the initial emission: persisted values apply on launch.
+        snapshotFlow {
+            viewModel.state.settings.style.marginTop.value to
+                viewModel.state.settings.style.marginBottom.value
+        }.asLiveData()
+            .observe(this) { (topDp, bottomDp) ->
+                applyReaderViewportMargins(topDp, bottomDp)
+            }
 
         // Periodic refresh for TTS word highlighting while playing
         lifecycleScope.launch {
@@ -886,6 +892,24 @@ class ReaderActivity : BaseActivity() {
                 )
             }
         }
+    }
+
+    /**
+     * Keep the top/bottom screen bands clear through every chapter. Preserve
+     * the first visible item's offset relative to the padded reading area.
+     */
+    private fun applyReaderViewportMargins(topDp: Float, bottomDp: Float) {
+        val list = viewBind.listView
+        val density = resources.displayMetrics.density
+        val topPx = (topDp.coerceIn(0f, 100f) * density).toInt()
+        val bottomPx = (bottomDp.coerceIn(0f, 100f) * density).toInt()
+        if (list.paddingTop == topPx && list.paddingBottom == bottomPx) return
+
+        val firstChild = list.getChildAt(0)
+        val firstPosition = list.firstVisiblePosition
+        val contentOffset = firstChild?.top?.minus(list.paddingTop)
+        list.setPadding(list.paddingLeft, topPx, list.paddingRight, bottomPx)
+        if (contentOffset != null) list.setSelectionFromTop(firstPosition, contentOffset)
     }
 
     private fun setupNormalScreenMode() {

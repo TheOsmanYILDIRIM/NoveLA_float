@@ -75,8 +75,6 @@ internal class ReaderItemAdapter(
     private val currentTextSmooth: () -> Boolean,
     private val currentMarginLeft: () -> Float,
     private val currentMarginRight: () -> Float,
-    private val currentMarginTop: () -> Float,
-    private val currentMarginBottom: () -> Float,
     private val currentParallelEnabled: () -> Boolean,
     private val currentParallelOrder: () -> String,
     private val onChapterStartVisible: (chapterUrl: String) -> Unit,
@@ -297,10 +295,10 @@ internal class ReaderItemAdapter(
         ).toInt()
         val marginLeft = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginLeft(), ctx.resources.displayMetrics).toInt()
         val marginRight = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginRight(), ctx.resources.displayMetrics).toInt()
-        val marginTop = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginTop(), ctx.resources.displayMetrics).toInt()
-        val marginBottom = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, currentMarginBottom(), ctx.resources.displayMetrics).toInt()
-        bind.bodyTranslated.setPadding(marginLeft, marginTop + paddingVertical, marginRight, marginBottom + paddingVertical)
-        bind.bodyOriginal.setPadding(marginLeft, marginTop + paddingVertical, marginRight, marginBottom + paddingVertical)
+        // Paragraph spacing stays with each text row. Top/bottom margins belong
+        // to the fixed reader viewport and are applied once on the ListView.
+        bind.bodyTranslated.setPadding(marginLeft, paddingVertical, marginRight, paddingVertical)
+        bind.bodyOriginal.setPadding(marginLeft, paddingVertical, marginRight, paddingVertical)
 
         when (item.location) {
             ReaderItem.Location.FIRST -> onChapterStartVisible(item.chapterUrl)
