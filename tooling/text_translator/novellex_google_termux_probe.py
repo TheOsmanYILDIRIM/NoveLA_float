@@ -82,33 +82,52 @@ def google_pa(text, source, target, key):
     return translated
 
 
-def discover_pa_key():
-    """Opt-in imitation of NoveLA PA's WtrLab public-page/script key discovery.
-    Uses no private credential. Never prints or writes discovered key.
+def discover_pa_key(budget_seconds=35, timeout_seconds=4, max_scripts=12):
+    """Same NoveLA WTR-Lab route, but bounded with per-request diagnostics.
+
+    Ranking -> first novel -> chapter-1 -> _next JS; no alternate providers.
     """
     base = "https://wtr-lab.com"
-    ranking = call(base + "/en/ranking/monthly")
+    deadline = time.monotonic() + budget_seconds
+
+    def fetch_step(url, title):
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise TimeoutError("PA anahtar keşfi toplam süre sınırını aştı")
+        print("[PA] " + title + " (istek sınırı: " + str(round(min(left, timeout_seconds), 1)) + " sn)", flush=True)
+        return call(url, timeout=min(left, timeout_seconds))
+
+    ranking = fetch_step(base + "/en/ranking/monthly", "1/3 Aylık sıralama sayfası")
     links = re.findall(r'''href=["']([^"']*/novel/[^"']+)["']''', ranking)
     if not links:
-        raise RuntimeError("WtrLab ranking sayfasında /novel/ bağlantısı bulunamadı")
-    novel_url = urllib.parse.urljoin(base, links[0]).split("?")[0].rstrip("/")
-    page = call(novel_url + "/chapter-1")
+        raise RuntimeError("WTR-Lab sıralamasında /novel/ bağlantısı bulunamadı")
+    novel_url = urllib.parse.urljoin(base, html.unescape(links[0])).split("?")[0].rstrip("/")
+    page = fetch_step(novel_url + "/chapter-1", "2/3 Romanın ilk bölümü")
     pattern = re.compile(r'"X-Goog-API-Key"\s*:\s*"([^"\s]+)"')
     match = pattern.search(page)
     if match:
+        print("[PA] Anahtar bölüm sayfasında bulundu (gizli tutuluyor)", flush=True)
         return match.group(1)
+
     scripts = re.findall(r'''<script[^>]+src=["']([^"']*/_next/[^"']+\.js[^"']*)["']''', page)
-    for src in dict.fromkeys(scripts):
-        if "_buildManifest" in src or "_ssgManifest" in src:
-            continue
+    scripts = [src for src in dict.fromkeys(scripts)
+               if "_buildManifest" not in src and "_ssgManifest" not in src]
+    print(f"[PA] 3/3 {len(scripts)} JS dosyası; en fazla {max_scripts} taranacak", flush=True)
+    if not scripts:
+        raise RuntimeError("NoveLA'nın taradığı _next JS dosyaları bulunamadı")
+    for i, script in enumerate(scripts[:max_scripts], 1):
         try:
-            text = call(urllib.parse.urljoin(base, html.unescape(src)))
+            text = fetch_step(urllib.parse.urljoin(base, html.unescape(script)),
+                              f"JS {i}/{min(len(scripts), max_scripts)}")
             match = pattern.search(text)
             if match:
+                print("[PA] Anahtar bulundu (gizli tutuluyor)", flush=True)
                 return match.group(1)
-        except Exception:
-            continue
-    raise RuntimeError("WtrLab sayfası/betiklerinde NoveLA'nın aradığı PA anahtarı bulunamadı")
+        except (OSError, ValueError, RuntimeError, TimeoutError) as exc:
+            print(f"[PA] JS {i} hatası: {type(exc).__name__}", flush=True)
+        if time.monotonic() >= deadline:
+            break
+    raise RuntimeError("PA anahtarı süre/dosya sınırında bulunamadı; gerçek Enhanced testi yapılamadı")
 
 
 def readable(result):
@@ -133,7 +152,7 @@ def run(args):
     if "pa" in providers and not pa_key and args.discover_pa_key:
         print("PA anahtarı NoveLA yöntemine benzer şekilde genel sayfalardan deneniyor…", file=sys.stderr)
         try:
-            pa_key = discover_pa_key()
+            pa_key = discover_pa_key(budget_seconds=args.discover_budget, timeout_seconds=args.discover_timeout, max_scripts=args.discover_max_scripts)
         except Exception as e:
             print("PA anahtar keşfi başarısız: " + str(e), file=sys.stderr)
     if "pa" in providers and not pa_key:
@@ -180,6 +199,9 @@ def main():
     p.add_argument("--variants", default="all", help="all veya virgülle: " + ",".join(VARIANTS))
     p.add_argument("--pa-key-env", default="NOVELA_PA_KEY", help="PA anahtarını tutan çevre değişkeninin adı")
     p.add_argument("--discover-pa-key", action="store_true", help="NoveLA'nın WtrLab genel sayfa anahtar keşfini dene")
+    p.add_argument("--discover-budget", type=float, default=35)
+    p.add_argument("--discover-timeout", type=float, default=4)
+    p.add_argument("--discover-max-scripts", type=int, default=12)
     p.add_argument("--pause", type=float, default=0.75)
     p.add_argument("--output", default="novela_google_probe_results.json")
     p.add_argument("--self-test", action="store_true", help="Ağa çıkmadan istek hazırlama ve ayrıştırıcı öz testleri")
@@ -193,6 +215,8 @@ def main():
         assert readable("Michael &amp; Alice<br>Hi") == "Michael & Alice\nHi"
         print("OK: çevrimdışı 6 temel öz test geçti; gerçek Google isteği yapılmadı")
         return 0
+    if args.discover_budget <= 0 or args.discover_timeout <= 0 or args.discover_max_scripts < 1:
+        p.error("PA sınırları pozitif olmalı")
     if args.pause < 0:
         p.error("--pause sıfırdan küçük olamaz")
     return run(args)
