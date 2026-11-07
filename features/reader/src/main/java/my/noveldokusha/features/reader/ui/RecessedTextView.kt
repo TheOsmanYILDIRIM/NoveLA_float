@@ -274,6 +274,7 @@ class RecessedTextView @JvmOverloads constructor(
         val visibleBottom = (visible.bottom - y + 4).toInt().coerceAtMost(textLayout.height)
         val excluded = protectedRanges(content)
         val visibleTiles = ArrayList<MaskTile>()
+        val plainStrips = ArrayList<Pair<Int, Int>>()
         val width = textLayout.width + 4
         if (width <= 4 || width > 2048) {
             super.onDraw(canvas)
@@ -295,10 +296,19 @@ class RecessedTextView @JvmOverloads constructor(
             if (bottom < visibleTop || top > visibleBottom) continue
             val tile = maskFor(textLayout, content, excluded, start, line)
             if (tile != null) visibleTiles.add(tile)
+            else plainStrips.add(top to bottom)
         }
         if (visibleTiles.isEmpty()) {
             super.onDraw(canvas)
             return
+        }
+
+        // Preserve standard text in any strip whose bitmap allocation fails.
+        for ((top, bottom) in plainStrips) {
+            val saved = canvas.save()
+            canvas.clipRect(0f, y + top, this.width.toFloat(), y + bottom)
+            super.onDraw(canvas)
+            canvas.restoreToCount(saved)
         }
 
         // Use bounded saveLayers too: a full-height paragraph layer may exceed
