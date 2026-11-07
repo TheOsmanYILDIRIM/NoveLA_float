@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -244,6 +245,7 @@ class ReaderActivity : BaseActivity() {
                 currentTextShadow = { appPreferences.READER_TEXT_SHADOW.value },
                 currentTextEngraved = { appPreferences.READER_TEXT_ENGRAVED.value },
                 currentEngravingWallpaper = { engravedWallpaper },
+                currentEngravingBounds = { engravedWallpaperScreenBounds },
                 currentEngravingIntensity = { appPreferences.READER_ENGRAVING_INTENSITY.value },
                 currentEngravingTransparency = { appPreferences.READER_ENGRAVING_TRANSPARENCY.value },
                 currentTextSmooth = { appPreferences.READER_TEXT_SMOOTH.value },
@@ -262,6 +264,7 @@ class ReaderActivity : BaseActivity() {
     // Shared bitmap reference for the same imported wallpaper rendered by Compose.
     // Old references stay valid until recycled ListView rows have been rebound.
     private var engravedWallpaper: Bitmap? = null
+    private var engravedWallpaperScreenBounds: Rect? = null
 
     private val backPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
@@ -656,6 +659,18 @@ class ReaderActivity : BaseActivity() {
                     onTextFontChanged = { appPreferences.READER_FONT_FAMILY.value = it },
                     onTextColorChanged = { appPreferences.READER_TEXT_COLOR.value = it },
                     onBackgroundChanged = { appPreferences.READER_BACKGROUND_IMAGE.value = it },
+                    onBackgroundBoundsChanged = { x, y, w, h ->
+                        if (w > 0 && h > 0) {
+                            val measured = Rect(x, y, x + w, y + h)
+                            if (measured != engravedWallpaperScreenBounds) {
+                                engravedWallpaperScreenBounds = measured
+                                // Avoid changing ListView data during Compose layout.
+                                viewBind.listView.post {
+                                    if (!isFinishing) viewAdapter.listView.notifyDataSetChanged()
+                                }
+                            }
+                        }
+                    },
                     onTextSizeChanged = { appPreferences.READER_FONT_SIZE.value = it },
                     onLineHeightChanged = { appPreferences.READER_LINE_HEIGHT.value = it },
                     onParagraphSpacingChanged = { appPreferences.READER_PARAGRAPH_SPACING.value = it },
