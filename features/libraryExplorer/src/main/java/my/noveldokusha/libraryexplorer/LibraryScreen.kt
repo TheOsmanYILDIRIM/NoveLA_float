@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +57,7 @@ fun LibraryScreen(
     val pageViewModel: LibraryPageViewModel = viewModel()
     
     val uiState by libraryModel.uiState.collectAsStateWithLifecycle()
+    val latestReading by libraryModel.latestReading.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val showDropdownMenu = remember { mutableStateOf(false) }
@@ -194,6 +196,27 @@ fun LibraryScreen(
                                                 Icons.Filled.Close,
                                                 stringResource(R.string.cancel),
                                                 tint = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                    latestReading?.let { last ->
+                                        IconButton(
+                                            onClick = {
+                                                val chapter = last.lastReadChapterUrl
+                                                if (!chapter.isNullOrBlank()) {
+                                                    context.startActivity(
+                                                        navigationRouteViewModel.reader(
+                                                            context = context,
+                                                            bookUrl = last.bookUrl,
+                                                            chapterUrl = chapter
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.MenuBook,
+                                                contentDescription = "Resume reading"
                                             )
                                         }
                                     }

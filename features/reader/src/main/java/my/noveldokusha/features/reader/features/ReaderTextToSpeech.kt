@@ -201,20 +201,23 @@ internal class ReaderTextToSpeech(
             sleepTimerSeconds.value = 0
             return
         }
-        val deadline = SystemClock.elapsedRealtime() + minutes * 60_000L
         sleepTimerSeconds.value = minutes * 60
         sleepTimerJob = coroutineScope.launch {
-            while (true) {
-                val remaining = ((deadline - SystemClock.elapsedRealtime() + 999L) / 1000L)
-                    .coerceAtLeast(0L).toInt()
-                sleepTimerSeconds.value = remaining
-                if (remaining == 0) {
-                    sleepTimerJob = null
-                    if (state.isPlaying.value) setPlaying(false)
-                    break
+            while (sleepTimerSeconds.value > 0) {
+                // The countdown only advances while narration is actively playing.
+                if (!state.isPlaying.value) {
+                    delay(250L)
+                    continue
                 }
+                val startedAt = SystemClock.elapsedRealtime()
                 delay(1000L)
+                if (!state.isPlaying.value) continue
+                val elapsed = ((SystemClock.elapsedRealtime() - startedAt) / 1000L)
+                    .coerceAtLeast(1L).toInt()
+                sleepTimerSeconds.value = (sleepTimerSeconds.value - elapsed).coerceAtLeast(0)
             }
+            sleepTimerJob = null
+            if (state.isPlaying.value) setPlaying(false)
         }
     }
 
