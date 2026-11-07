@@ -69,6 +69,7 @@ internal class ReaderItemAdapter(
     private val currentTextUnderline: () -> Boolean,
     private val currentTextShadow: () -> Boolean,
     private val currentTextEngraved: () -> Boolean,
+    private val currentEngravingWallpaper: () -> android.graphics.Bitmap?,
     private val currentEngravingIntensity: () -> Float,
     private val currentEngravingTransparency: () -> Float,
     private val currentTextSmooth: () -> Boolean,
@@ -204,6 +205,7 @@ internal class ReaderItemAdapter(
                 isEngraved = inset
                 engravingIntensity = currentEngravingIntensity()
                 engravingTransparency = currentEngravingTransparency()
+                wallpaperBitmap = currentEngravingWallpaper()
             }
             // Do not leave an OUTER drop shadow when carving is enabled.
             if (currentTextShadow() && !inset) textView.setShadowLayer(1f, 1f, 1f, 0x66000000.toInt()) else textView.setShadowLayer(0f, 0f, 0f, 0)
@@ -443,6 +445,7 @@ internal class ReaderItemAdapter(
             isEngraved = currentTextEngraved()
             engravingIntensity = currentEngravingIntensity()
             engravingTransparency = currentEngravingTransparency()
+            wallpaperBitmap = currentEngravingWallpaper()
         }
         applyTextColor(bind.titleTranslated, currentTextColor())
         bind.titleOriginal.visibility = View.GONE
