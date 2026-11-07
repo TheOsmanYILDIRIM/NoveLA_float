@@ -240,6 +240,8 @@ class ReaderActivity : BaseActivity() {
                 currentTextUnderline = { appPreferences.READER_TEXT_UNDERLINE.value },
                 currentTextShadow = { appPreferences.READER_TEXT_SHADOW.value },
                 currentTextEngraved = { appPreferences.READER_TEXT_ENGRAVED.value },
+                currentEngravingIntensity = { appPreferences.READER_ENGRAVING_INTENSITY.value },
+                currentEngravingTransparency = { appPreferences.READER_ENGRAVING_TRANSPARENCY.value },
                 currentTextSmooth = { appPreferences.READER_TEXT_SMOOTH.value },
                 currentMarginLeft = { appPreferences.READER_MARGIN_LEFT.value },
                 currentMarginRight = { appPreferences.READER_MARGIN_RIGHT.value },
@@ -531,6 +533,8 @@ class ReaderActivity : BaseActivity() {
                 viewModel.state.settings.style.textUnderline.value,
                 viewModel.state.settings.style.textShadow.value,
                 viewModel.state.settings.style.textEngraved.value,
+                viewModel.state.settings.style.engravingIntensity.value,
+                viewModel.state.settings.style.engravingTransparency.value,
                 viewModel.state.settings.style.textSmooth.value,
             )
         }.drop(1)
@@ -639,6 +643,8 @@ class ReaderActivity : BaseActivity() {
                     onTextUnderlineChange = { appPreferences.READER_TEXT_UNDERLINE.value = it },
                     onTextShadowChange = { appPreferences.READER_TEXT_SHADOW.value = it },
                     onTextEngravedChange = { appPreferences.READER_TEXT_ENGRAVED.value = it },
+                    onEngravingIntensityChange = { appPreferences.READER_ENGRAVING_INTENSITY.value = it.coerceIn(0f, 100f) },
+                    onEngravingTransparencyChange = { appPreferences.READER_ENGRAVING_TRANSPARENCY.value = it.coerceIn(0f, 100f) },
                     onTextSmoothChange = { appPreferences.READER_TEXT_SMOOTH.value = it },
                     onMarginLeftChange = { appPreferences.READER_MARGIN_LEFT.value = it },
                     onMarginRightChange = { appPreferences.READER_MARGIN_RIGHT.value = it },
@@ -661,6 +667,8 @@ class ReaderActivity : BaseActivity() {
                         appPreferences.READER_TEXT_UNDERLINE.value = false
                         appPreferences.READER_TEXT_SHADOW.value = false
                         appPreferences.READER_TEXT_ENGRAVED.value = false
+                        appPreferences.READER_ENGRAVING_INTENSITY.value = 50f
+                        appPreferences.READER_ENGRAVING_TRANSPARENCY.value = 100f
                         appPreferences.READER_TEXT_SMOOTH.value = true
                         appPreferences.READER_MARGIN_LEFT.value = 16f
                         appPreferences.READER_MARGIN_RIGHT.value = 16f
