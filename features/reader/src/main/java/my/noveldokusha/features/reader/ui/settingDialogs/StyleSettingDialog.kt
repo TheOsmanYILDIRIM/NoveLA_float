@@ -118,6 +118,9 @@ internal fun StyleSettingDialog(
     onTextItalicChange: (Boolean) -> Unit,
     onTextUnderlineChange: (Boolean) -> Unit,
     onTextShadowChange: (Boolean) -> Unit,
+     onTextEngravedChange: (Boolean) -> Unit,
+     onEngravingIntensityChange: (Float) -> Unit,
+     onEngravingTransparencyChange: (Float) -> Unit,
     onTextSmoothChange: (Boolean) -> Unit,
     onMarginLeftChange: (Float) -> Unit,
     onMarginRightChange: (Float) -> Unit,
@@ -599,12 +602,53 @@ internal fun StyleSettingDialog(
             }
             item {
                 FilterChip(
+                    selected = state.textEngraved.value,
+                    onClick = { onTextEngravedChange(!state.textEngraved.value) },
+                    label = { Text(stringResource(R.string.reader_text_engraved), maxLines = 1) },
+                    enabled = !isScrolling,
+                )
+            }
+            item {
+                FilterChip(
                     selected = state.textSmooth.value,
                     onClick = { onTextSmoothChange(!state.textSmooth.value) },
                     label = { Text(stringResource(R.string.reader_text_smooth), maxLines = 1) },
                     enabled = !isScrolling,
                 )
             }
+        }
+
+        if (state.textEngraved.value) {
+            var intensity by remember(state.engravingIntensity.value) {
+                mutableFloatStateOf(state.engravingIntensity.value)
+            }
+            PillSlider(
+                label = stringResource(R.string.reader_engraving_intensity),
+                value = intensity,
+                valueRange = 0f..100f,
+                onValueChange = {
+                    intensity = it
+                    onEngravingIntensityChange(it)
+                },
+                valueText = "%.0f%%".format(intensity),
+                enabled = !isScrolling,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+            )
+            var transparency by remember(state.engravingTransparency.value) {
+                mutableFloatStateOf(state.engravingTransparency.value)
+            }
+            PillSlider(
+                label = stringResource(R.string.reader_engraving_transparency),
+                value = transparency,
+                valueRange = 0f..100f,
+                onValueChange = {
+                    transparency = it
+                    onEngravingTransparencyChange(it)
+                },
+                valueText = "%.0f%%".format(transparency),
+                enabled = !isScrolling,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+            )
         }
 
         // Import font — system document picker, multi-select.

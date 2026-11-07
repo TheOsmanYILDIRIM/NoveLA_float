@@ -87,6 +87,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,6 +97,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import my.noveldokusha.core.appPreferences.AppPreferences
 import my.noveldokusha.coreui.theme.AppTheme
 import my.noveldokusha.coreui.theme.DarkMode
@@ -143,6 +146,9 @@ internal fun ReaderScreen(
     onTextItalicChange: (Boolean) -> Unit,
     onTextUnderlineChange: (Boolean) -> Unit,
     onTextShadowChange: (Boolean) -> Unit,
+    onTextEngravedChange: (Boolean) -> Unit,
+    onEngravingIntensityChange: (Float) -> Unit,
+    onEngravingTransparencyChange: (Float) -> Unit,
     onTextSmoothChange: (Boolean) -> Unit,
     onMarginLeftChange: (Float) -> Unit,
     onMarginRightChange: (Float) -> Unit,
@@ -159,6 +165,7 @@ internal fun ReaderScreen(
     onManualHighlightStart: () -> Unit = {},
     manualHighlightInitialPosition: Pair<Float, Float>? = null,
     onManualHighlightPositionChange: (Float, Float) -> Unit = { _, _ -> },
+    onBackgroundBoundsChanged: (Int, Int, Int, Int) -> Unit = { _, _, _, _ -> },
     readerContent: @Composable (paddingValues: PaddingValues) -> Unit,
 ) {
     val showReaderInfo by state.showReaderInfo
@@ -195,6 +202,14 @@ internal fun ReaderScreen(
         modifier = Modifier
             .fillMaxSize()
             .onSizeChanged { readerAreaSize = it }
+            .onGloballyPositioned { coordinates ->
+                // Exactly the Box that contains the background AsyncImage.
+                val origin = coordinates.positionOnScreen()
+                onBackgroundBoundsChanged(
+                    origin.x.roundToInt(), origin.y.roundToInt(),
+                    coordinates.size.width, coordinates.size.height
+                )
+            }
     ) {
         // Слой фона читалки: градиентный пресет или импортированная картинка под прозрачным Scaffold.
         val bgLayer = backgroundLayer(state.settings.style.readerBackground.value)
@@ -374,6 +389,9 @@ internal fun ReaderScreen(
                         onTextItalicChange = onTextItalicChange,
                         onTextUnderlineChange = onTextUnderlineChange,
                         onTextShadowChange = onTextShadowChange,
+                         onTextEngravedChange = onTextEngravedChange,
+                         onEngravingIntensityChange = onEngravingIntensityChange,
+                         onEngravingTransparencyChange = onEngravingTransparencyChange,
                         onTextSmoothChange = onTextSmoothChange,
                         onMarginLeftChange = onMarginLeftChange,
                         onMarginRightChange = onMarginRightChange,
@@ -811,6 +829,9 @@ private fun ViewsPreview(
         textItalic = remember { mutableStateOf(false) },
         textUnderline = remember { mutableStateOf(false) },
         textShadow = remember { mutableStateOf(false) },
+         textEngraved = remember { mutableStateOf(false) },
+         engravingIntensity = remember { mutableFloatStateOf(50f) },
+         engravingTransparency = remember { mutableFloatStateOf(100f) },
         textSmooth = remember { mutableStateOf(true) },
         marginLeft = remember { mutableFloatStateOf(16f) },
         marginRight = remember { mutableFloatStateOf(16f) },
@@ -884,6 +905,9 @@ private fun ViewsPreview(
                 onTextItalicChange = {},
                 onTextUnderlineChange = {},
                 onTextShadowChange = {},
+                 onTextEngravedChange = {},
+                 onEngravingIntensityChange = {},
+                 onEngravingTransparencyChange = {},
                 onTextSmoothChange = {},
                 onMarginLeftChange = {},
                 onMarginRightChange = {},
