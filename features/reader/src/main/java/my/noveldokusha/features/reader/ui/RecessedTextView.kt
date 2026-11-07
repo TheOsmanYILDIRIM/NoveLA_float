@@ -188,14 +188,8 @@ class RecessedTextView @JvmOverloads constructor(
                 paint.color = savedColor
                 paint.alpha = savedAlpha
             }
+            // Keep every tile alive until the current onDraw finishes.
             tiles[top] = tile
-            while (tiles.size > maxCachedTiles) {
-                val oldest = tiles.entries.iterator()
-                val entry = oldest.next()
-                oldest.remove()
-                entry.value.factor?.recycle()
-                entry.value.mask.recycle()
-            }
             tile
         } catch (_: IllegalArgumentException) {
             null
@@ -340,6 +334,15 @@ class RecessedTextView @JvmOverloads constructor(
                 maskedInk.alpha = (Color.alpha(ink) * inkOpacity).roundToInt()
                 canvas.drawBitmap(mask, x, tileY, maskedInk)
             }
+        }
+        // Evict only AFTER all visible bitmaps have been drawn. Otherwise
+        // long visible paragraphs may reference recycled glyph masks.
+        while (tiles.size > maxCachedTiles) {
+            val iterator = tiles.entries.iterator()
+            val entry = iterator.next()
+            iterator.remove()
+            entry.value.factor?.recycle()
+            entry.value.mask.recycle()
         }
     }
 
