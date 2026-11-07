@@ -33,6 +33,7 @@ import my.noveldokusha.core.AppFileResolver
 import my.noveldokusha.core.utils.inflater
 import my.noveldokusha.core.utils.refererFor
 import my.noveldokusha.features.reader.features.TextSynthesis
+import my.noveldokusha.features.reader.ui.RecessedTextView
 import my.noveldokusha.reader.R
 import my.noveldokusha.reader.databinding.ActivityReaderListItemBodyBinding
 import my.noveldokusha.reader.databinding.ActivityReaderListItemDividerBinding
@@ -67,6 +68,7 @@ internal class ReaderItemAdapter(
     private val currentTextItalic: () -> Boolean,
     private val currentTextUnderline: () -> Boolean,
     private val currentTextShadow: () -> Boolean,
+    private val currentTextEngraved: () -> Boolean,
     private val currentTextSmooth: () -> Boolean,
     private val currentMarginLeft: () -> Float,
     private val currentMarginRight: () -> Float,
@@ -195,7 +197,10 @@ internal class ReaderItemAdapter(
             }
             textView.typeface = if (style == Typeface.NORMAL) base else Typeface.create(base, style)
             textView.paintFlags = if (currentTextUnderline()) textView.paintFlags or Paint.UNDERLINE_TEXT_FLAG else textView.paintFlags and Paint.UNDERLINE_TEXT_FLAG.inv()
-            if (currentTextShadow()) textView.setShadowLayer(1f, 1f, 1f, 0x66000000.toInt()) else textView.setShadowLayer(0f, 0f, 0f, 0)
+            val inset = currentTextEngraved()
+            (textView as? RecessedTextView)?.isEngraved = inset
+            // Do not leave an OUTER drop shadow when carving is enabled.
+            if (currentTextShadow() && !inset) textView.setShadowLayer(1f, 1f, 1f, 0x66000000.toInt()) else textView.setShadowLayer(0f, 0f, 0f, 0)
             textView.paint.isAntiAlias = currentTextSmooth()
             textView.justificationMode = if (currentTextJustify()) 1 else 0 // ponytail: TextView.TEXT_JUSTIFICATION_MODE_INTER_WORD/NONE unresolved on compileSdk37; literals are API26-safe
             textView.hyphenationFrequency = if (currentTextHyphenation()) Layout.HYPHENATION_FREQUENCY_FULL else Layout.HYPHENATION_FREQUENCY_NONE
@@ -428,6 +433,7 @@ internal class ReaderItemAdapter(
         bind.root.background = getItemReadingStateBackground(item)
         bind.titleTranslated.text = item.textToDisplay
         bind.titleTranslated.typeface = currentTypefaceBold()
+        (bind.titleTranslated as? RecessedTextView)?.isEngraved = currentTextEngraved()
         applyTextColor(bind.titleTranslated, currentTextColor())
         bind.titleOriginal.visibility = View.GONE
         return bind.root

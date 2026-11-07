@@ -62,6 +62,7 @@ internal data class ReaderScreenState(
             val textItalic: State<Boolean>,
             val textUnderline: State<Boolean>,
             val textShadow: State<Boolean>,
+            val textEngraved: State<Boolean>,
             val textSmooth: State<Boolean>,
             val marginLeft: State<Float>,
             val marginRight: State<Float>,

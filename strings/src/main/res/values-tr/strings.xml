@@ -890,4 +890,5 @@
     <string name="failed_to_restore_error">Geri yükleme hatası: %1$s</string>
     <string name="failed_to_restore_invalid_format">Geçersiz yedek dosyası biçimi. ZIP dosyası bekleniyor</string>
     <string name="failed_to_restore_read_error">Yedek dosyası okunamadı: %1$s</string>
+    <string name="reader_text_engraved">Girintili yazı</string>
 </resources>

@@ -118,6 +118,7 @@ internal fun StyleSettingDialog(
     onTextItalicChange: (Boolean) -> Unit,
     onTextUnderlineChange: (Boolean) -> Unit,
     onTextShadowChange: (Boolean) -> Unit,
+     onTextEngravedChange: (Boolean) -> Unit,
     onTextSmoothChange: (Boolean) -> Unit,
     onMarginLeftChange: (Float) -> Unit,
     onMarginRightChange: (Float) -> Unit,
@@ -594,6 +595,14 @@ internal fun StyleSettingDialog(
                     selected = state.textShadow.value,
                     onClick = { onTextShadowChange(!state.textShadow.value) },
                     label = { Text(stringResource(R.string.reader_text_shadow), maxLines = 1) },
+                    enabled = !isScrolling,
+                )
+            }
+            item {
+                FilterChip(
+                    selected = state.textEngraved.value,
+                    onClick = { onTextEngravedChange(!state.textEngraved.value) },
+                    label = { Text(stringResource(R.string.reader_text_engraved), maxLines = 1) },
                     enabled = !isScrolling,
                 )
             }

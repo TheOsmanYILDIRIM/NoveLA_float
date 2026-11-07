@@ -121,6 +121,7 @@ internal class ReaderViewModel @Inject constructor(
                 textItalic = appPreferences.READER_TEXT_ITALIC.state(viewModelScope),
                 textUnderline = appPreferences.READER_TEXT_UNDERLINE.state(viewModelScope),
                 textShadow = appPreferences.READER_TEXT_SHADOW.state(viewModelScope),
+                textEngraved = appPreferences.READER_TEXT_ENGRAVED.state(viewModelScope),
                 textSmooth = appPreferences.READER_TEXT_SMOOTH.state(viewModelScope),
                 marginLeft = appPreferences.READER_MARGIN_LEFT.state(viewModelScope),
                 marginRight = appPreferences.READER_MARGIN_RIGHT.state(viewModelScope),
