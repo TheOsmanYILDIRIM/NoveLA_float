@@ -69,6 +69,8 @@ internal class ReaderItemAdapter(
     private val currentTextUnderline: () -> Boolean,
     private val currentTextShadow: () -> Boolean,
     private val currentTextEngraved: () -> Boolean,
+    private val currentEngravingIntensity: () -> Float,
+    private val currentEngravingTransparency: () -> Float,
     private val currentTextSmooth: () -> Boolean,
     private val currentMarginLeft: () -> Float,
     private val currentMarginRight: () -> Float,
@@ -198,7 +200,11 @@ internal class ReaderItemAdapter(
             textView.typeface = if (style == Typeface.NORMAL) base else Typeface.create(base, style)
             textView.paintFlags = if (currentTextUnderline()) textView.paintFlags or Paint.UNDERLINE_TEXT_FLAG else textView.paintFlags and Paint.UNDERLINE_TEXT_FLAG.inv()
             val inset = currentTextEngraved()
-            (textView as? RecessedTextView)?.isEngraved = inset
+            (textView as? RecessedTextView)?.apply {
+                isEngraved = inset
+                engravingIntensity = currentEngravingIntensity()
+                engravingTransparency = currentEngravingTransparency()
+            }
             // Do not leave an OUTER drop shadow when carving is enabled.
             if (currentTextShadow() && !inset) textView.setShadowLayer(1f, 1f, 1f, 0x66000000.toInt()) else textView.setShadowLayer(0f, 0f, 0f, 0)
             textView.paint.isAntiAlias = currentTextSmooth()
@@ -433,7 +439,11 @@ internal class ReaderItemAdapter(
         bind.root.background = getItemReadingStateBackground(item)
         bind.titleTranslated.text = item.textToDisplay
         bind.titleTranslated.typeface = currentTypefaceBold()
-        (bind.titleTranslated as? RecessedTextView)?.isEngraved = currentTextEngraved()
+        (bind.titleTranslated as? RecessedTextView)?.apply {
+            isEngraved = currentTextEngraved()
+            engravingIntensity = currentEngravingIntensity()
+            engravingTransparency = currentEngravingTransparency()
+        }
         applyTextColor(bind.titleTranslated, currentTextColor())
         bind.titleOriginal.visibility = View.GONE
         return bind.root
