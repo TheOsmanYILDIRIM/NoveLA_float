@@ -29,8 +29,13 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${ANDROID_HOME:-}"
-          sdkmanager --version
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          # Runner commandline-tools are installed in versioned directories,
+          # not necessarily on PATH or in cmdline-tools/latest.
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)
+          test -n "$SDKMANAGER"
+          echo "Using $SDKMANAGER"
+          "$SDKMANAGER" --version
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platforms;android-36" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
       - name: Restore stable PUBLIC TEST-ONLY signer
         shell: bash
