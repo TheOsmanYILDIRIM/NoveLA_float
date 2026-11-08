@@ -95,6 +95,8 @@ class RecessedTextView @JvmOverloads constructor(
     private val maskedInk = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     // Paint.color does NOT tint ARGB_8888 bitmap pixels; SRC_IN color filter does.
     private val tintedInk = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private var lastInkColor = 0
+    private var lastTintFilter: PorterDuffColorFilter? = null
     private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
     }
@@ -274,36 +276,42 @@ class RecessedTextView @JvmOverloads constructor(
         }
     }
 
-    /** Bitmap-free bevel approximation. Uses Android Layout directly. */
+    // No glyph masks or pixel loops: two tinted native glyph passes followed by
+    // the ink layer. Tint is applied to the drawn layer, not Layout's TextPaint
+    // (spans can override TextPaint's color during Layout.draw).
     private fun drawNative(canvas: Canvas, textLayout: Layout) {
-        val ink = currentTextColor
-        val savedColor = paint.color
-        val savedAlpha = paint.alpha
-        val savedShader = paint.shader
-        val save = canvas.save()
-        try {
-            canvas.translate(compoundPaddingLeft.toFloat(), extendedPaddingTop.toFloat())
-            val intensity = engravingIntensity / 100f
-            val delta = 0.35f + 0.8f * intensity
-            paint.shader = null
-            paint.color = Color.argb((90f * intensity).roundToInt(), 0, 0, 0)
+        val intensity = (engravingIntensity / 100f).coerceIn(0f, 1f)
+        val opacity = (1f - engravingTransparency / 100f).coerceIn(0f, 1f)
+        val offset = 0.65f + 1.25f * intensity
+        val clip = canvas.clipBounds
+        val left = clip.left.toFloat()
+        val top = clip.top.toFloat()
+        val right = clip.right.toFloat()
+        val bottom = clip.bottom.toFloat()
+        val tx = compoundPaddingLeft.toFloat()
+        val ty = extendedPaddingTop.toFloat()
+
+        fun tintedPass(dx: Float, dy: Float, tint: Int) {
+            val layer = canvas.saveLayer(left, top, right, bottom, null)
             canvas.save()
-            canvas.translate(-delta, -delta)
+            canvas.translate(tx + dx, ty + dy)
             textLayout.draw(canvas)
             canvas.restore()
-            paint.color = Color.argb((105f * intensity).roundToInt(), 245, 240, 224)
-            canvas.save()
-            canvas.translate(delta, delta)
-            textLayout.draw(canvas)
-            canvas.restore()
-            paint.color = ink
-            paint.alpha = (Color.alpha(ink) * (1f - engravingTransparency / 100f)).roundToInt().coerceIn(0, 255)
-            textLayout.draw(canvas)
-        } finally {
-            paint.shader = savedShader
-            paint.color = savedColor
-            paint.alpha = savedAlpha
-            canvas.restoreToCount(save)
+            canvas.drawColor(tint, PorterDuff.Mode.SRC_IN)
+            canvas.restoreToCount(layer)
+        }
+
+        // Opposing inset light/shadow rims produce visible depth even with
+        // transparent ink. Stronger contrast than the old TextPaint mutations.
+        tintedPass(-offset, -offset,
+            Color.argb((165f * intensity).roundToInt(), 9, 12, 17))
+        tintedPass(offset, offset,
+            Color.argb((185f * intensity).roundToInt(), 245, 240, 220))
+        if (opacity > 0f) {
+            val ink = currentTextColor
+            tintedPass(0f, 0f, Color.argb(
+                (Color.alpha(ink) * opacity).roundToInt(),
+                Color.red(ink), Color.green(ink), Color.blue(ink)))
         }
     }
 
@@ -344,7 +352,6 @@ class RecessedTextView @JvmOverloads constructor(
             lastTypeface = typeface
         }
         val visibleTiles = ArrayList<MaskTile>()
-        val plainStrips = ArrayList<Pair<Int, Int>>()
         val width = textLayout.width + 4
         if (width <= 4 || width > 2048) {
             super.onDraw(canvas)
@@ -366,32 +373,24 @@ class RecessedTextView @JvmOverloads constructor(
             if (bottom < visibleTop || top > visibleBottom) continue
             val tile = maskFor(textLayout, content, excluded, start, line)
             if (tile != null) visibleTiles.add(tile)
-            else plainStrips.add(top to bottom)
         }
         if (visibleTiles.isEmpty()) {
             super.onDraw(canvas)
             return
         }
 
-        // Preserve standard text in any strip whose bitmap allocation fails.
-        for ((top, bottom) in plainStrips) {
-            val saved = canvas.save()
-            canvas.clipRect(0f, y + top, this.width.toFloat(), y + bottom)
-            super.onDraw(canvas)
-            canvas.restoreToCount(saved)
-        }
-
-        // Use bounded saveLayers too: a full-height paragraph layer may exceed
-        // the GPU texture limit even when the masks themselves are small.
-        // Drawing regular text inside each strip keeps excluded TTS spans intact.
+        // Render the Android text layout ONCE into a screen-clipped layer,
+        // then remove all engraved glyphs. Previously super.onDraw() ran once
+        // per tile, making long visible paragraphs dramatically more expensive.
+        val clip = canvas.clipBounds
+        val save = canvas.saveLayer(
+            clip.left.toFloat(), clip.top.toFloat(),
+            clip.right.toFloat(), clip.bottom.toFloat(), null)
+        super.onDraw(canvas)
         for (tile in visibleTiles) {
-            val tileY = y + tile.top
-            val cut = canvas.saveLayer(x, tileY, x + tile.mask.width,
-                tileY + tile.mask.height, null)
-            super.onDraw(canvas)
-            canvas.drawBitmap(tile.mask, x, tileY, eraser)
-            canvas.restoreToCount(cut)
+            canvas.drawBitmap(tile.mask, x, y + tile.top, eraser)
         }
+        canvas.restoreToCount(save)
 
         val backdrop = wallpaperBitmap
         val inkOpacity = (1f - engravingTransparency / 100f).coerceIn(0f, 1f)
@@ -405,7 +404,11 @@ class RecessedTextView @JvmOverloads constructor(
             if (!correct) drawGenericSurface(canvas, mask, x, tileY)
             if (inkOpacity > 0f) {
                 val ink = currentTextColor
-                tintedInk.colorFilter = PorterDuffColorFilter(ink, PorterDuff.Mode.SRC_IN)
+                if (lastTintFilter == null || lastInkColor != ink) {
+                    lastInkColor = ink
+                    lastTintFilter = PorterDuffColorFilter(ink, PorterDuff.Mode.SRC_IN)
+                }
+                tintedInk.colorFilter = lastTintFilter
                 tintedInk.alpha = (255f * inkOpacity).roundToInt()
                 canvas.drawBitmap(mask, x, tileY, tintedInk)
             }
