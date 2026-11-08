@@ -89,6 +89,8 @@ internal fun ReaderScreenBottomBarDialogs(
                     ReaderScreenState.Settings.Type.Style -> {
                         StyleSettingDialog(
                             state = settings.style,
+                            appPreferences = appPreferences,
+                            onAppearanceApplied = onAppearanceApplied,
                             onDarkModeChange = onDarkModeSelected,
                             onAppThemeChange = onAppThemeSelected,
                             onTextFontChange = onTextFontChanged,

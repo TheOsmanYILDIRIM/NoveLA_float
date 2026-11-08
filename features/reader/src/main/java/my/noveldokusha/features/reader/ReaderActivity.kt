@@ -662,14 +662,6 @@ class ReaderActivity : BaseActivity() {
                     initializer {
                         RegexCleanupSettingsViewModel(
                             appPreferences = appPreferences,
-                    onAppearanceApplied = { recreateTheme, reloadItems ->
-                        if (recreateTheme) {
-                            recreate()
-                        } else {
-                            if (reloadItems) viewModel.reloadReader()
-                            viewAdapter.listView.notifyDataSetChanged()
-                        }
-                    },
                             appRepository = appRepository,
                             stateHandler = SavedStateHandle(
                                 mapOf("bookUrl" to bookUrl)
@@ -703,6 +695,14 @@ class ReaderActivity : BaseActivity() {
                     ReaderScreen(
                     state = viewModel.state,
                     appPreferences = appPreferences,
+                    onAppearanceApplied = { recreateTheme, reloadItems ->
+                        if (recreateTheme) {
+                            recreate()
+                        } else {
+                            if (reloadItems) viewModel.reloadReader()
+                            viewAdapter.listView.notifyDataSetChanged()
+                        }
+                    },
                     onTextFontChanged = { appPreferences.READER_FONT_FAMILY.value = it },
                     onTextColorChanged = { appPreferences.READER_TEXT_COLOR.value = it },
                     onBackgroundChanged = { appPreferences.READER_BACKGROUND_IMAGE.value = it },
