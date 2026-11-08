@@ -86,6 +86,7 @@ import my.noveldokusha.features.reader.services.NarratorMediaControlsService
 import my.noveldokusha.features.reader.tools.BackgroundImageLoader
 import my.noveldokusha.features.reader.tools.FontsLoader
 import my.noveldokusha.features.reader.ui.ReaderScreen
+import my.noveldokusha.features.reader.ui.ReaderTextContrast
 import my.noveldokusha.features.reader.ui.ReaderScreenState
 import my.noveldokusha.features.reader.ui.ReaderViewHandlersActions
 import my.noveldokusha.navigation.NavigationRoutes
@@ -234,7 +235,10 @@ class ReaderActivity : BaseActivity() {
                 },
                 currentTtsHighlightEnabled = { appPreferences.TTS_HIGHLIGHT_ENABLED.value },
                 currentTtsHighlightColor = { appPreferences.TTS_HIGHLIGHT_COLOR.value },
-                currentTextColor = { appPreferences.READER_TEXT_COLOR.value },
+                currentTextColor = {
+                    if (appPreferences.READER_TEXT_COLOR_MODE.value == "contrast") contrastTextColor
+                    else appPreferences.READER_TEXT_COLOR.value
+                },
                 currentSpokenWordRange = { viewModel.readerSpeaker.state.spokenWordRange.value },
                 currentManualHighlight = { viewModel.state.settings.manualHighlight.highlightedItem.value },
                 currentTextJustify = { appPreferences.READER_TEXT_JUSTIFY.value },
@@ -267,6 +271,7 @@ class ReaderActivity : BaseActivity() {
     // Shared bitmap reference for the same imported wallpaper rendered by Compose.
     // Old references stay valid until recycled ListView rows have been rebound.
     private var engravedWallpaper: Bitmap? = null
+    private var contrastTextColor: String = ""
     private var engravedWallpaperScreenBounds: Rect? = null
 
     private val backPressedCallback = object : OnBackPressedCallback(true) {
@@ -284,11 +289,27 @@ class ReaderActivity : BaseActivity() {
         super.onDestroy()
     }
 
+    private fun updateContrastTextColor() {
+        val mode = appPreferences.THEME_DARK_MODE.value
+        val dark = when (mode) {
+            "DARK", "BLACK" -> true
+            "LIGHT" -> false
+            else -> ReaderTextContrast.isDark(this)
+        }
+        contrastTextColor = ReaderTextContrast.color(
+            background = appPreferences.READER_BACKGROUND_IMAGE.value,
+            offset = appPreferences.READER_TEXT_CONTRAST_OFFSET.value,
+            wallpaper = engravedWallpaper,
+            darkFallback = dark,
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Гарантируем инициализацию фонового лоадера (заполняет статический
         // appContext) до setContent → ReaderScreen → backgroundLayer.
         backgroundLoader
+        updateContrastTextColor()
         lifecycleScope.launch {
             // Observe the actual persisted preference flow; snapshotFlow does not
             // track SharedPreferences writes and can leave the wallpaper mask stale.
@@ -310,6 +331,7 @@ class ReaderActivity : BaseActivity() {
                         }.getOrNull()
                     }
                     engravedWallpaper = wallpaper
+                    updateContrastTextColor()
                     // The background file can change independently of the text style.
                     viewAdapter.listView.notifyDataSetChanged()
                 }
@@ -521,6 +543,19 @@ class ReaderActivity : BaseActivity() {
         snapshotFlow { viewModel.state.settings.style.textColor.value }.drop(1)
             .asLiveData()
             .observe(this) { viewAdapter.listView.notifyDataSetChanged() }
+
+        // Contrast mode and offset are persisted separately from the manual ink color.
+        lifecycleScope.launch {
+            combine(
+                appPreferences.READER_TEXT_COLOR_MODE.flow(),
+                appPreferences.READER_TEXT_CONTRAST_OFFSET.flow(),
+            ) { mode, offset -> mode to offset }
+                .drop(1)
+                .collectLatest {
+                    updateContrastTextColor()
+                    viewAdapter.listView.notifyDataSetChanged()
+                }
+        }
 
         // Notify manually text size changed for list view
         snapshotFlow { viewModel.state.settings.style.textSize.value }.drop(1)
