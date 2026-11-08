@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import my.noveldokusha.core.appPreferences.AppPreferences
 import my.noveldokusha.coreui.theme.AppTheme
 import my.noveldokusha.coreui.theme.DarkMode
 import my.noveldokusha.features.reader.ui.settingDialogs.MoreSettingDialog
@@ -25,6 +26,8 @@ import my.noveldokusha.settings.RegexCleanupSettingsViewModel
 @Composable
 internal fun ReaderScreenBottomBarDialogs(
     settings: ReaderScreenState.Settings,
+    appPreferences: AppPreferences,
+    onAppearanceApplied: (Boolean, Boolean) -> Unit,
     regexCleanupViewModel: RegexCleanupSettingsViewModel?,
     onTextFontChanged: (String) -> Unit,
     onTextColorChanged: (String) -> Unit,

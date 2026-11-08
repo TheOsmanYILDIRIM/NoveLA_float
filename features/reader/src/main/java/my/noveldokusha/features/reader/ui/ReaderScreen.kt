@@ -124,6 +124,7 @@ import androidx.lifecycle.LifecycleEventObserver
 internal fun ReaderScreen(
     state: ReaderScreenState,
     appPreferences: AppPreferences,
+    onAppearanceApplied: (Boolean, Boolean) -> Unit = { _, _ -> },
     onSelectableTextChange: (Boolean) -> Unit,
     onKeepScreenOn: (Boolean) -> Unit,
     onDarkModeSelected: (DarkMode) -> Unit,
@@ -367,6 +368,8 @@ internal fun ReaderScreen(
                 Column {
                     ReaderScreenBottomBarDialogs(
                         settings = state.settings,
+                        appPreferences = appPreferences,
+                        onAppearanceApplied = onAppearanceApplied,
                         regexCleanupViewModel = regexCleanupViewModel,
                         onTextFontChanged = onTextFontChanged,
                         onTextColorChanged = onTextColorChanged,

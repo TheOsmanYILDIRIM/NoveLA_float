@@ -1,11 +1,13 @@
 package my.noveldokusha.features.reader.ui.settingDialogs
 
 import android.content.Intent
+import android.os.SystemClock
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -53,12 +55,15 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,7 +77,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -87,6 +94,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import my.noveldokusha.core.appPreferences.AppPreferences
 import my.noveldokusha.coreui.composableActions.onDoAskForImage
 import my.noveldokusha.coreui.theme.AppTheme
 import my.noveldokusha.coreui.theme.DarkMode
@@ -96,11 +104,14 @@ import my.noveldokusha.features.reader.tools.FontsLoader
 import my.noveldokusha.features.reader.ui.ReaderBackgroundPreset
 import my.noveldokusha.features.reader.ui.ReaderBackgroundPresets
 import my.noveldokusha.features.reader.ui.ReaderScreenState
+import my.noveldokusha.features.reader.ui.ReaderAppearancePresets
 import my.noveldokusha.reader.R
 
 @Composable
 internal fun StyleSettingDialog(
     state: ReaderScreenState.Settings.StyleSettingsData,
+    appPreferences: AppPreferences,
+    onAppearanceApplied: (Boolean, Boolean) -> Unit,
     onTextSizeChange: (Float) -> Unit,
     onLineHeightChange: (Float) -> Unit,
     onParagraphSpacingChange: (Float) -> Unit,
@@ -131,6 +142,14 @@ internal fun StyleSettingDialog(
     onTextDefaultsReset: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val appearanceStore = remember(appPreferences) { ReaderAppearancePresets(appPreferences) }
+    var savedAppearanceNames by remember { mutableStateOf(appearanceStore.names()) }
+    var newAppearanceName by rememberSaveable { mutableStateOf("") }
+    val textColorMode by appPreferences.READER_TEXT_COLOR_MODE.flow()
+        .collectAsState(initial = appPreferences.READER_TEXT_COLOR_MODE.value)
+    val contrastOffset by appPreferences.READER_TEXT_CONTRAST_OFFSET.flow()
+        .collectAsState(initial = appPreferences.READER_TEXT_CONTRAST_OFFSET.value)
+    val contrastMode = textColorMode == "contrast"
     val fontLoader = remember(context) { FontsLoader(context) }
     val backgroundLoader = remember(context) { BackgroundImageLoader(context) }
     val systemFontsSet = remember { FontsLoader.systemFonts.toSet() }
@@ -172,6 +191,65 @@ internal fun StyleSettingDialog(
             }
         }
         // Text size
+        // All appearance fields (including the current wallpaper and font) are saved together.
+        Text(
+            text = "Saved reading styles",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = newAppearanceName,
+                onValueChange = { newAppearanceName = it.take(48) },
+                label = { Text("Style name") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                enabled = newAppearanceName.isNotBlank(),
+                onClick = {
+                    if (appearanceStore.save(newAppearanceName)) {
+                        savedAppearanceNames = appearanceStore.names()
+                        newAppearanceName = ""
+                        Toast.makeText(context, "Reading style saved", Toast.LENGTH_SHORT).show()
+                    } else Toast.makeText(context, "Could not save reading style", Toast.LENGTH_SHORT).show()
+                },
+            ) { Text("Save") }
+        }
+        if (savedAppearanceNames.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                items(savedAppearanceNames) { name ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val outcome = appearanceStore.apply(name)
+                                if (outcome.success) onAppearanceApplied(outcome.recreate, outcome.reload)
+                                else Toast.makeText(context, "Style's background is missing", Toast.LENGTH_SHORT).show()
+                            },
+                            label = { Text(name, maxLines = 1) },
+                        )
+                        IconButton(
+                            onClick = {
+                                if (appearanceStore.remove(name))
+                                    savedAppearanceNames = appearanceStore.names()
+                            },
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete $name", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+        }
+
         var currentTextSize by remember(state.textSize.value) { mutableFloatStateOf(state.textSize.value) }
         ReaderStepControl(
             label = stringResource(R.string.text_size),
@@ -716,6 +794,38 @@ internal fun StyleSettingDialog(
                 style = MaterialTheme.typography.labelMedium,
             )
         }
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = !contrastMode,
+                onClick = { appPreferences.READER_TEXT_COLOR_MODE.value = "manual" },
+                label = { Text("Color") },
+            )
+            FilterChip(
+                selected = contrastMode,
+                onClick = { appPreferences.READER_TEXT_COLOR_MODE.value = "contrast" },
+                label = { Text("Background contrast") },
+            )
+        }
+        if (contrastMode) {
+            Text(
+                "Positive values increase contrast against the background; negative values reverse it.",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            ReaderStepControl(
+                label = "Contrast",
+                value = contrastOffset,
+                valueRange = -100f..100f,
+                step = 1f,
+                onValueChange = { appPreferences.READER_TEXT_CONTRAST_OFFSET.value = it },
+                valueText = "%+.0f".format(contrastOffset),
+                enabled = !isScrolling,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+            )
+        } else {
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 12.dp),
@@ -804,6 +914,7 @@ internal fun StyleSettingDialog(
             enabled = !isScrolling,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
         )
+        }
 
         // Background — пресеты-градиенты, свои картинки и «Авто», по образцу ряда цвета текста.
         val currentBackground = state.readerBackground.value
@@ -852,7 +963,7 @@ internal fun StyleSettingDialog(
                                 .clickable {
                                     onBackgroundChanged("")
                                     // ponytail: сброс фона на «Авто» возвращает и цвет текста к теме.
-                                    onTextColorChanged("")
+                                    if (!contrastMode) onTextColorChanged("")
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -878,7 +989,7 @@ internal fun StyleSettingDialog(
                                     .clickable {
                                         onBackgroundChanged(value)
                                         // ponytail: цвет текста подбирается под пресет для читаемости.
-                                        onTextColorChanged(preset.textColor)
+                                        if (!contrastMode) onTextColorChanged(preset.textColor)
                                     },
                             )
                         } else {
@@ -945,8 +1056,12 @@ internal fun StyleSettingDialog(
             if (BackgroundImageLoader.isImported(currentBackground)) {
                 TextButton(
                     onClick = {
-                        backgroundLoader.deleteBackground(currentBackground)
-                        onBackgroundChanged("")
+                        if (appearanceStore.usesBackground(currentBackground)) {
+                            Toast.makeText(context, "Remove saved styles using this background first", Toast.LENGTH_LONG).show()
+                        } else {
+                            backgroundLoader.deleteBackground(currentBackground)
+                            onBackgroundChanged("")
+                        }
                     }
                 ) {
                     Icon(
@@ -1141,6 +1256,8 @@ private fun ReaderStepControl(
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val latestValue by rememberUpdatedState(value)
+    val latestOnChange by rememberUpdatedState(onValueChange)
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
@@ -1164,7 +1281,39 @@ private fun ReaderStepControl(
             Text(
                 text = valueText,
                 style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.widthIn(min = 52.dp),
+                modifier = Modifier
+                    .widthIn(min = 52.dp)
+                    .pointerInput(enabled, step, valueRange.start, valueRange.endInclusive) {
+                        if (!enabled) return@pointerInput
+                        val pixelSpan = 160.dp.toPx()
+                        val span = valueRange.endInclusive - valueRange.start
+                        var draft = latestValue
+                        var remainder = 0f
+                        var lastCommit = 0L
+                        detectHorizontalDragGestures(
+                            onDragStart = {
+                                draft = latestValue
+                                remainder = 0f
+                                lastCommit = 0L
+                            },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                remainder += (dragAmount / pixelSpan) * span
+                                val steps = (remainder / step).toInt()
+                                if (steps != 0) {
+                                    draft = (draft + steps * step).coerceIn(valueRange)
+                                    remainder -= steps * step
+                                    val now = SystemClock.uptimeMillis()
+                                    if (now - lastCommit >= 48L) {
+                                        latestOnChange(draft)
+                                        lastCommit = now
+                                    }
+                                }
+                            },
+                            onDragEnd = { if (draft != latestValue) latestOnChange(draft) },
+                            onDragCancel = { if (draft != latestValue) latestOnChange(draft) },
+                        )
+                    },
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
             IconButton(

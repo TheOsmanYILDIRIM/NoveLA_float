@@ -662,6 +662,14 @@ class ReaderActivity : BaseActivity() {
                     initializer {
                         RegexCleanupSettingsViewModel(
                             appPreferences = appPreferences,
+                    onAppearanceApplied = { recreateTheme, reloadItems ->
+                        if (recreateTheme) {
+                            recreate()
+                        } else {
+                            if (reloadItems) viewModel.reloadReader()
+                            viewAdapter.listView.notifyDataSetChanged()
+                        }
+                    },
                             appRepository = appRepository,
                             stateHandler = SavedStateHandle(
                                 mapOf("bookUrl" to bookUrl)
