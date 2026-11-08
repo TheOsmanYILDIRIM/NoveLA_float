@@ -142,24 +142,16 @@ class RecessedTextView @JvmOverloads constructor(
         if (w <= 4 || h <= 4 || w > 2048 || h > 4096 ||
             w.toLong() * h > 1_600_000L) return null
 
-        val rangeKey = excluded.joinToString(";") { "${it.first}:${it.second}" }
-        if (lastLayout !== textLayout || lastString != content.toString() ||
-            lastProtectedRanges != rangeKey || lastTextSize != textSize ||
-            lastLetterSpacing != letterSpacing || lastTypeface !== typeface) {
-            clearTiles()
-            lastLayout = textLayout
-            lastString = content.toString()
-            lastProtectedRanges = rangeKey
-            lastTextSize = textSize
-            lastLetterSpacing = letterSpacing
-            lastTypeface = typeface
-        }
         tiles[top]?.let { if (!it.mask.isRecycled) return it }
         return try {
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val tile = MaskTile(top, bmp)
             val maskCanvas = Canvas(bmp)
             maskCanvas.translate(2f, 2f - top)
+            // Tell Android Layout.draw which lines actually belong to this
+            // tile; it can skip the rest of a long paragraph.
+            maskCanvas.clipRect(-2f, top.toFloat() - 2f,
+                textLayout.width.toFloat() + 2f, bottom.toFloat() + 2f)
             val savedColor = paint.color
             val savedAlpha = paint.alpha
             try {
@@ -267,6 +259,22 @@ class RecessedTextView @JvmOverloads constructor(
         val visibleTop = (visible.top - y - 4f).coerceAtLeast(0f)
         val visibleBottom = (visible.bottom - y + 4).toInt().coerceAtMost(textLayout.height)
         val excluded = protectedRanges(content)
+        // Revalidate once per drawing pass rather than once per line tile.
+        // Long paragraphs previously generated the full content string for
+        // every tile and repeated all span/range comparisons.
+        val contentKey = content.toString()
+        val rangeKey = excluded.joinToString(";") { "${it.first}:${it.second}" }
+        if (lastLayout !== textLayout || lastString != contentKey ||
+            lastProtectedRanges != rangeKey || lastTextSize != textSize ||
+            lastLetterSpacing != letterSpacing || lastTypeface !== typeface) {
+            clearTiles()
+            lastLayout = textLayout
+            lastString = contentKey
+            lastProtectedRanges = rangeKey
+            lastTextSize = textSize
+            lastLetterSpacing = letterSpacing
+            lastTypeface = typeface
+        }
         val visibleTiles = ArrayList<MaskTile>()
         val plainStrips = ArrayList<Pair<Int, Int>>()
         val width = textLayout.width + 4

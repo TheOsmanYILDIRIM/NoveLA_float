@@ -30,6 +30,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.outlined.BrightnessMedium
@@ -86,7 +88,6 @@ import androidx.compose.ui.window.PopupProperties
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import my.noveldokusha.coreui.composableActions.onDoAskForImage
-import my.noveldokusha.coreui.components.PillSlider
 import my.noveldokusha.coreui.theme.AppTheme
 import my.noveldokusha.coreui.theme.DarkMode
 import my.noveldokusha.coreui.theme.colorAccent
@@ -171,8 +172,9 @@ internal fun StyleSettingDialog(
         }
         // Text size
         var currentTextSize by remember(state.textSize.value) { mutableFloatStateOf(state.textSize.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.text_size),
+            step = .5f,
             value = currentTextSize,
             valueRange = 8f..32f,
             onValueChange = {
@@ -186,8 +188,9 @@ internal fun StyleSettingDialog(
 
         // Line height
         var currentLineHeight by remember(state.lineHeight.value) { mutableFloatStateOf(state.lineHeight.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.line_height),
+            step = .05f,
             value = currentLineHeight,
             valueRange = 1.0f..2.5f,
             onValueChange = {
@@ -201,8 +204,9 @@ internal fun StyleSettingDialog(
 
         // Paragraph spacing
         var currentParagraphSpacing by remember(state.paragraphSpacing.value) { mutableFloatStateOf(state.paragraphSpacing.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.paragraph_spacing),
+            step = 1f,
             value = currentParagraphSpacing,
             valueRange = 0f..40f,
             onValueChange = {
@@ -232,8 +236,9 @@ internal fun StyleSettingDialog(
             )
         }
         var currentMarginLeft by remember(state.marginLeft.value) { mutableFloatStateOf(state.marginLeft.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.reader_margin_left),
+            step = 2f,
             value = currentMarginLeft,
             valueRange = 0f..100f,
             onValueChange = {
@@ -245,8 +250,9 @@ internal fun StyleSettingDialog(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
         )
         var currentMarginRight by remember(state.marginRight.value) { mutableFloatStateOf(state.marginRight.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.reader_margin_right),
+            step = 2f,
             value = currentMarginRight,
             valueRange = 0f..100f,
             onValueChange = {
@@ -258,8 +264,9 @@ internal fun StyleSettingDialog(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
         )
         var currentMarginTop by remember(state.marginTop.value) { mutableFloatStateOf(state.marginTop.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.reader_margin_top),
+            step = 2f,
             value = currentMarginTop,
             valueRange = 0f..100f,
             onValueChange = {
@@ -271,8 +278,9 @@ internal fun StyleSettingDialog(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
         )
         var currentMarginBottom by remember(state.marginBottom.value) { mutableFloatStateOf(state.marginBottom.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.reader_margin_bottom),
+            step = 2f,
             value = currentMarginBottom,
             valueRange = 0f..100f,
             onValueChange = {
@@ -286,8 +294,9 @@ internal fun StyleSettingDialog(
 
         // Letter spacing
         var currentLetterSpacing by remember(state.letterSpacing.value) { mutableFloatStateOf(state.letterSpacing.value) }
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.letter_spacing),
+            step = .01f,
             value = currentLetterSpacing,
             valueRange = 0f..0.3f,
             onValueChange = {
@@ -622,8 +631,9 @@ internal fun StyleSettingDialog(
             var intensity by remember(state.engravingIntensity.value) {
                 mutableFloatStateOf(state.engravingIntensity.value)
             }
-            PillSlider(
+            ReaderStepControl(
                 label = stringResource(R.string.reader_engraving_intensity),
+                step = 5f,
                 value = intensity,
                 valueRange = 0f..100f,
                 onValueChange = {
@@ -637,8 +647,9 @@ internal fun StyleSettingDialog(
             var transparency by remember(state.engravingTransparency.value) {
                 mutableFloatStateOf(state.engravingTransparency.value)
             }
-            PillSlider(
+            ReaderStepControl(
                 label = stringResource(R.string.reader_engraving_transparency),
+                step = 5f,
                 value = transparency,
                 valueRange = 0f..100f,
                 onValueChange = {
@@ -744,8 +755,9 @@ internal fun StyleSettingDialog(
         val red = ((parsedColor shr 16) and 0xFF).toFloat()
         val green = ((parsedColor shr 8) and 0xFF).toFloat()
         val blue = (parsedColor and 0xFF).toFloat()
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.manga_color_filter_red),
+            step = 1f,
             value = red,
             valueRange = 0f..255f,
             onValueChange = { r ->
@@ -756,8 +768,9 @@ internal fun StyleSettingDialog(
             enabled = !isScrolling,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
         )
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.manga_color_filter_green),
+            step = 1f,
             value = green,
             valueRange = 0f..255f,
             onValueChange = { g ->
@@ -768,8 +781,9 @@ internal fun StyleSettingDialog(
             enabled = !isScrolling,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
         )
-        PillSlider(
+        ReaderStepControl(
             label = stringResource(R.string.manga_color_filter_blue),
+            step = 1f,
             value = blue,
             valueRange = 0f..255f,
             onValueChange = { b ->
@@ -1102,3 +1116,53 @@ private val FONT_MIME_TYPES = arrayOf(
 
 private fun safeParseColor(hex: String): Int =
     runCatching { android.graphics.Color.parseColor("#$hex") }.getOrElse { 0xFF333333.toInt() }
+/**
+ * Compact discrete adjustments. Unlike a dragged slider, each tap commits
+ * one stable value and avoids dozens of expensive reader rebinds per gesture.
+ */
+@Composable
+private fun ReaderStepControl(
+    label: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+    onValueChange: (Float) -> Unit,
+    valueText: String,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        ) {
+            Text(
+                text = label,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelMedium,
+            )
+            IconButton(
+                onClick = { onValueChange((value - step).coerceIn(valueRange)) },
+                enabled = enabled && value > valueRange.start,
+            ) {
+                Icon(Icons.Default.Remove, contentDescription = "$label −")
+            }
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.widthIn(min = 52.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            IconButton(
+                onClick = { onValueChange((value + step).coerceIn(valueRange)) },
+                enabled = enabled && value < valueRange.endInclusive,
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "$label +")
+            }
+        }
+    }
+}

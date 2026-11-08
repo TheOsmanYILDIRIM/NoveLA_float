@@ -659,7 +659,18 @@ class ReaderActivity : BaseActivity() {
                     state = viewModel.state,
                     appPreferences = appPreferences,
                     onTextFontChanged = { appPreferences.READER_FONT_FAMILY.value = it },
-                    onTextColorChanged = { appPreferences.READER_TEXT_COLOR.value = it },
+                    onTextColorChanged = { color ->
+                        appPreferences.READER_TEXT_COLOR.value = color
+                        // The old 100% transparency default completely hides
+                        // the user's chosen engraving ink. Make a color choice
+                        // visible while keeping the engraved surface beneath it.
+                        if (color.isNotEmpty() &&
+                            appPreferences.READER_TEXT_ENGRAVED.value &&
+                            appPreferences.READER_ENGRAVING_TRANSPARENCY.value >= 100f
+                        ) {
+                            appPreferences.READER_ENGRAVING_TRANSPARENCY.value = 55f
+                        }
+                    },
                     onBackgroundChanged = { appPreferences.READER_BACKGROUND_IMAGE.value = it },
                     onBackgroundBoundsChanged = { x, y, w, h ->
                         if (w > 0 && h > 0) {
