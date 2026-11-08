@@ -44,6 +44,16 @@ class RecessedTextView @JvmOverloads constructor(
     defStyleAttr: Int = android.R.attr.textViewStyle
 ) : AppCompatTextView(context, attrs, defStyleAttr) {
 
+    var engravingEngine: String = "native"
+        set(value) {
+            val mode = if (value == "bitmap") "bitmap" else "native"
+            if (field != mode) {
+                field = mode
+                if (mode == "native") clearTiles()
+                invalidate()
+            }
+        }
+
     var isEngraved: Boolean = false
         set(value) { if (field != value) { field = value; invalidate() } }
 
@@ -62,7 +72,14 @@ class RecessedTextView @JvmOverloads constructor(
 
     // Shared, asynchronously decoded copy of the image displayed by Compose.
     var wallpaperBitmap: Bitmap? = null
-        set(value) { if (field !== value) { field = value; invalidate() } }
+        set(value) {
+            if (field !== value) {
+                field = value
+                cachedWallpaperShader = null
+                tiles.values.forEach { it.compositeShader = null }
+                invalidate()
+            }
+        }
 
     var wallpaperBoundsOnScreen: Rect? = null
         set(value) {
@@ -96,19 +113,29 @@ class RecessedTextView @JvmOverloads constructor(
     private val rect = RectF()
     private var lastLayout: Layout? = null
     private var lastString: String? = null
+    private var lastContentRef: CharSequence? = null
     private var lastProtectedRanges: String? = null
     private var lastTextSize = -1f
     private var lastLetterSpacing = -1f
     private var lastTypeface: android.graphics.Typeface? = null
     // Only keep a handful of visible strips, never a full chapter-sized bitmap.
-    private data class MaskTile(val top: Int, val mask: Bitmap, var factor: Bitmap? = null)
+    private data class MaskTile(
+        val top: Int, val mask: Bitmap, var factor: Bitmap? = null,
+        var factorShader: BitmapShader? = null,
+        var compositeShader: ComposeShader? = null,
+    )
     private val tiles = LinkedHashMap<Int, MaskTile>(8, 0.75f, true)
     private val maxCachedTiles = 6
+    private var cachedWallpaperShader: BitmapShader? = null
+    private val shaderMatrix = Matrix()
+    private val viewPosition = IntArray(2)
 
     private fun clearFactor() {
         tiles.values.forEach { tile ->
             tile.factor?.recycle()
             tile.factor = null
+            tile.factorShader = null
+            tile.compositeShader = null
         }
     }
 
@@ -247,6 +274,39 @@ class RecessedTextView @JvmOverloads constructor(
         }
     }
 
+    /** Bitmap-free bevel approximation. Uses Android Layout directly. */
+    private fun drawNative(canvas: Canvas, textLayout: Layout) {
+        val ink = currentTextColor
+        val savedColor = paint.color
+        val savedAlpha = paint.alpha
+        val savedShader = paint.shader
+        val save = canvas.save()
+        try {
+            canvas.translate(compoundPaddingLeft.toFloat(), extendedPaddingTop.toFloat())
+            val intensity = engravingIntensity / 100f
+            val delta = 0.35f + 0.8f * intensity
+            paint.shader = null
+            paint.color = Color.argb((90f * intensity).roundToInt(), 0, 0, 0)
+            canvas.save()
+            canvas.translate(-delta, -delta)
+            textLayout.draw(canvas)
+            canvas.restore()
+            paint.color = Color.argb((105f * intensity).roundToInt(), 245, 240, 224)
+            canvas.save()
+            canvas.translate(delta, delta)
+            textLayout.draw(canvas)
+            canvas.restore()
+            paint.color = ink
+            paint.alpha = (Color.alpha(ink) * (1f - engravingTransparency / 100f)).roundToInt().coerceIn(0, 255)
+            textLayout.draw(canvas)
+        } finally {
+            paint.shader = savedShader
+            paint.color = savedColor
+            paint.alpha = savedAlpha
+            canvas.restoreToCount(save)
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         val content = text
         val textLayout = layout
@@ -256,6 +316,10 @@ class RecessedTextView @JvmOverloads constructor(
             return
         }
 
+        if (engravingEngine != "bitmap") {
+            drawNative(canvas, textLayout)
+            return
+        }
         val x = compoundPaddingLeft.toFloat() - 2f
         val y = extendedPaddingTop.toFloat() - 2f
         val visible = canvas.clipBounds
@@ -265,13 +329,14 @@ class RecessedTextView @JvmOverloads constructor(
         // Revalidate once per drawing pass rather than once per line tile.
         // Long paragraphs previously generated the full content string for
         // every tile and repeated all span/range comparisons.
-        val contentKey = content.toString()
+        val contentKey = if (lastContentRef === content) lastString ?: content.toString() else content.toString()
         val rangeKey = excluded.joinToString(";") { "${it.first}:${it.second}" }
         if (lastLayout !== textLayout || lastString != contentKey ||
             lastProtectedRanges != rangeKey || lastTextSize != textSize ||
             lastLetterSpacing != letterSpacing || lastTypeface !== typeface) {
             clearTiles()
             lastLayout = textLayout
+            lastContentRef = content
             lastString = contentKey
             lastProtectedRanges = rangeKey
             lastTextSize = textSize
@@ -336,7 +401,7 @@ class RecessedTextView @JvmOverloads constructor(
             rect.set(x, tileY, x + mask.width, tileY + mask.height)
             val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(tile) else null
             val correct = backdrop != null && factor != null &&
-                drawWallpaperFactor(canvas, backdrop, factor, mask, x, tileY)
+                drawWallpaperFactor(canvas, backdrop, tile, mask, x, tileY)
             if (!correct) drawGenericSurface(canvas, mask, x, tileY)
             if (inkOpacity > 0f) {
                 val ink = currentTextColor
@@ -357,13 +422,13 @@ class RecessedTextView @JvmOverloads constructor(
     }
 
     private fun drawWallpaperFactor(
-        canvas: Canvas, wallpaper: Bitmap, factor: Bitmap, mask: Bitmap, x: Float, y: Float
+        canvas: Canvas, wallpaper: Bitmap, tile: MaskTile, mask: Bitmap, x: Float, y: Float
     ): Boolean {
         // Match the Compose image's actual SCREEN rect, including insets.
         val bounds = wallpaperBoundsOnScreen ?: return false
         if (bounds.width() <= 0 || bounds.height() <= 0) return false
-        val viewPos = IntArray(2)
-        getLocationOnScreen(viewPos)
+        getLocationOnScreen(viewPosition)
+        val viewPos = viewPosition
         val scale = max(bounds.width().toFloat() / wallpaper.width,
                         bounds.height().toFloat() / wallpaper.height)
         val originX = bounds.left - viewPos[0] +
@@ -371,14 +436,17 @@ class RecessedTextView @JvmOverloads constructor(
         val originY = bounds.top - viewPos[1] +
             (bounds.height() - wallpaper.height * scale) / 2f
 
-        val wallpaperShader = BitmapShader(wallpaper, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        wallpaperShader.setLocalMatrix(Matrix().apply {
-            setScale(scale, scale)
-            postTranslate(originX, originY)
-        })
-        val factorShader = BitmapShader(factor, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        factorShader.setLocalMatrix(Matrix().apply { setTranslate(x, y) })
-        surfacePaint.shader = ComposeShader(wallpaperShader, factorShader, PorterDuff.Mode.MULTIPLY)
+        val wallpaperShader = cachedWallpaperShader ?: BitmapShader(wallpaper,
+            Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also { cachedWallpaperShader = it }
+        shaderMatrix.setScale(scale, scale)
+        shaderMatrix.postTranslate(originX, originY)
+        wallpaperShader.setLocalMatrix(shaderMatrix)
+        val factorShader = tile.factorShader ?: BitmapShader(tile.factor ?: return false,
+            Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also { tile.factorShader = it }
+        shaderMatrix.setTranslate(x, y)
+        factorShader.setLocalMatrix(shaderMatrix)
+        surfacePaint.shader = tile.compositeShader ?: ComposeShader(wallpaperShader,
+            factorShader, PorterDuff.Mode.MULTIPLY).also { tile.compositeShader = it }
         // MULTIPLY alpha semantics differ by backend. Clip the shader result
         // explicitly to glyph coverage; never brighten a whole text rectangle.
         val layer = canvas.saveLayer(rect, null)
@@ -422,6 +490,8 @@ class RecessedTextView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         clearTiles()
         lastLayout = null
+        lastContentRef = null
+        cachedWallpaperShader = null
         super.onDetachedFromWindow()
     }
 }

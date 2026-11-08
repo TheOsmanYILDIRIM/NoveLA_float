@@ -71,6 +71,7 @@ internal class ReaderItemAdapter(
     private val currentTextEngraved: () -> Boolean,
     private val currentEngravingWallpaper: () -> android.graphics.Bitmap?,
     private val currentEngravingBounds: () -> android.graphics.Rect?,
+    private val currentEngravingEngine: () -> String,
     private val currentEngravingIntensity: () -> Float,
     private val currentEngravingTransparency: () -> Float,
     private val currentTextSmooth: () -> Boolean,
@@ -202,6 +203,7 @@ internal class ReaderItemAdapter(
             val inset = currentTextEngraved()
             (textView as? RecessedTextView)?.apply {
                 isEngraved = inset
+                engravingEngine = currentEngravingEngine()
                 engravingIntensity = currentEngravingIntensity()
                 engravingTransparency = currentEngravingTransparency()
                 wallpaperBitmap = currentEngravingWallpaper()
@@ -443,6 +445,7 @@ internal class ReaderItemAdapter(
         bind.titleTranslated.typeface = currentTypefaceBold()
         (bind.titleTranslated as? RecessedTextView)?.apply {
             isEngraved = currentTextEngraved()
+            engravingEngine = currentEngravingEngine()
             engravingIntensity = currentEngravingIntensity()
             engravingTransparency = currentEngravingTransparency()
             wallpaperBitmap = currentEngravingWallpaper()

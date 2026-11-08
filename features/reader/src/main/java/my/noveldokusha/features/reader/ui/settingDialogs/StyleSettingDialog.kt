@@ -120,7 +120,8 @@ internal fun StyleSettingDialog(
     onTextUnderlineChange: (Boolean) -> Unit,
     onTextShadowChange: (Boolean) -> Unit,
      onTextEngravedChange: (Boolean) -> Unit,
-     onEngravingIntensityChange: (Float) -> Unit,
+     onEngravingEngineChange: (String) -> Unit,
+      onEngravingIntensityChange: (Float) -> Unit,
      onEngravingTransparencyChange: (Float) -> Unit,
     onTextSmoothChange: (Boolean) -> Unit,
     onMarginLeftChange: (Float) -> Unit,
@@ -628,6 +629,15 @@ internal fun StyleSettingDialog(
         }
 
         if (state.textEngraved.value) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = state.engravingEngine.value != "bitmap",
+                    onClick = { onEngravingEngineChange("native") },
+                    label = { Text("Native · Hızlı") })
+                FilterChip(selected = state.engravingEngine.value == "bitmap",
+                    onClick = { onEngravingEngineChange("bitmap") },
+                    label = { Text("Bitmap · Detaylı") })
+            }
             var intensity by remember(state.engravingIntensity.value) {
                 mutableFloatStateOf(state.engravingIntensity.value)
             }

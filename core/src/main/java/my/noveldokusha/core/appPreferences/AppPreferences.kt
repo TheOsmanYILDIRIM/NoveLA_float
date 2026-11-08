@@ -377,6 +377,9 @@ class AppPreferences @Inject constructor(
     val READER_TEXT_ENGRAVED = object : Preference<Boolean>("READER_TEXT_ENGRAVED") {
         override var value by SharedPreference_Boolean(name, preferences, false)
     }
+    val READER_ENGRAVING_ENGINE = object : Preference<String>("READER_ENGRAVING_ENGINE") {
+        override var value by SharedPreference_String(name, preferences, "native")
+    }
     val READER_ENGRAVING_INTENSITY = object : Preference<Float>("READER_ENGRAVING_INTENSITY") {
         override var value by SharedPreference_Float(name, preferences, 50f)
     }

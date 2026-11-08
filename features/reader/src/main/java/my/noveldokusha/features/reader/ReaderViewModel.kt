@@ -122,6 +122,7 @@ internal class ReaderViewModel @Inject constructor(
                 textUnderline = appPreferences.READER_TEXT_UNDERLINE.state(viewModelScope),
                 textShadow = appPreferences.READER_TEXT_SHADOW.state(viewModelScope),
                 textEngraved = appPreferences.READER_TEXT_ENGRAVED.state(viewModelScope),
+                engravingEngine = appPreferences.READER_ENGRAVING_ENGINE.state(viewModelScope),
                 engravingIntensity = appPreferences.READER_ENGRAVING_INTENSITY.state(viewModelScope),
                 engravingTransparency = appPreferences.READER_ENGRAVING_TRANSPARENCY.state(viewModelScope),
                 textSmooth = appPreferences.READER_TEXT_SMOOTH.state(viewModelScope),
