@@ -11,6 +11,7 @@ import android.graphics.ComposeShader
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Shader
@@ -75,6 +76,8 @@ class RecessedTextView @JvmOverloads constructor(
         xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
     }
     private val maskedInk = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    // Paint.color does NOT tint ARGB_8888 bitmap pixels; SRC_IN color filter does.
+    private val tintedInk = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
     }
@@ -337,10 +340,9 @@ class RecessedTextView @JvmOverloads constructor(
             if (!correct) drawGenericSurface(canvas, mask, x, tileY)
             if (inkOpacity > 0f) {
                 val ink = currentTextColor
-                maskedInk.shader = null
-                maskedInk.color = ink
-                maskedInk.alpha = (Color.alpha(ink) * inkOpacity).roundToInt()
-                canvas.drawBitmap(mask, x, tileY, maskedInk)
+                tintedInk.colorFilter = PorterDuffColorFilter(ink, PorterDuff.Mode.SRC_IN)
+                tintedInk.alpha = (255f * inkOpacity).roundToInt()
+                canvas.drawBitmap(mask, x, tileY, tintedInk)
             }
         }
         // Evict only AFTER all visible bitmaps have been drawn. Otherwise
