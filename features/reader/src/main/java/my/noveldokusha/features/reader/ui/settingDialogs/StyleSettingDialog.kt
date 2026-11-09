@@ -721,7 +721,7 @@ internal fun StyleSettingDialog(
             }
             ReaderStepControl(
                 label = stringResource(R.string.reader_engraving_intensity),
-                step = 5f,
+                step = 1f,
                 value = intensity,
                 valueRange = 0f..100f,
                 onValueChange = {

@@ -228,6 +228,21 @@ class RecessedTextView @JvmOverloads constructor(
         }
     }
 
+
+    /**
+     * Linear 0–100% engraving response shared by the Bitmap and baked engines.
+     * Clamp only the 100% target so even heavily shaded corners interpolate
+     * proportionally and 0% always gives exactly neutral substrate (factor 1).
+     * Keep the source-sampling offset fixed: switching it at 75% caused a jump.
+     */
+    private fun engravingFactor(
+        coverage: Float, rightBottomRim: Float, leftTopRim: Float, strength: Float
+    ): Float {
+        val full = (1f - 0.34f * coverage +
+            2.08f * rightBottomRim - 0.78f * leftTopRim).coerceIn(0.10f, 3.40f)
+        return 1f + strength * (full - 1f)
+    }
+
     private fun factorFor(tile: MaskTile): Bitmap? {
         val mask = tile.mask
         val cached = tile.factor
@@ -240,15 +255,8 @@ class RecessedTextView @JvmOverloads constructor(
             val pixels = IntArray(w * h)
             mask.getPixels(pixels, 0, w, 0, 0, w, h)
             val output = IntArray(w * h)
-            val t = engravingIntensity / 100f
-            // Exactly the Python soft / balanced / deep calibration at 0/50/100.
-            fun lerp(soft: Float, balanced: Float, deep: Float): Float =
-                if (t <= 0.5f) soft + (balanced - soft) * (t * 2f)
-                else balanced + (deep - balanced) * ((t - 0.5f) * 2f)
-            val depth = lerp(0.14f, 0.25f, 0.34f)
-            val light = lerp(0.88f, 1.45f, 2.08f)
-            val dark = lerp(0.42f, 0.62f, 0.78f)
-            val shift = if (t >= 0.75f) 2 else 1
+            val t = (engravingIntensity / 100f).coerceIn(0f, 1f)
+            val shift = 1
 
             for (y in 0 until h) {
                 for (x in 0 until w) {
@@ -268,8 +276,7 @@ class RecessedTextView @JvmOverloads constructor(
                         (pixels[(y - shift) * w + x - shift] ushr 24) / 255f else 0f
                     val rimRB = (alpha - rightBottom).coerceAtLeast(0f)
                     val rimLT = (alpha - leftTop).coerceAtLeast(0f)
-                    val factor = (1f - depth * alpha + light * rimRB - dark * rimLT)
-                        .coerceIn(0.10f, 3.40f)
+                    val factor = engravingFactor(alpha, rimRB, rimLT, t)
                     val encoded = ((factor / 3.40f) * 255f).roundToInt().coerceIn(0, 255)
                     output[i] = Color.rgb(encoded, encoded, encoded)
                 }
@@ -305,13 +312,7 @@ class RecessedTextView @JvmOverloads constructor(
             mask.getPixels(source, 0, w, 0, 0, w, h)
             val pixels = IntArray(w * h)
             val t = (engravingIntensity / 100f).coerceIn(0f, 1f)
-            fun lerp(soft: Float, balanced: Float, deep: Float): Float =
-                if (t <= 0.5f) soft + (balanced - soft) * (t * 2f)
-                else balanced + (deep - balanced) * ((t - 0.5f) * 2f)
-            val depth = lerp(0.14f, 0.25f, 0.34f)
-            val light = lerp(0.88f, 1.45f, 2.08f)
-            val dark = lerp(0.42f, 0.62f, 0.78f)
-            val shift = if (t >= 0.75f) 2 else 1
+            val shift = 1
 
             for (y in 0 until h) {
                 for (x in 0 until w) {
@@ -322,16 +323,17 @@ class RecessedTextView @JvmOverloads constructor(
                         (source[(y + shift) * w + x + shift] ushr 24) / 255f else 0f
                     val lt = if (x >= shift && y >= shift)
                         (source[(y - shift) * w + x - shift] ushr 24) / 255f else 0f
-                    val factor = (1f - depth * alpha +
-                        light * (alpha - rb).coerceAtLeast(0f) -
-                        dark * (alpha - lt).coerceAtLeast(0f)).coerceIn(0.10f, 3.40f)
+                    val factor = engravingFactor(alpha,
+                        (alpha - rb).coerceAtLeast(0f),
+                        (alpha - lt).coerceAtLeast(0f), t)
                     pixels[index] = if (factor < 1f) {
                         // Black SRC_OVER implements multiplication by factor exactly.
                         Color.argb(((1f - factor) * 255f).roundToInt(), 0, 0, 0)
                     } else {
                         // Brightening is an approximate SCREEN-like white overlay;
                         // the precise background sampling remains in Bitmap mode.
-                        val opacity = ((factor - 1f) / factor).coerceIn(0f, 1f)
+                        // Fixed divisor keeps brightness alpha linear with intensity.
+                        val opacity = ((factor - 1f) / 3f).coerceIn(0f, 1f)
                         Color.argb((opacity * 255f).roundToInt(), 255, 255, 255)
                     }
                 }
@@ -426,15 +428,18 @@ class RecessedTextView @JvmOverloads constructor(
             val mask = tile.mask
             val tileY = y + tile.top
             rect.set(x, tileY, x + mask.width, tileY + mask.height)
-            if (baked) {
-                val overlay = bakedFor(tile)
-                if (overlay != null) canvas.drawBitmap(overlay, x, tileY, bakedPaint)
-                else drawGenericSurface(canvas, mask, x, tileY)
-            } else {
-                val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(tile) else null
-                val correct = backdrop != null && factor != null &&
-                    drawWallpaperFactor(canvas, backdrop, tile, mask, x, tileY)
-                if (!correct) drawGenericSurface(canvas, mask, x, tileY)
+            // At 0% neither engine draws a bevel, including on wallpapers.
+            if (engravingIntensity > 0f) {
+                if (baked) {
+                    val overlay = bakedFor(tile)
+                    if (overlay != null) canvas.drawBitmap(overlay, x, tileY, bakedPaint)
+                    else drawGenericSurface(canvas, mask, x, tileY)
+                } else {
+                    val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(tile) else null
+                    val correct = backdrop != null && factor != null &&
+                        drawWallpaperFactor(canvas, backdrop, tile, mask, x, tileY)
+                    if (!correct) drawGenericSurface(canvas, mask, x, tileY)
+                }
             }
             if (inkOpacity > 0f) {
                 val ink = currentTextColor
@@ -504,12 +509,15 @@ class RecessedTextView @JvmOverloads constructor(
         // Solid/gradient themes cannot be pixel-sampled as a bitmap; conservative
         // background multiplication until those themes receive a shared shader.
         maskedInk.color = Color.BLACK
-        maskedInk.alpha = (255f * (0.14f + 0.20f * engravingIntensity / 100f))
-            .roundToInt()
+        val t = (engravingIntensity / 100f).coerceIn(0f, 1f)
+        if (t == 0f) return
+        maskedInk.alpha = (255f * 0.34f * t).roundToInt()
         canvas.drawBitmap(mask, x, y, maskedInk)
-        val offset = if (engravingIntensity >= 75f) 2f else 1f
-        drawInnerRim(canvas, mask, x, y, offset, offset, Color.BLACK, 50)
-        drawInnerRim(canvas, mask, x, y, -offset, -offset, Color.WHITE, 30)
+        val offset = 1f
+        drawInnerRim(canvas, mask, x, y, offset, offset, Color.BLACK,
+            (50f * t).roundToInt())
+        drawInnerRim(canvas, mask, x, y, -offset, -offset, Color.WHITE,
+            (30f * t).roundToInt())
     }
 
     private fun drawInnerRim(canvas: Canvas, mask: Bitmap, x: Float, y: Float,
