@@ -1,0 +1,58 @@
+name: NovelLex Mini v0.1 - public synthetic-only CPU training
+
+on:
+  push:
+    branches:
+      - experiment/novellex-mini-public-training-20261110
+    paths:
+      - '.github/workflows/novellex-mini-train.yml'
+      - 'novellex-training/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: novellex-mini-synthetic-cpu
+  cancel-in-progress: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+      OMP_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout experimental branch
+        uses: actions/checkout@v4
+
+      - name: Install Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install GLiNER2 training dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "gliner2[train]==2.1.0"
+
+      - name: Verify original synthetic data and splits
+        run: python novellex-training/pilot.py validate --output novellex_output
+
+      - name: Fine-tune small GLiNER2.5 via CPU LoRA
+        run: python novellex-training/pilot.py train --output novellex_output --max-steps 8
+
+      - name: Upload model adapter and diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novellex-mini-v01-synthetic-pilot
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            novellex_output/data_checks.json
+            novellex_output/training_report.json
+            novellex_output/checkpoints/final/**
