@@ -743,7 +743,7 @@ class ReaderActivity : BaseActivity() {
                     onTextUnderlineChange = { appPreferences.READER_TEXT_UNDERLINE.value = it },
                     onTextShadowChange = { appPreferences.READER_TEXT_SHADOW.value = it },
                     onTextEngravedChange = { appPreferences.READER_TEXT_ENGRAVED.value = it },
-                    onEngravingEngineChange = { appPreferences.READER_ENGRAVING_ENGINE.value = if (it == "bitmap") "bitmap" else "native" },
+                    onEngravingEngineChange = { appPreferences.READER_ENGRAVING_ENGINE.value = if (it == "bitmap") "bitmap" else "baked" },
                     onEngravingIntensityChange = { appPreferences.READER_ENGRAVING_INTENSITY.value = it.coerceIn(0f, 100f) },
                     onEngravingTransparencyChange = { appPreferences.READER_ENGRAVING_TRANSPARENCY.value = it.coerceIn(0f, 100f) },
                     onTextSmoothChange = { appPreferences.READER_TEXT_SMOOTH.value = it },
@@ -768,6 +768,7 @@ class ReaderActivity : BaseActivity() {
                         appPreferences.READER_TEXT_UNDERLINE.value = false
                         appPreferences.READER_TEXT_SHADOW.value = false
                         appPreferences.READER_TEXT_ENGRAVED.value = false
+                        appPreferences.READER_ENGRAVING_ENGINE.value = "baked"
                         appPreferences.READER_ENGRAVING_INTENSITY.value = 50f
                         appPreferences.READER_ENGRAVING_TRANSPARENCY.value = 100f
                         appPreferences.READER_TEXT_SMOOTH.value = true
@@ -854,7 +855,8 @@ class ReaderActivity : BaseActivity() {
                     // Each cached text glyph mask is stable, but the sampled wallpaper
                     // depends on the row's CURRENT screen position during scrolling.
                     // Hardware display lists otherwise replay the previous frame's texture.
-                    if (appPreferences.READER_TEXT_ENGRAVED.value) {
+                    if (appPreferences.READER_TEXT_ENGRAVED.value &&
+                        appPreferences.READER_ENGRAVING_ENGINE.value == "bitmap") {
                         view?.let { invalidateVisibleEngravedText(it) }
                     }
                     // Only trigger chapter loading when the user is actually scrolling,

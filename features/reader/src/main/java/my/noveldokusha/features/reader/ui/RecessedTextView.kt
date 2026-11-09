@@ -44,12 +44,14 @@ class RecessedTextView @JvmOverloads constructor(
     defStyleAttr: Int = android.R.attr.textViewStyle
 ) : AppCompatTextView(context, attrs, defStyleAttr) {
 
-    var engravingEngine: String = "native"
+    // A cached transparent engraved texture for each visible line strip.
+    // Old persisted "native" values are mapped to the new baked engine.
+    var engravingEngine: String = "baked"
         set(value) {
-            val mode = if (value == "bitmap") "bitmap" else "native"
+            val mode = if (value == "bitmap") "bitmap" else "baked"
             if (field != mode) {
                 field = mode
-                if (mode == "native") clearTiles()
+                clearTiles()
                 invalidate()
             }
         }
@@ -92,6 +94,7 @@ class RecessedTextView @JvmOverloads constructor(
     private val eraser = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
     }
+    private val bakedPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val maskedInk = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     // Paint.color does NOT tint ARGB_8888 bitmap pixels; SRC_IN color filter does.
     private val tintedInk = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
@@ -125,6 +128,7 @@ class RecessedTextView @JvmOverloads constructor(
         val top: Int, val mask: Bitmap, var factor: Bitmap? = null,
         var factorShader: BitmapShader? = null,
         var compositeShader: ComposeShader? = null,
+        var bakedOverlay: Bitmap? = null,
     )
     private val tiles = LinkedHashMap<Int, MaskTile>(8, 0.75f, true)
     private val maxCachedTiles = 6
@@ -138,6 +142,8 @@ class RecessedTextView @JvmOverloads constructor(
             tile.factor = null
             tile.factorShader = null
             tile.compositeShader = null
+            tile.bakedOverlay?.recycle()
+            tile.bakedOverlay = null
         }
     }
 
@@ -276,42 +282,65 @@ class RecessedTextView @JvmOverloads constructor(
         }
     }
 
-    // No glyph masks or pixel loops: two tinted native glyph passes followed by
-    // the ink layer. Tint is applied to the drawn layer, not Layout's TextPaint
-    // (spans can override TextPaint's color during Layout.draw).
-    private fun drawNative(canvas: Canvas, textLayout: Layout) {
-        val intensity = (engravingIntensity / 100f).coerceIn(0f, 1f)
-        val opacity = (1f - engravingTransparency / 100f).coerceIn(0f, 1f)
-        val offset = 0.65f + 1.25f * intensity
-        val clip = canvas.clipBounds
-        val left = clip.left.toFloat()
-        val top = clip.top.toFloat()
-        val right = clip.right.toFloat()
-        val bottom = clip.bottom.toFloat()
-        val tx = compoundPaddingLeft.toFloat()
-        val ty = extendedPaddingTop.toFloat()
 
-        fun tintedPass(dx: Float, dy: Float, tint: Int) {
-            val layer = canvas.saveLayer(left, top, right, bottom, null)
-            canvas.save()
-            canvas.translate(tx + dx, ty + dy)
-            textLayout.draw(canvas)
-            canvas.restore()
-            canvas.drawColor(tint, PorterDuff.Mode.SRC_IN)
-            canvas.restoreToCount(layer)
-        }
+    /**
+     * Bake a transparent, font-independent RGBA atlas strip only when the
+     * paragraph, typeface, layout or engraving strength changes.
+     *
+     * Dark pixels reduce substrate brightness, white pixels add the opposing
+     * bevel highlight. Unlike the precise Bitmap engine this is an
+     * approximation of wallpaper multiplication, but it is independent of
+     * scroll position and needs just one textured quad per strip onDraw.
+     *
+     * Keeping Android Layout.draw for the source mask preserves shaping,
+     * ligatures, Unicode, custom fonts and measured text positions.
+     */
+    private fun bakedFor(tile: MaskTile): Bitmap? {
+        tile.bakedOverlay?.let { if (!it.isRecycled) return it }
+        val mask = tile.mask
+        val w = mask.width
+        val h = mask.height
+        return try {
+            val source = IntArray(w * h)
+            mask.getPixels(source, 0, w, 0, 0, w, h)
+            val pixels = IntArray(w * h)
+            val t = (engravingIntensity / 100f).coerceIn(0f, 1f)
+            fun lerp(soft: Float, balanced: Float, deep: Float): Float =
+                if (t <= 0.5f) soft + (balanced - soft) * (t * 2f)
+                else balanced + (deep - balanced) * ((t - 0.5f) * 2f)
+            val depth = lerp(0.14f, 0.25f, 0.34f)
+            val light = lerp(0.88f, 1.45f, 2.08f)
+            val dark = lerp(0.42f, 0.62f, 0.78f)
+            val shift = if (t >= 0.75f) 2 else 1
 
-        // Opposing inset light/shadow rims produce visible depth even with
-        // transparent ink. Stronger contrast than the old TextPaint mutations.
-        tintedPass(-offset, -offset,
-            Color.argb((165f * intensity).roundToInt(), 9, 12, 17))
-        tintedPass(offset, offset,
-            Color.argb((185f * intensity).roundToInt(), 245, 240, 220))
-        if (opacity > 0f) {
-            val ink = currentTextColor
-            tintedPass(0f, 0f, Color.argb(
-                (Color.alpha(ink) * opacity).roundToInt(),
-                Color.red(ink), Color.green(ink), Color.blue(ink)))
+            for (y in 0 until h) {
+                for (x in 0 until w) {
+                    val index = y * w + x
+                    val alpha = (source[index] ushr 24) / 255f
+                    if (alpha == 0f) continue // genuinely transparent outside glyphs
+                    val rb = if (x + shift < w && y + shift < h)
+                        (source[(y + shift) * w + x + shift] ushr 24) / 255f else 0f
+                    val lt = if (x >= shift && y >= shift)
+                        (source[(y - shift) * w + x - shift] ushr 24) / 255f else 0f
+                    val factor = (1f - depth * alpha +
+                        light * (alpha - rb).coerceAtLeast(0f) -
+                        dark * (alpha - lt).coerceAtLeast(0f)).coerceIn(0.10f, 3.40f)
+                    pixels[index] = if (factor < 1f) {
+                        // Black SRC_OVER implements multiplication by factor exactly.
+                        Color.argb(((1f - factor) * 255f).roundToInt(), 0, 0, 0)
+                    } else {
+                        // Brightening is an approximate SCREEN-like white overlay;
+                        // the precise background sampling remains in Bitmap mode.
+                        val opacity = ((factor - 1f) / factor).coerceIn(0f, 1f)
+                        Color.argb((opacity * 255f).roundToInt(), 255, 255, 255)
+                    }
+                }
+            }
+            Bitmap.createBitmap(pixels, w, h, Bitmap.Config.ARGB_8888).also {
+                tile.bakedOverlay = it
+            }
+        } catch (_: OutOfMemoryError) {
+            null
         }
     }
 
@@ -324,10 +353,7 @@ class RecessedTextView @JvmOverloads constructor(
             return
         }
 
-        if (engravingEngine != "bitmap") {
-            drawNative(canvas, textLayout)
-            return
-        }
+        val baked = engravingEngine != "bitmap"
         val x = compoundPaddingLeft.toFloat() - 2f
         val y = extendedPaddingTop.toFloat() - 2f
         val visible = canvas.clipBounds
@@ -379,18 +405,20 @@ class RecessedTextView @JvmOverloads constructor(
             return
         }
 
-        // Render the Android text layout ONCE into a screen-clipped layer,
-        // then remove all engraved glyphs. Previously super.onDraw() ran once
-        // per tile, making long visible paragraphs dramatically more expensive.
-        val clip = canvas.clipBounds
-        val save = canvas.saveLayer(
-            clip.left.toFloat(), clip.top.toFloat(),
-            clip.right.toFloat(), clip.bottom.toFloat(), null)
-        super.onDraw(canvas)
-        for (tile in visibleTiles) {
-            canvas.drawBitmap(tile.mask, x, y + tile.top, eraser)
+        // Unspanned text in baked mode is completely drawn from the atlas:
+        // avoid super.onDraw + saveLayer + erasing every frame.
+        // Protected spans/TTS and compound drawables retain TextView drawing.
+        if (!baked || excluded.isNotEmpty() || compoundDrawables.any { it != null }) {
+            val clip = canvas.clipBounds
+            val save = canvas.saveLayer(
+                clip.left.toFloat(), clip.top.toFloat(),
+                clip.right.toFloat(), clip.bottom.toFloat(), null)
+            super.onDraw(canvas)
+            for (tile in visibleTiles) {
+                canvas.drawBitmap(tile.mask, x, y + tile.top, eraser)
+            }
+            canvas.restoreToCount(save)
         }
-        canvas.restoreToCount(save)
 
         val backdrop = wallpaperBitmap
         val inkOpacity = (1f - engravingTransparency / 100f).coerceIn(0f, 1f)
@@ -398,10 +426,16 @@ class RecessedTextView @JvmOverloads constructor(
             val mask = tile.mask
             val tileY = y + tile.top
             rect.set(x, tileY, x + mask.width, tileY + mask.height)
-            val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(tile) else null
-            val correct = backdrop != null && factor != null &&
-                drawWallpaperFactor(canvas, backdrop, tile, mask, x, tileY)
-            if (!correct) drawGenericSurface(canvas, mask, x, tileY)
+            if (baked) {
+                val overlay = bakedFor(tile)
+                if (overlay != null) canvas.drawBitmap(overlay, x, tileY, bakedPaint)
+                else drawGenericSurface(canvas, mask, x, tileY)
+            } else {
+                val factor = if (backdrop != null && !backdrop.isRecycled) factorFor(tile) else null
+                val correct = backdrop != null && factor != null &&
+                    drawWallpaperFactor(canvas, backdrop, tile, mask, x, tileY)
+                if (!correct) drawGenericSurface(canvas, mask, x, tileY)
+            }
             if (inkOpacity > 0f) {
                 val ink = currentTextColor
                 if (lastTintFilter == null || lastInkColor != ink) {
@@ -420,6 +454,7 @@ class RecessedTextView @JvmOverloads constructor(
             val entry = iterator.next()
             iterator.remove()
             entry.value.factor?.recycle()
+            entry.value.bakedOverlay?.recycle()
             entry.value.mask.recycle()
         }
     }

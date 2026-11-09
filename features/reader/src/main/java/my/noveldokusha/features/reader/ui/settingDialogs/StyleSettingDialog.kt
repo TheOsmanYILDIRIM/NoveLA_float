@@ -710,8 +710,8 @@ internal fun StyleSettingDialog(
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = state.engravingEngine.value != "bitmap",
-                    onClick = { onEngravingEngineChange("native") },
-                    label = { Text("Native · Hızlı") })
+                    onClick = { onEngravingEngineChange("baked") },
+                    label = { Text("Hazır atlas · Hızlı") })
                 FilterChip(selected = state.engravingEngine.value == "bitmap",
                     onClick = { onEngravingEngineChange("bitmap") },
                     label = { Text("Bitmap · Detaylı") })

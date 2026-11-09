@@ -835,7 +835,7 @@ private fun ViewsPreview(
         textUnderline = remember { mutableStateOf(false) },
         textShadow = remember { mutableStateOf(false) },
          textEngraved = remember { mutableStateOf(false) },
-         engravingEngine = remember { mutableStateOf("native") },
+         engravingEngine = remember { mutableStateOf("baked") },
          engravingIntensity = remember { mutableFloatStateOf(50f) },
          engravingTransparency = remember { mutableFloatStateOf(100f) },
         textSmooth = remember { mutableStateOf(true) },
