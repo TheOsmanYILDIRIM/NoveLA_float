@@ -1,4 +1,4 @@
-name: NovelLex Mini v0.1 - public synthetic-only CPU training
+name: NovelLex Mini v0.1 - base vs trained synthetic comparison
 
 on:
   push:
@@ -10,13 +10,14 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: novellex-mini-synthetic-cpu
   cancel-in-progress: false
 
 jobs:
-  train:
+  compare:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -25,34 +26,37 @@ jobs:
       OMP_NUM_THREADS: '4'
       MKL_NUM_THREADS: '4'
       PYTHONUNBUFFERED: '1'
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Checkout experimental branch
+      - name: Checkout experiment branch
         uses: actions/checkout@v4
 
-      - name: Install Python 3.11
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install GLiNER2 training dependencies
+      - name: Install GLiNER2 2.1.0 dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install "gliner2[train]==2.1.0"
 
-      - name: Verify original synthetic data and splits
-        run: python novellex-training/pilot.py validate --output novellex_output
+      - name: Retrieve initial trained adapter artifact without retraining
+        run: |
+          gh run download 42707389516 --repo TheOsmanYILDIRIM/NoveLA_float --name novellex-mini-v01-synthetic-pilot --dir novellex_output
+          test -s novellex_output/checkpoints/final/adapter_model.safetensors
+          test -s novellex_output/checkpoints/final/adapter_config.json
 
-      - name: Fine-tune small GLiNER2.5 via CPU LoRA
-        run: python novellex-training/pilot.py train --output novellex_output --max-steps 8
+      - name: Evaluate base vs exact trained adapter on 26 synthetic holdout examples
+        run: python novellex-training/compare.py --output novellex_output
 
-      - name: Upload model adapter and diagnostic report
+      - name: Upload comparison report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: novellex-mini-v01-synthetic-pilot
-          if-no-files-found: warn
+          name: novellex-mini-v01-comparison
           retention-days: 14
+          if-no-files-found: warn
           path: |
+            novellex_output/comparison_report.json
             novellex_output/data_checks.json
-            novellex_output/training_report.json
-            novellex_output/checkpoints/final/**
