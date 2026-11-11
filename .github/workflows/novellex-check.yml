@@ -29,3 +29,12 @@ jobs:
           sed -i '/org\.gradle\.java\.home/d' gradle.properties
           chmod +x ./gradlew
           ./gradlew :features:reader:compileDebugKotlin --stacktrace
+      - name: Assemble unsigned debug APK for installation testing
+        run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoveLA-NovelLex-original-GLiNER-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+          if-no-files-found: error
