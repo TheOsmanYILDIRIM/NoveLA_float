@@ -1,4 +1,4 @@
-name: Verify downloadable NovelLex split-model ARM64 APK
+name: Independent JNI native methods audit on released ARM64 APK
 on:
   push:
     branches: [feature/novellex-zip-import-arm64]
@@ -16,20 +16,47 @@ jobs:
           set -euo pipefail
           mkdir -p verified
           curl --fail --location --silent --show-error --retry 3 \
-            'https://github.com/TheOsmanYILDIRIM/NoveLA_float/releases/download/novellex-model-zip-arm64-a8b419f41dfea46880d05fcd915ca75063f7194e/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk' \
+            'https://github.com/TheOsmanYILDIRIM/NoveLA_float/releases/download/novellex-arm64-jni-fix-a1eb525691af872834a1bd3ebd43125a4982ed8f/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk' \
             -o verified/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk
-          echo '3a95cee553b5377e536375a5903f5a7596d63bcaeb1b2989b3df229a096e3549  verified/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk' | sha256sum -c -
+          echo 'ed2e59b02b61be97bbc9e522d0b0753e84636b0720686fec71f616ed152e9a32  verified/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk' | sha256sum -c -
           python3 - <<'PY'
           from zipfile import ZipFile
           from pathlib import Path
           path=Path('verified/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk')
-          assert path.stat().st_size==42912349
+          assert path.stat().st_size==42928733
           with ZipFile(path) as z:
               names=z.namelist()
               assert 'assets/novellex/manifest.json' in names
               assert 'assets/novellex/model.onnx' not in names
               assert 'assets/novellex/tokenizer.json' not in names
               assert {x.split('/')[1] for x in names if x.startswith('lib/') and x.endswith('.so')}=={'arm64-v8a'}
+
+          # Confirm DEX still declares methods exported by the native JNI library.
+          import struct
+          dex=z.read('classes.dex')
+          def u32(off): return struct.unpack_from('<I',dex,off)[0]
+          strings=[]
+          for i in range(u32(0x38)):
+              p=u32(u32(0x3c)+4*i)
+              while dex[p] & 128: p+=1
+              p+=1
+              strings.append(dex[p:dex.find(b'\0',p)].decode('utf-8','replace'))
+          types=[strings[u32(u32(0x44)+4*i)] for i in range(u32(0x40))]
+          methods={}
+          for i in range(u32(0x58)):
+              cls,proto,name=struct.unpack_from('<HHI',dex,u32(0x5c)+8*i)
+              key=types[cls]
+              if key.startswith('Lai/onnxruntime/'):
+                  methods.setdefault(key,set()).add(strings[name])
+          must={
+              'Lai/onnxruntime/OnnxTensor;': ['createTensorFromBuffer', 'getBuffer', 'createString'],
+              'Lai/onnxruntime/OrtSession;': ['createSession', 'run', 'closeSession'],
+              'Lai/onnxruntime/OrtEnvironment;': ['createHandle', 'getDefaultAllocator'],
+              'Lai/onnxruntime/OnnxRuntime;': ['getAvailableProviders', 'initialiseAPIBase'],
+          }
+          for cls,names in must.items():
+              assert set(names).issubset(methods.get(cls,set())),f'Missing JNI methods from {cls}: {set(names)-methods.get(cls,set())}'
+          print('APK JNI symbol names survived R8:',sum(len(v) for v in must.values()),'checked')
           print('VERIFIED_APK_BYTES=',path.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
