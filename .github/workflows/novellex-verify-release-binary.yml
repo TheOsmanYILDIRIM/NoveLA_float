@@ -1,0 +1,42 @@
+name: Verify released NovelLex APK and export exact binary
+on:
+  push:
+    branches:
+      - experiment/novellex-compact-arm64
+    paths:
+      - .github/workflows/novellex-verify-release-binary.yml
+permissions:
+  contents: read
+jobs:
+  retrieve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact published ARM64 release binary
+        run: |
+          set -euo pipefail
+          mkdir -p verified-apk
+          curl --fail --location --silent --show-error --retry 3 \
+            "https://github.com/TheOsmanYILDIRIM/NoveLA_float/releases/download/novellex-arm64-dc5df5e18a787abadcff473fa8db7f3d8030a34f/NoveLA-NovelLex-Offline-arm64-v8a-release.apk" \
+            -o verified-apk/NoveLA-NovelLex-Offline-arm64-v8a-release.apk
+          cd verified-apk
+          test "$(stat -c %s NoveLA-NovelLex-Offline-arm64-v8a-release.apk)" -eq 185755933
+          echo "6a0f1acaecfaf0b568ffc3c5e65c67ed42d44708075fdbb912f02032996d8f58  NoveLA-NovelLex-Offline-arm64-v8a-release.apk" | sha256sum -c -
+          python3 - <<'PY'
+          import zipfile, json
+          name="NoveLA-NovelLex-Offline-arm64-v8a-release.apk"
+          with zipfile.ZipFile(name) as z:
+              libs={x.split('/')[1] for x in z.namelist() if x.startswith("lib/") and x.endswith(".so")}
+              manifest=json.loads(z.read("assets/novellex/manifest.json"))
+              assert libs == {"arm64-v8a"}, libs
+              assert manifest["precision"] == "int8-embeddings"
+              assert manifest["model_bytes"] == 141055262
+              print("APK verified: exclusive arm64-v8a, original GLiNER compressed INT8, signed release binary SHA256 unchanged")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NoveLA-ARM64-Release-APK-Only
+          path: verified-apk/NoveLA-NovelLex-Offline-arm64-v8a-release.apk
+          if-no-files-found: error
+          retention-days: 14
