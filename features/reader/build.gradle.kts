@@ -23,6 +23,9 @@ dependencies {
     implementation(projects.tooling.textTranslator.domain)
     implementation(projects.networking)
 
+    // Native CPU inference; the ONNX checkpoint is bundled into the APK at build time.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.31.1")
+
     implementation(libs.material)
     implementation(libs.androidx.media)
     implementation(libs.media3.exoplayer)
@@ -54,4 +57,15 @@ dependencies {
     testImplementation(libs.test.junit)
     testImplementation(libs.test.mockito.kotlin)
     testImplementation(libs.kotlinx.coroutines.test)
+}
+
+
+// Package the model *during APK creation*, never on the user's phone.
+// This fails the build instead of silently shipping a fake/offline-empty feature.
+val prepareNovelLexAssets by tasks.registering(Exec::class) {
+    workingDir(rootProject.projectDir)
+    commandLine("python3", "novellex/prepare_assets.py")
+}
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn(prepareNovelLexAssets)
 }

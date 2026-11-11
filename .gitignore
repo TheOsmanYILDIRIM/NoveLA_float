@@ -60,3 +60,9 @@ repomix.config.json
 /.opencode
 /.planning
 /docs
+
+# NovelLex model is bundled by CI/build, not stored in Git (~289 MB).
+/features/reader/src/main/assets/novellex/model.onnx
+/features/reader/src/main/assets/novellex/tokenizer.json
+/features/reader/src/main/assets/novellex/manifest.json
+/features/reader/src/main/assets/novellex/*.part

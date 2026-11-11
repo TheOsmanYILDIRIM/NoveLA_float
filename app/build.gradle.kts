@@ -26,6 +26,8 @@ class CLICustomSettings(private val project: Project) {
 val cliCustomSettings = CLICustomSettings(project)
 
 android {
+    androidResources { noCompress += "onnx" }
+
 
     val localPropertiesFile = rootProject.file(cliCustomSettings.localPropertiesFilePath)
     println("localPropertiesFilePath: ${cliCustomSettings.localPropertiesFilePath}")

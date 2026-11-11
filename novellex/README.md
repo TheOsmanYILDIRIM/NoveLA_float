@@ -1,35 +1,56 @@
-# NovelLex for NoveLA — original GLiNER2.5 Small companion (prototype)
+# NovelLex — Offline original GLiNER2.5 Small for NoveLA
 
-This implementation uses **the original** `fastino/gliner2.5-small-v1` model (Apache 2.0). No NovelLex LoRA adapter or copyrighted training excerpts are shipped. The official model is downloaded by `gliner2` when the user launches the Python companion and first requests extraction.
+## Deployment contract
 
-## What works
+Everything runs on the Android phone. No Python companion, Termux, local PC,
+API keys, remote HTTP endpoint or network access at reading/inference time.
 
-- Optional in-reader **More → NovelLex** entry. Nothing is analyzed until the user explicitly presses **Scan loaded chapter**.
-- Scans currently loaded **original-language** chapter body paragraphs, requesting extraction in bounded local batches.
-- Per-book/per-chapter glossary in Android app preferences; re-scan **replaces** the same chapter instead of inflating counts; clear glossary control.
-- Label, text, and count shown in the dialog. Malformed model spans are discarded. Source chapter text and access token are **not** saved in the glossary.
-- A standalone Python companion exposing `GET /v1/health` and `POST /v1/extract`, requiring a bearer token, bounded payloads, with original-model inference and no request body logging.
+The original model is fastino/gliner2.5-small-v1 (Apache-2.0), not the separate
+NovelLex-trained LoRA. The Android runtime consumes the third-party boundary
+ONNX export nicolasembleton/gliner2.5-small-v1-onnx (288.5 MB model) using
+onnxruntime-android. Conversion is not additional fine-tuning.
+- https://huggingface.co/fastino/gliner2.5-small-v1
+- https://huggingface.co/nicolasembleton/gliner2.5-small-v1-onnx
+- https://github.com/Pastel-Org/gliner2.5-onnx-webgpu
 
-## Run on a computer (Python 3.11 recommended)
+## Implementation
 
-```bash
-python -m pip install 'gliner2[local]==2.1.0'
-export NOVELLEX_TOKEN='replace-with-a-random-string-at-least-24-chars'
-python novellex/server.py --host 127.0.0.1 --port 8765
-python -m unittest discover -s novellex -p 'test_*.py'
-```
+- Model and tokenizer.json are downloaded at APK BUILD time ONLY by
+  novellex/prepare_assets.py, checked by SHA-256 and packaged under
+  assets/novellex. They are not downloaded by Android.
+- The first local scan verifies the assets and atomically copies the graph into
+  application-private storage for ONNX Runtime. This needs about 300 MB of
+  additional disk and sufficient RAM for a 74M-parameter model.
+- Kotlin runtime builds the [P]/[E]/[SEP_TEXT] GLiNER schema, runs a Unigram
+  tokenizer, constructs ONNX tensors, performs CPU inference, and decodes
+  reranked pair_indices, pair_logits and pair_valid span candidates.
+- Reader More > NovelLex analyzes only the loaded chapter when tapped and
+  replaces that chapter's rows in the existing local per-book glossary. Raw
+  chapter text is not persisted or transmitted. Previous glossary rows remain.
 
-For an Android **emulator**, enter `http://10.0.2.2:8765` in NovelLex settings. For a **physical phone**, start the companion using `--host 0.0.0.0`, connect the PC and phone to a *trusted* LAN, open the computer firewall for port 8765 on the LAN only, and enter `http://192.168.x.x:8765` or its private subnet address. The token must match `NOVELLEX_TOKEN`. **HTTP exposes both the token and the book text to someone capable of intercepting the LAN traffic**; use the loopback/emulator mode, a trusted isolated network, or terminate HTTPS on your own secure reverse proxy (the phone currently limits configured hosts to private IP/localhost). Do not expose port 8765 to the public Internet.
+## Build
 
-## Critical limitations
+CI and Gradle both invoke: python3 novellex/prepare_assets.py
 
-- **Not an on-device Android ML inference implementation**. The original GLiNER2.5 Small checkpoint is approximately 296 MB FP32 and currently runs via an explicitly configured companion process. No Android-native model export, APK embedding, quantization, real-device test, or production accuracy validation is claimed.
-- The model card identifies the small checkpoint as **English**. Turkish chapters are not verified for language quality.
-- The reader only scans currently loaded chapter paragraphs; it does not automatically crawl/download whole books, modify translated text, alter TTS, or highlight spans inline.
-- Generated glossary entries are AI predictions, not reliable canonical terms. No human-reviewed gold validation is implied.
-- The companion's initial model load needs model download access and sufficient memory. Its HTTP API is intentionally incompatible with public inference endpoints.
-- This integration is experimental; no NoveLA user data or previous reading history is migrated.
+The build fails if the original offline assets cannot be downloaded or checked.
+An APK with missing weights must not pretend to offer offline inference.
+A full APK may exceed 300 MB.
 
-## Verification
+For audited production builds pin a model export commit with environment variable
+NOVELLEX_MODEL_REVISION instead of the current main branch. The generated
+manifest records its revision, model SHA256 and tokenizer SHA256.
+Production packaging still needs a fixed revision and verified hash.
 
-`python -m unittest discover -s novellex -p 'test_*.py'` tests request authentication, health, offsets, and invalid payload handling without downloading the 296 MB model. Android compilation needs Android SDK/Gradle (CI workflow validates source). The Python unit tests do **not** certify real model loading or actual phone behavior.
+Verify existing assets without network:
+python3 novellex/prepare_assets.py --verify
+
+## Verification still required
+
+This code has not yet been proven on real Android ARM64 hardware.
+The published export targets ONNX Runtime Web. Confirm Android ONNX CPU
+compatibility, HF tokenizer normalization parity against Python, output-score
+parity, memory/latency and end-to-end glossary accuracy on a real device.
+Until then it is EXPERIMENTAL; compilation alone is not inference proof.
+
+This model is English-only; quality for Turkish source text is unverified.
+Predicted fantasy terms are suggestions, not translations.

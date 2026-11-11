@@ -1,40 +1,65 @@
-name: NovelLex original companion checks
+name: NovelLex original GLiNER offline Android
 on:
+  push:
+    branches:
+      - feature/novellex-ondevice-onnx
+    paths:
+      - 'novellex/**'
+      - 'features/reader/**'
+      - 'app/build.gradle.kts'
+      - '.github/workflows/novellex-check.yml'
   pull_request:
     paths:
       - 'novellex/**'
       - 'features/reader/**'
+      - 'app/build.gradle.kts'
       - '.github/workflows/novellex-check.yml'
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  android-and-companion:
+  android-offline-gliner:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Python unit tests, no model download
-        run: python -m unittest discover -s novellex -p 'test_*.py' -v
+      - name: Test model packager (no model download)
+        run: python3 -m unittest discover -s novellex -p 'test_*.py' -v
+      - name: Fetch original model at BUILD time only
+        run: python3 novellex/prepare_assets.py
+      - name: Verify bundled model/tokenizer SHA256
+        run: python3 novellex/prepare_assets.py --verify
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-      # ubuntu-latest already includes Android SDK; avoid brittle sdkmanager 'tools' package setup.
       - uses: gradle/actions/setup-gradle@v4
-      - name: Android reader Kotlin compilation
+      - name: Compile reader and package offline APK
         run: |
           sed -i '/org\.gradle\.java\.home/d' gradle.properties
           chmod +x ./gradlew
-          ./gradlew :features:reader:compileDebugKotlin --stacktrace
-      - name: Assemble unsigned debug APK for installation testing
-        run: ./gradlew :app:assembleDebug --stacktrace
-      - name: Upload debug APK
+          ./gradlew :features:reader:compileDebugKotlin :app:assembleDebug --stacktrace
+      - name: Check APK contains actual GLiNER model and tokenizer
+        run: |
+          python3 - <<'PY'
+          import glob, zipfile
+          files = glob.glob('app/build/outputs/apk/debug/*.apk')
+          assert files, 'No APK output'
+          with zipfile.ZipFile(files[0]) as z:
+              names = set(z.namelist())
+              for file in ('assets/novellex/model.onnx', 'assets/novellex/tokenizer.json', 'assets/novellex/manifest.json'):
+                  assert file in names, 'Offline asset missing: ' + file
+              print('APK contains local GLiNER model, tokenizer, checksum manifest')
+          PY
+      - name: Upload experimental offline APK
         uses: actions/upload-artifact@v4
         with:
-          name: NoveLA-NovelLex-original-GLiNER-debug
+          name: NoveLA-NovelLex-fully-offline-debug
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
           if-no-files-found: error
