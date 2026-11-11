@@ -96,7 +96,7 @@ jobs:
           inside=False
           for line in mapping.splitlines():
               if not line.startswith((' ', '\t')):
-                  inside=line.startswith('ai.onnxruntime.')
+                  inside=line.startswith('ai.onnxruntime.') and '$ExternalSyntheticLambda' not in line
                   if inside and ' -> ' in line:
                       src,dst=line.rstrip(':').split(' -> ',1)
                       assert src==dst, f'R8 renamed ONNX native class {line}'
