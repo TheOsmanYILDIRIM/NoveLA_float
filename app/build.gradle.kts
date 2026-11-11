@@ -51,9 +51,9 @@ android {
         // Preserve the original clone update track: GITHUB_RUN_NUMBER + 39000.
         versionCode = if (cliCustomSettings.cloneBuild)
             (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 39000 + it } ?: 39)
-        else if (providers.gradleProperty("novellexSplitModel").isPresent) 40
+        else if (providers.gradleProperty("novellexSplitModel").isPresent) 41
         else 39
-        versionName = if (providers.gradleProperty("novellexSplitModel").isPresent) "1.6.1-novellex.2" else "1.6.1"
+        versionName = if (providers.gradleProperty("novellexSplitModel").isPresent) "1.6.1-novellex.3" else "1.6.1"
         base.archivesName.set(if (cliCustomSettings.cloneBuild) "NoveLA_Clone_v$versionName" else "NoveLA_v$versionName")
         manifestPlaceholders["appLabel"] = if (cliCustomSettings.cloneBuild) "NoveLA Clone" else "NoveLA"
         ndk {

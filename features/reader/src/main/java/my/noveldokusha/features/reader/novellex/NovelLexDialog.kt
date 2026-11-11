@@ -101,7 +101,7 @@ internal fun NovelLexDialog(
                                 message = "Tarama hatası: " + (e.message ?: e.javaClass.simpleName)
                             } catch (e: LinkageError) {
                                 Log.e("NovelLex", "ONNX Runtime native library unavailable", e)
-                                message = "Cihazın ONNX motoru açılamadı: " + (e.message ?: "uyumsuz kütüphane")
+                                message = "ONNX/JNI yükleme hatası: " + e.javaClass.simpleName + ": " + (e.message ?: e.toString())
                             } finally {
                                 busy = false
                             }

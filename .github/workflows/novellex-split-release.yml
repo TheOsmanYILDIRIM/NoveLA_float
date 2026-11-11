@@ -1,4 +1,4 @@
-name: NovelLex split model ZIP + small signed ARM64 APK
+name: NovelLex ONNX JNI fix — small signed ARM64 APK
 on:
   push:
     branches:
@@ -6,6 +6,7 @@ on:
     paths:
       - 'features/reader/**'
       - 'app/build.gradle.kts'
+      - 'app/proguard-rules.pro'
       - '.github/workflows/novellex-split-release.yml'
       - 'novellex/README.md'
   workflow_dispatch:
@@ -85,58 +86,45 @@ jobs:
           SIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n1)
           test -n "$SIGNER"
           "$SIGNER" verify --verbose --print-certs release-output/*.apk
-      - name: Create standalone reusable INT8 model ZIP from validated previous release
+      - name: Ensure R8 did not rename ONNX Runtime classes or native JNI methods
         run: |
-          set -euo pipefail
-          curl --fail --location --silent --show-error --retry 3 \
-            "https://github.com/TheOsmanYILDIRIM/NoveLA_float/releases/download/novellex-arm64-dc5df5e18a787abadcff473fa8db7f3d8030a34f/NoveLA-NovelLex-Offline-arm64-v8a-release.apk" \
-            -o /tmp/novellex-reference.apk
-          echo '6a0f1acaecfaf0b568ffc3c5e65c67ed42d44708075fdbb912f02032996d8f58  /tmp/novellex-reference.apk' | sha256sum -c -
           python3 - <<'PY'
           from pathlib import Path
-          import zipfile,hashlib,json
-          src=Path('/tmp/novellex-reference.apk')
-          target=Path('release-output/NovelLex_GLiner25_INT8_Model_Offline.zip')
-          trusted=json.loads(Path('features/reader/src/main/assets/novellex/manifest.json').read_text())
-          names=('model.onnx','tokenizer.json','manifest.json')
-          with zipfile.ZipFile(src) as original, zipfile.ZipFile(target,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=3) as out:
-              old=json.loads(original.read('assets/novellex/manifest.json'))
-              for field in ('model_id','precision','model_bytes','model_sha256','tokenizer_sha256'):
-                  assert old[field]==trusted[field],field
-              for name in names:
-                  with original.open('assets/novellex/'+name) as inp,out.open(name,'w',force_zip64=True) as write:
-                      for piece in iter(lambda:inp.read(1024*1024),b''):
-                          write.write(piece)
-          with zipfile.ZipFile(target) as z:
-              assert sorted(z.namelist())==sorted(names)
-              for name,field in [('model.onnx','model_sha256'),('tokenizer.json','tokenizer_sha256')]:
-                  digest=hashlib.sha256()
-                  with z.open(name) as f:
-                      for piece in iter(lambda:f.read(1024*1024),b''):
-                          digest.update(piece)
-                  assert digest.hexdigest()==trusted[field],name
-              assert z.getinfo('model.onnx').file_size==trusted['model_bytes']
-          print("MODEL_ZIP_BYTES=",target.stat().st_size)
-          print("MODEL_ZIP_SHA256=",hashlib.sha256(target.read_bytes()).hexdigest())
+          keep=Path('app/proguard-rules.pro').read_text()
+          assert '-keep class ai.onnxruntime.** { *; }' in keep
+          mapping=Path('app/build/outputs/mapping/release/mapping.txt').read_text()
+          inside=False
+          for line in mapping.splitlines():
+              if not line.startswith((' ', '\t')):
+                  inside=line.startswith('ai.onnxruntime.')
+                  if inside and ' -> ' in line:
+                      src,dst=line.rstrip(':').split(' -> ',1)
+                      assert src==dst, f'R8 renamed ONNX native class {line}'
+              elif inside and ' -> ' in line and '(' in line:
+                  left,right=line.rsplit(' -> ',1)
+                  original=left.split('(')[0].strip().split(' ')[-1]
+                  assert original==right.strip(), f'R8 renamed ONNX JNI-sensitive method {line}'
+          print('R8 JNI keep verified')
           PY
-          test "$(find release-output -maxdepth 1 -type f | wc -l)" -eq 2
-      - name: Publish two independent assets (APK and one-time model ZIP)
+      - name: Publish signed APK-only hotfix (reuse previous model ZIP)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: novellex-model-zip-arm64-${{ github.sha }}
-          name: NoveLA NovelLex split model — ARM64
+          tag_name: novellex-arm64-jni-fix-${{ github.sha }}
+          name: NoveLA NovelLex ONNX JNI hotfix — ARM64
           prerelease: true
           draft: false
           make_latest: false
           fail_on_unmatched_files: true
-          files: |
-            release-output/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk
-            release-output/NovelLex_GLiner25_INT8_Model_Offline.zip
+          files: release-output/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk
           body: |
-            Install the small signed ARM64 APK, then open Reader > More >
-            NovelLex > Model ZIP içe aktar. Select the separately downloaded
-            NovelLex_GLiner25_INT8_Model_Offline.zip exactly once.
-            On subsequent updates, keep the same app installed; its private
-            model and glossary data remain available without another download.
-            Experimental: physical-device crash reproduction and on-device
-            native ONNX execution still require logcat/device evidence.
+            ARM64-only signed experimental ONNX Runtime JNI / R8 keep-rule
+            hotfix. Installs as an UPDATE to the same NoveLA package.
+            APK contains no GLiNER model weights. Do not uninstall NoveLA:
+            installed model and glossary are preserved on same-signature updates.
+
+            IMPORTANT: If you already imported the model ZIP, DO NOT download
+            it again. If you still need it, download the one-time model ZIP:
+            https://github.com/TheOsmanYILDIRIM/NoveLA_float/releases/download/novellex-model-zip-arm64-a8b419f41dfea46880d05fcd915ca75063f7194e/NovelLex_GLiner25_INT8_Model_Offline.zip
+
+            Release build / JNI mapping checks pass, but real physical ARM64
+            loading and model inference are not yet device-verified.

@@ -27,7 +27,7 @@
 
 Use the isolated workflow .github/workflows/novellex-split-release.yml.
 Builds a signed, R8-minified, ARM64-only release with
--PnovellexSplitModel -PnovellexArm64Only; versionCode 40 is greater than
+-PnovellexSplitModel -PnovellexArm64Only; versionCode 41 is greater than
 previous integrated versionCode 39. Existing release signing secrets stay in
 GitHub, never in ZIP or APK beyond the signature.
 
@@ -39,3 +39,15 @@ Real phone reproduction and any logcat stacktrace are still **unverified**.
 A crash caused by a native ONNX Runtime / memory pressure is NOT guaranteed
 resolved by guarding JSON reads. On-phone inference, memory, first-run ZIP
 import and update-preserved model need physical Android acceptance tests.
+
+## ONNX Runtime JNI repair (November 11, 2026)
+
+The previous ARM64 release lacked the ONNX Runtime Android required R8 keep
+rule, allowing native JNI entry points to be renamed/removed. This can cause
+UnsatisfiedLinkError / LinkageError when creating the first ONNX session.
+Added `-keep class ai.onnxruntime.** { *; }` to the app release ProGuard rules,
+and preserved the complete error type/message in the UI and Logcat.
+The APK versionCode increases to 41; signing and model SHA remain unchanged.
+The GLiNER INT8 ZIP is **not reissued or required again** for updates of the
+same installed app. A physical ARM64 device regression test and device logcat
+are still necessary before claiming the original error is resolved.

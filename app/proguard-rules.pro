@@ -105,3 +105,6 @@
 -keep class my.noveldokusha.text_translator.TranslationManagerComposite { *; }
 -keep class my.noveldokusha.text_translator.TranslationManagerGemini { *; }
 -keep class my.noveldokusha.text_translator.TranslationManagerGoogleFree { *; }
+# GLiNER/ONNX Runtime Android: JNI native symbol names and reflection MUST survive R8.
+# Official ONNX Runtime Android docs explicitly require this in minified APKs.
+-keep class ai.onnxruntime.** { *; }
