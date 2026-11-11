@@ -54,3 +54,17 @@ Until then it is EXPERIMENTAL; compilation alone is not inference proof.
 
 This model is English-only; quality for Turkish source text is unverified.
 Predicted fantasy terms are suggestions, not translations.
+
+## Experimental compact ARM64 release
+
+The compact release workflow converts FP32 into FP16, INT8 embedding or selective
+INT8 encoder models, performs ONNX Runtime CPU inference with the original model
+and 12 independently written fantasy passages, compares span predictions at
+thresholds 0.30 and 0.50, and **fails closed** if no variant reproduces FP32
+outputs (reference-parity F1 >=0.92, at least 5 original detections per level).
+A parity score is not a human-labeled accuracy score, nor a real-device test.
+
+The smallest accepted candidate is packaged into the **signed** ARM64-only
+R8-minified release APK. The GitHub prerelease contains the APK ONLY. The
+pipeline refuses to publish if signing secrets are missing, APK does not
+contain precisely one ARM64 ABI, model SHA mismatches, or signatures fail.

@@ -56,7 +56,8 @@ android {
         base.archivesName.set(if (cliCustomSettings.cloneBuild) "NoveLA_Clone_v$versionName" else "NoveLA_v$versionName")
         manifestPlaceholders["appLabel"] = if (cliCustomSettings.cloneBuild) "NoveLA Clone" else "NoveLA"
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters += if (providers.gradleProperty("novellexArm64Only").isPresent)
+                listOf("arm64-v8a") else listOf("arm64-v8a", "armeabi-v7a")
         }
 
         val gitCommitHash = providers.exec {

@@ -1,0 +1,127 @@
+name: NovelLex compact signed ARM64 release
+
+on:
+  push:
+    branches:
+      - experiment/novellex-compact-arm64
+    paths:
+      - 'novellex/**'
+      - 'features/reader/src/main/java/my/noveldokusha/features/reader/novellex/**'
+      - 'app/build.gradle.kts'
+      - '.github/workflows/novellex-compact-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  optimize-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned ONNX conversion and CPU-validation tools
+        run: |
+          python3 -m pip install --no-cache-dir \
+            onnx==1.18.0 onnxruntime==1.23.2 onnxconverter-common==1.16.0 \
+            tokenizers==0.21.4 numpy==1.26.4
+      - name: Verify model packager test suite
+        run: python3 -m unittest discover -s novellex -p 'test_*.py' -v
+      - name: Download original FP32 checkpoint for reference
+        run: python3 novellex/prepare_assets.py
+      - name: Optimize FP16 and selective INT8 and compare with original FP32
+        run: |
+          python3 novellex/optimize_model.py \
+            --assets features/reader/src/main/assets/novellex \
+            --work /tmp/novellex-compact-audit
+      - name: Recheck chosen model SHA and metadata
+        run: |
+          python3 novellex/prepare_assets.py --verify
+          cat /tmp/novellex-compact-audit/report.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Provision existing release signing (fail closed)
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$SIGNING_KEY" && test -n "$KEY_STORE_PASSWORD"
+          test -n "$ALIAS" && test -n "$KEY_PASSWORD"
+          printf '%s' "$SIGNING_KEY" | base64 -d > app/storeFile.jks
+          printf 'storeFile=storeFile.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KEY_STORE_PASSWORD" "$ALIAS" "$KEY_PASSWORD" > custom.properties
+      - name: Assemble minified signed original-identity ARM64 release APK
+        run: |
+          set -euo pipefail
+          sed -i '/org\.gradle\.java\.home/d' gradle.properties
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease \
+            -PnovellexArm64Only \
+            -PlocalPropertiesFilePath=custom.properties \
+            --stacktrace
+      - name: Validate one APK, one ABI, offline weights and signing
+        run: |
+          set -euo pipefail
+          mkdir -p release-output
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import hashlib, json, shutil
+          files = list(Path("app/build/outputs/apk/release").glob("*.apk"))
+          assert len(files) == 1, f"Require one release APK, got {files}"
+          apk = files[0]
+          with ZipFile(apk) as z:
+              names = z.namelist()
+              abi_set = {x.split("/")[1] for x in names if x.startswith("lib/") and x.endswith(".so")}
+              assert abi_set == {"arm64-v8a"}, f"Wrong ABI directories {abi_set}"
+              model = z.getinfo("assets/novellex/model.onnx")
+              manifest = json.loads(z.read("assets/novellex/manifest.json"))
+              assert manifest["precision"] != "fp32", "An uncompressed model must not be released"
+              assert model.file_size == manifest["model_bytes"]
+              with z.open(model) as src:
+                  h = hashlib.sha256()
+                  for b in iter(lambda: src.read(1024 * 1024), b""):
+                      h.update(b)
+              assert h.hexdigest() == manifest["model_sha256"], "Model hash mismatch"
+              assert "assets/novellex/tokenizer.json" in names
+              print("ABI=arm64-v8a, MODEL_VARIANT=", manifest["precision"])
+              print("MODEL_BYTES=", model.file_size)
+          target = Path("release-output/NoveLA-NovelLex-Offline-arm64-v8a-release.apk")
+          shutil.copyfile(apk, target)
+          print("RELEASE_APK_BYTES=", target.stat().st_size)
+          print("RELEASE_APK_MIB=", round(target.stat().st_size/1048576, 2))
+          with target.open("rb") as src:
+              hh=hashlib.sha256()
+              for b in iter(lambda: src.read(1024*1024), b""): hh.update(b)
+          print("RELEASE_APK_SHA256=", hh.hexdigest())
+          PY
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n1)
+          test -n "$SIGNER"
+          "$SIGNER" verify --verbose --print-certs release-output/*.apk
+          test "$(find release-output -maxdepth 1 -type f | wc -l)" -eq 1
+          test "$(find release-output -maxdepth 1 -name '*.apk' | wc -l)" -eq 1
+      - name: Publish GitHub prerelease with APK as the sole asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: novellex-arm64-${{ github.sha }}
+          name: NoveLA NovelLex — compact offline ARM64
+          prerelease: true
+          draft: false
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: release-output/*.apk
+          body: |
+            Experimental ARM64-only, signed, R8-minified NoveLA APK.
+            Original GLiNER2.5 Small runs offline inside NoveLA, no server.
+            FP16 / selective INT8 variants were checked against FP32 synthetic
+            fantasy passages; the smallest passing model was bundled.
+            CI CPU parity is not Android real-device validation.

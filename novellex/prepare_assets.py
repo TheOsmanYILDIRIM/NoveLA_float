@@ -44,7 +44,17 @@ def verify(output: Path) -> None:
     assert manifest["model_id"] == MODEL_ID
     assert manifest["source_repo"] == MODEL_REPO
     assert (output / "model.onnx").stat().st_size == manifest["model_bytes"]
-    assert (output / "model.onnx").stat().st_size > 200_000_000
+        # Either the audited FP32 baseline or a validated compact derivative.
+    precision = manifest.get("precision", "fp32")
+    size = (output / "model.onnx").stat().st_size
+    if precision == "fp32":
+        assert size > 200_000_000
+    elif precision in ("fp16", "int8-embeddings", "int8-encoder"):
+        assert 25_000_000 < size < 220_000_000
+        assert len(manifest.get("fp32_reference_sha256", "")) == 64
+        assert all(item.get("reference_parity_f1", 0) >= 0.92 for item in manifest.get("parity", []))
+    else:
+        raise ValueError("Unsupported model precision variant")
     assert digest(output / "model.onnx") == manifest["model_sha256"]
     assert digest(output / "tokenizer.json") == manifest["tokenizer_sha256"]
     validate_tokenizer(output / "tokenizer.json")

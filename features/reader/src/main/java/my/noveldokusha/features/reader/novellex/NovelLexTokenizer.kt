@@ -21,7 +21,7 @@ internal class NovelLexTokenizer private constructor(
     fun encode(token: String): LongArray {
         specials[token]?.let { return longArrayOf(it.toLong()) }
         // HF's Metaspace pre-tokenizer inserts a word-boundary symbol for each independent token.
-        val input = "\u2581" + Normalizer.normalize(token, Normalizer.Form.NFKC)
+        val input = "\u2581" + Normalizer.normalize(token, Normalizer.Form.NFC)
             .replace(" ", "\u2581")
         val costs = DoubleArray(input.length + 1) { Double.NEGATIVE_INFINITY }
         val previous = IntArray(input.length + 1) { -1 }
