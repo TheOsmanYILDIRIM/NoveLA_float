@@ -64,6 +64,7 @@ internal fun ReaderScreenBottomBarDialogs(
     onTtsHighlightColorChange: (String) -> Unit,
     onManualHighlightEnabledChange: (Boolean) -> Unit = {},
     onTextDefaultsReset: () -> Unit = {},
+    onNovelLexClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -122,6 +123,7 @@ internal fun ReaderScreenBottomBarDialogs(
                         )
                     }
                     ReaderScreenState.Settings.Type.More -> MoreSettingDialog(
+                        onNovelLexClick = onNovelLexClick,
                         ttsHighlightEnabled = settings.ttsHighlight.isEnabled.value,
                         onTtsHighlightEnabledChange = onTtsHighlightEnabledChange,
                         ttsHighlightColor = settings.ttsHighlight.highlightColor.value,

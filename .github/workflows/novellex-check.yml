@@ -1,0 +1,40 @@
+name: NovelLex original companion checks
+on:
+  pull_request:
+    paths:
+      - 'novellex/**'
+      - 'features/reader/**'
+      - '.github/workflows/novellex-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-and-companion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Python unit tests, no model download
+        run: python -m unittest discover -s novellex -p 'test_*.py' -v
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      # ubuntu-latest already includes Android SDK; avoid brittle sdkmanager 'tools' package setup.
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android reader Kotlin compilation
+        run: |
+          sed -i '/org\.gradle\.java\.home/d' gradle.properties
+          chmod +x ./gradlew
+          ./gradlew :features:reader:compileDebugKotlin --stacktrace
+      - name: Assemble unsigned debug APK for installation testing
+        run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoveLA-NovelLex-original-GLiNER-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+          if-no-files-found: error

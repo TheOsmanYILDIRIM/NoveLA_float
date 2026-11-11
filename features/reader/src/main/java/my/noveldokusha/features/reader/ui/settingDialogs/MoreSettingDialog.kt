@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Highlight
 import androidx.compose.material.icons.outlined.FormatPaint
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -58,6 +59,7 @@ internal fun MoreSettingDialog(
     onTtsHighlightEnabledChange: (Boolean) -> Unit,
     ttsHighlightColor: String,
     onTtsHighlightColorChange: (String) -> Unit,
+    onNovelLexClick: () -> Unit = {},
     manualHighlightEnabled: Boolean = false,
     onManualHighlightEnabledChange: (Boolean) -> Unit = {},
 ) {
@@ -67,6 +69,12 @@ internal fun MoreSettingDialog(
         val scrollState = rememberScrollState()
         val isScrolling by remember { derivedStateOf { scrollState.isScrollInProgress } }
         Column(modifier = Modifier.padding(vertical = 16.dp).verticalScroll(scrollState)) {
+        // NovelLex is opt-in: reader text is only sent when Scan is pressed.
+        SlimListItem(
+            modifier = Modifier.clickable(enabled = !isScrolling, onClick = onNovelLexClick),
+            headlineContent = { Text("NovelLex · terminology glossary") },
+            leadingContent = { Icon(Icons.Outlined.AutoAwesome, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+        )
         // Manual highlight
         SlimListItem(
             modifier = Modifier

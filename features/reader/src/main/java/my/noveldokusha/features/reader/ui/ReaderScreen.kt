@@ -158,6 +158,7 @@ internal fun ReaderScreen(
     onMarginBottomChange: (Float) -> Unit,
     onPressBack: () -> Unit,
     onOpenChapterInWeb: () -> Unit,
+    onNovelLexClick: () -> Unit = {},
     regexCleanupViewModel: RegexCleanupSettingsViewModel? = null,
     onTtsHighlightEnabledChange: (Boolean) -> Unit,
     onTtsHighlightColorChange: (String) -> Unit,
@@ -406,6 +407,7 @@ internal fun ReaderScreen(
                         onTtsHighlightColorChange = onTtsHighlightColorChange,
                         onManualHighlightEnabledChange = onManualHighlightEnabledChange,
                         onTextDefaultsReset = onTextDefaultsReset,
+                        onNovelLexClick = onNovelLexClick,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Box(modifier = Modifier.fillMaxWidth()) {
