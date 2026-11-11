@@ -33,7 +33,8 @@ jobs:
 
           # Confirm DEX still declares methods exported by the native JNI library.
           import struct
-          dex=z.read('classes.dex')
+          with ZipFile(path) as archive:
+              dex=archive.read('classes.dex')
           def u32(off): return struct.unpack_from('<I',dex,off)[0]
           strings=[]
           for i in range(u32(0x38)):
