@@ -1,0 +1,9 @@
+{
+  "model_bytes": 141055262,
+  "model_id": "fastino/gliner2.5-small-v1",
+  "model_sha256": "de4e847915505b8c991926ff6511b2085d36f88fa9b18d5f085828e1d2080282",
+  "source_repo": "nicolasembleton/gliner2.5-small-v1-onnx",
+  "source_revision": "main",
+  "tokenizer_sha256": "cbc8ae6037812709c9c26f2a160f8dc48b0440bcb79c8141804259ae2d6adac3",
+  "precision": "int8-embeddings"
+}

@@ -1,0 +1,142 @@
+name: NovelLex split model ZIP + small signed ARM64 APK
+on:
+  push:
+    branches:
+      - feature/novellex-zip-import-arm64
+    paths:
+      - 'features/reader/**'
+      - 'app/build.gradle.kts'
+      - '.github/workflows/novellex-split-release.yml'
+      - 'novellex/README.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  signed-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Assert trusted model manifest is small and complete
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          root=pathlib.Path("features/reader/src/main/assets/novellex")
+          assert not (root/"model.onnx").exists()
+          assert not (root/"tokenizer.json").exists()
+          manifest=json.loads((root/"manifest.json").read_text())
+          assert manifest["model_sha256"]=="de4e847915505b8c991926ff6511b2085d36f88fa9b18d5f085828e1d2080282"
+          assert manifest["tokenizer_sha256"]=="cbc8ae6037812709c9c26f2a160f8dc48b0440bcb79c8141804259ae2d6adac3"
+          assert manifest["model_bytes"]==141055262
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Reuse the existing NoveLA release signing credentials
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$SIGNING_KEY" && test -n "$KEY_STORE_PASSWORD"
+          test -n "$ALIAS" && test -n "$KEY_PASSWORD"
+          printf '%s' "$SIGNING_KEY" | base64 -d > app/storeFile.jks
+          printf 'storeFile=storeFile.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KEY_STORE_PASSWORD" "$ALIAS" "$KEY_PASSWORD" > custom.properties
+      - name: Compile and build small signed ARM64 release without model weights
+        run: |
+          set -euo pipefail
+          sed -i '/org\.gradle\.java\.home/d' gradle.properties
+          chmod +x gradlew
+          ./gradlew :features:reader:compileReleaseKotlin :app:assembleRelease \
+            -PnovellexArm64Only -PnovellexSplitModel \
+            -PlocalPropertiesFilePath=custom.properties --stacktrace
+      - name: Verify APK is lightweight, signed and contains no model weights
+        run: |
+          set -euo pipefail
+          mkdir -p release-output
+          python3 - <<'PY'
+          import zipfile, pathlib,hashlib,shutil
+          apks=list(pathlib.Path("app/build/outputs/apk/release").glob("*.apk"))
+          assert len(apks)==1,apks
+          apk=apks[0]
+          with zipfile.ZipFile(apk) as z:
+              names=z.namelist()
+              libs={name.split('/')[1] for name in names if name.startswith('lib/') and name.endswith('.so')}
+              assert libs=={"arm64-v8a"},libs
+              assert 'assets/novellex/manifest.json' in names
+              assert 'assets/novellex/model.onnx' not in names
+              assert 'assets/novellex/tokenizer.json' not in names
+          assert apk.stat().st_size < 75_000_000, ("APK too large",apk.stat().st_size)
+          path=pathlib.Path("release-output/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk")
+          shutil.copyfile(apk,path)
+          print("APK_SIZE_BYTES=",path.stat().st_size)
+          print("APK_SHA256=",hashlib.sha256(path.read_bytes()).hexdigest())
+          PY
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n1)
+          test -n "$SIGNER"
+          "$SIGNER" verify --verbose --print-certs release-output/*.apk
+      - name: Create standalone reusable INT8 model ZIP from validated previous release
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 \
+            "https://github.com/TheOsmanYILDIRIM/NoveLA_float/releases/download/novellex-arm64-dc5df5e18a787abadcff473fa8db7f3d8030a34f/NoveLA-NovelLex-Offline-arm64-v8a-release.apk" \
+            -o /tmp/novellex-reference.apk
+          echo '6a0f1acaecfaf0b568ffc3c5e65c67ed42d44708075fdbb912f02032996d8f58  /tmp/novellex-reference.apk' | sha256sum -c -
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile,hashlib,json
+          src=Path('/tmp/novellex-reference.apk')
+          target=Path('release-output/NovelLex_GLiner25_INT8_Model_Offline.zip')
+          trusted=json.loads(Path('features/reader/src/main/assets/novellex/manifest.json').read_text())
+          names=('model.onnx','tokenizer.json','manifest.json')
+          with zipfile.ZipFile(src) as original, zipfile.ZipFile(target,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=3) as out:
+              old=json.loads(original.read('assets/novellex/manifest.json'))
+              for field in ('model_id','precision','model_bytes','model_sha256','tokenizer_sha256'):
+                  assert old[field]==trusted[field],field
+              for name in names:
+                  with original.open('assets/novellex/'+name) as inp,out.open(name,'w',force_zip64=True) as write:
+                      for piece in iter(lambda:inp.read(1024*1024),b''):
+                          write.write(piece)
+          with zipfile.ZipFile(target) as z:
+              assert sorted(z.namelist())==sorted(names)
+              for name,field in [('model.onnx','model_sha256'),('tokenizer.json','tokenizer_sha256')]:
+                  digest=hashlib.sha256()
+                  with z.open(name) as f:
+                      for piece in iter(lambda:f.read(1024*1024),b''):
+                          digest.update(piece)
+                  assert digest.hexdigest()==trusted[field],name
+              assert z.getinfo('model.onnx').file_size==trusted['model_bytes']
+          print("MODEL_ZIP_BYTES=",target.stat().st_size)
+          print("MODEL_ZIP_SHA256=",hashlib.sha256(target.read_bytes()).hexdigest())
+          PY
+          test "$(find release-output -maxdepth 1 -type f | wc -l)" -eq 2
+      - name: Publish two independent assets (APK and one-time model ZIP)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: novellex-model-zip-arm64-${{ github.sha }}
+          name: NoveLA NovelLex split model — ARM64
+          prerelease: true
+          draft: false
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: |
+            release-output/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk
+            release-output/NovelLex_GLiner25_INT8_Model_Offline.zip
+          body: |
+            Install the small signed ARM64 APK, then open Reader > More >
+            NovelLex > Model ZIP içe aktar. Select the separately downloaded
+            NovelLex_GLiner25_INT8_Model_Offline.zip exactly once.
+            On subsequent updates, keep the same app installed; its private
+            model and glossary data remain available without another download.
+            Experimental: physical-device crash reproduction and on-device
+            native ONNX execution still require logcat/device evidence.

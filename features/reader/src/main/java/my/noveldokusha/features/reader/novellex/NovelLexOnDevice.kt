@@ -6,13 +6,9 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 import java.lang.reflect.Array as ReflectArray
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
-import java.security.MessageDigest
 import java.util.regex.Pattern
 import kotlin.math.exp
 
@@ -203,71 +199,23 @@ internal object NovelLexOnDevice {
 
     private fun ensureLoaded(context: Context) {
         if (session != null && tokenizer != null) return
-        val manifest = try {
-            context.assets.open("novellex/manifest.json").bufferedReader().use { JSONObject(it.readText()) }
-        } catch (e: Exception) {
-            throw IllegalStateException("Offline GLiNER model was not packaged into this APK", e)
-        }
-        require(manifest.getString("model_id") == MODEL_ID) { "Unexpected bundled GLiNER model" }
-        val file = File(context.filesDir, "novellex/" + manifest.getString("model_sha256").take(16) + "/model.onnx")
-        file.parentFile?.mkdirs()
-        if (!file.isFile || file.length() != manifest.getLong("model_bytes") || sha256(file) != manifest.getString("model_sha256")) {
-            // Never accept an incomplete copy after storage exhaustion or process death.
-            val temporary = File(file.parentFile, "model.onnx.part")
-            try {
-                val digest = MessageDigest.getInstance("SHA-256")
-                context.assets.open("novellex/model.onnx").use { source ->
-                    FileOutputStream(temporary).use { sink ->
-                        val buffer = ByteArray(1024 * 1024)
-                        while (true) {
-                            val count = source.read(buffer)
-                            if (count < 0) break
-                            digest.update(buffer, 0, count)
-                            sink.write(buffer, 0, count)
-                        }
-                        sink.fd.sync()
-                    }
-                }
-                val actual = digest.digest().joinToString("") { "%02x".format(it) }
-                require(actual == manifest.getString("model_sha256") &&
-                    temporary.length() == manifest.getLong("model_bytes")) { "Offline model checksum mismatch" }
-                check(temporary.renameTo(file)) { "Cannot install offline GLiNER model" }
-            } finally {
-                temporary.delete()
-            }
-        }
-        val tokenizerText = context.assets.open("novellex/tokenizer.json").bufferedReader().use { it.readText() }
-        val tokenDigest = MessageDigest.getInstance("SHA-256").digest(tokenizerText.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-        require(tokenDigest == manifest.getString("tokenizer_sha256")) { "Offline tokenizer checksum mismatch" }
+        val files = NovelLexModelStore.validatedFiles(context)
+        val tokenizerText = files.tokenizer.readText(Charsets.UTF_8)
         val t = NovelLexTokenizer.fromJson(tokenizerText)
         val options = OrtSession.SessionOptions()
         try {
             options.setIntraOpNumThreads(2)
             options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
-            val s = env.createSession(file.absolutePath, options)
+            val s = env.createSession(files.graph.absolutePath, options)
             check("pair_logits" in s.outputNames && "pair_indices" in s.outputNames &&
                 "pair_valid" in s.outputNames) {
                 s.close()
-                "Requires GLiNER2.5 boundary ONNX reranker export"
+                "The model ZIP does not contain the GLiNER2.5 boundary reranker export"
             }
             tokenizer = t
             session = s
         } finally {
             options.close()
         }
-    }
-
-    private fun sha256(file: File): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { stream ->
-            val buffer = ByteArray(1024 * 1024)
-            while (true) {
-                val count = stream.read(buffer)
-                if (count < 0) break
-                digest.update(buffer, 0, count)
-            }
-        }
-        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 }

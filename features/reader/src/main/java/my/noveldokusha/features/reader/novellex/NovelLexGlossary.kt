@@ -1,6 +1,7 @@
 package my.noveldokusha.features.reader.novellex
 
 import android.content.Context
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
@@ -16,12 +17,22 @@ internal class NovelLexGlossary(context: Context, bookUrl: String) {
 
     fun read(): List<Triple<String, String, Int>> {
         val totals = linkedMapOf<Pair<String, String>, Int>()
-        val chapters = chapters()
+        val chapters = try {
+            chapters()
+        } catch (e: Exception) {
+            // Old/corrupt SharedPreferences must never crash the reader UI.
+            // Leave the raw preference untouched for manual recovery.
+            Log.e("NovelLex", "Glossary JSON unreadable; original data preserved", e)
+            return emptyList()
+        }
         for (chapterKey in chapters.keys()) {
-            val rows = chapters.getJSONArray(chapterKey)
+            val rows = chapters.optJSONArray(chapterKey) ?: continue
             for (i in 0 until rows.length()) {
-                val row = rows.getJSONObject(i)
-                val itemKey = row.getString("text") to row.getString("label")
+                val row = rows.optJSONObject(i) ?: continue
+                val text = row.optString("text", "").trim()
+                val label = row.optString("label", "").trim()
+                if (text.isEmpty() || label.isEmpty()) continue
+                val itemKey = text to label
                 totals[itemKey] = (totals[itemKey] ?: 0) + 1
             }
         }

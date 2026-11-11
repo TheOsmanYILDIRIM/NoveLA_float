@@ -1,5 +1,8 @@
 package my.noveldokusha.features.reader.novellex
 
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +27,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
+/**
+ * The model archive is imported from local storage only once.
+ * Subsequent signed APK updates retain filesDir/novellex and do not redownload
+ * the model or require any external app, PC, server or internet connection.
+ */
 @Composable
 internal fun NovelLexDialog(
     bookUrl: String,
@@ -35,38 +43,80 @@ internal fun NovelLexDialog(
     val glossary = remember(bookUrl) { NovelLexGlossary(context, bookUrl) }
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
-    var message by remember { mutableStateOf("Original GLiNER2.5 Small runs privately on this device. No internet or companion.") }
+    var modelReady by remember { mutableStateOf(NovelLexModelStore.isInstalled(context)) }
+    var message by remember {
+        mutableStateOf(
+            if (modelReady) "Yerel GLiNER modeli kurulu; internet gerekmez."
+            else "Model henüz kurulmadı. NovelLex model ZIP dosyasını bir kez içe aktar."
+        )
+    }
     var entries by remember(bookUrl) { mutableStateOf(glossary.read()) }
+
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            busy = true
+            message = "Model doğrulanıyor ve telefonun uygulama klasörüne kuruluyor…"
+            scope.launch {
+                try {
+                    NovelLexModelStore.importZip(context, uri)
+                    modelReady = NovelLexModelStore.isInstalled(context)
+                    message = if (modelReady) "Model kuruldu. Sonraki APK güncellemelerinde korunur."
+                    else "Model kurulamadı; ZIP'i yeniden seç."
+                } catch (e: Exception) {
+                    Log.e("NovelLex", "Model ZIP import failure", e)
+                    modelReady = NovelLexModelStore.isInstalled(context)
+                    message = "ZIP içe aktarma hatası: " + (e.message ?: "Bilinmeyen hata")
+                } finally {
+                    busy = false
+                }
+            }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text("NovelLex · Offline GLiNER") },
+        title = { Text("NovelLex · Çevrimdışı sözlük") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Scan the loaded chapter offline. Model predictions are suggestions; verify terminology before translating.")
+                Text("GLiNER modeli APK'dan ayrıdır. ZIP'i yalnız ilk kurulumda seçmen yeterli.")
                 Text(message)
+                Button(enabled = !busy, onClick = { picker.launch(arrayOf("*/*")) }) {
+                    Text(if (modelReady) "Model ZIP'i yeniden içe aktar" else "Model ZIP içe aktar")
+                }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(enabled = !busy, onClick = {
-                        val paragraphs = chapterParagraphs()
+                    Button(enabled = !busy && modelReady, onClick = {
                         busy = true
                         scope.launch {
                             try {
+                                val paragraphs = chapterParagraphs()
+                                require(paragraphs.isNotEmpty()) { "Bu bölümde taranacak metin yok." }
                                 val mentions = NovelLexOnDevice.extract(context, paragraphs)
                                 glossary.replaceChapter(chapterUrl, mentions)
                                 entries = glossary.read()
-                                message = "Found " + mentions.size + " mentions; " + entries.size +
-                                    " distinct local terms. Re-scanning replaces this chapter."
+                                message = mentions.size.toString() + " terim bulundu; " +
+                                    entries.size.toString() + " farklı terim kaydedildi."
                             } catch (e: Exception) {
-                                message = "Offline GLiNER error: " + (e.message ?: "model unavailable")
+                                Log.e("NovelLex", "Local chapter scan failure", e)
+                                message = "Tarama hatası: " + (e.message ?: e.javaClass.simpleName)
+                            } catch (e: LinkageError) {
+                                Log.e("NovelLex", "ONNX Runtime native library unavailable", e)
+                                message = "Cihazın ONNX motoru açılamadı: " + (e.message ?: "uyumsuz kütüphane")
                             } finally {
                                 busy = false
                             }
                         }
-                    }) { Text("Scan loaded chapter") }
+                    }) { Text("Bölümü tara") }
                     TextButton(enabled = !busy, onClick = {
-                        glossary.clear()
-                        entries = emptyList()
-                        message = "This book's glossary cleared."
-                    }) { Text("Clear") }
+                        try {
+                            glossary.clear()
+                            entries = emptyList()
+                            message = "Bu kitabın sözlüğü temizlendi. Model korunuyor."
+                        } catch (e: Exception) {
+                            Log.e("NovelLex", "Glossary clear failure", e)
+                            message = "Sözlük temizlenemedi: " + (e.message ?: "bilinmeyen hata")
+                        }
+                    }) { Text("Sözlüğü temizle") }
                 }
                 if (busy) CircularProgressIndicator()
                 LazyColumn(modifier = Modifier.heightIn(max = 240.dp).fillMaxWidth()) {
@@ -77,6 +127,6 @@ internal fun NovelLexDialog(
                 }
             }
         },
-        confirmButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text("Kapat") } },
     )
 }
