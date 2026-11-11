@@ -1,0 +1,40 @@
+name: Verify downloadable NovelLex split-model ARM64 APK
+on:
+  push:
+    branches: [feature/novellex-zip-import-arm64]
+    paths: [.github/workflows/novellex-split-apk-verify.yml]
+permissions:
+  contents: read
+jobs:
+  verify-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact signed 42MB GitHub release APK
+        run: |
+          set -euo pipefail
+          mkdir -p verified
+          curl --fail --location --silent --show-error --retry 3 \
+            'https://github.com/TheOsmanYILDIRIM/NoveLA_float/releases/download/novellex-model-zip-arm64-a8b419f41dfea46880d05fcd915ca75063f7194e/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk' \
+            -o verified/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk
+          echo '3a95cee553b5377e536375a5903f5a7596d63bcaeb1b2989b3df229a096e3549  verified/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk' | sha256sum -c -
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          from pathlib import Path
+          path=Path('verified/NoveLA-NovelLex-Model-Import-arm64-v8a-release.apk')
+          assert path.stat().st_size==42912349
+          with ZipFile(path) as z:
+              names=z.namelist()
+              assert 'assets/novellex/manifest.json' in names
+              assert 'assets/novellex/model.onnx' not in names
+              assert 'assets/novellex/tokenizer.json' not in names
+              assert {x.split('/')[1] for x in names if x.startswith('lib/') and x.endswith('.so')}=={'arm64-v8a'}
+          print('VERIFIED_APK_BYTES=',path.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NoveLA-Model-Import-ARM64-APK-ONLY
+          path: verified/*.apk
+          if-no-files-found: error
+          retention-days: 14
