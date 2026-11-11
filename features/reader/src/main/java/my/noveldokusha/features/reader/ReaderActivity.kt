@@ -86,6 +86,7 @@ import my.noveldokusha.features.reader.services.NarratorMediaControlsService
 import my.noveldokusha.features.reader.tools.BackgroundImageLoader
 import my.noveldokusha.features.reader.tools.FontsLoader
 import my.noveldokusha.features.reader.ui.ReaderScreen
+import my.noveldokusha.features.reader.novellex.NovelLexDialog
 import my.noveldokusha.features.reader.ui.ReaderTextContrast
 import my.noveldokusha.features.reader.ui.ReaderScreenState
 import my.noveldokusha.features.reader.ui.ReaderViewHandlersActions
@@ -671,6 +672,7 @@ class ReaderActivity : BaseActivity() {
                 }
             )
 
+            var showNovelLexDialog by remember { mutableStateOf(false) }
             var regexRulesSnapshot by remember { mutableStateOf<List<RegexRule>?>(null) }
             LaunchedEffect(viewModel.state.settings.selectedSetting.value) {
                 val selected = viewModel.state.settings.selectedSetting.value
@@ -812,6 +814,10 @@ class ReaderActivity : BaseActivity() {
                         viewModel.onCloseManually()
                         finish()
                     },
+                    onNovelLexClick = {
+                        viewModel.state.settings.selectedSetting.value = ReaderScreenState.Settings.Type.None
+                        showNovelLexDialog = true
+                    },
                     onOpenChapterInWeb = {
                         // Текущая глава из VM (обновляется при листании); если по какой-то
                         // причине пуста — фолбэк на главу, с которой открыт ридер.
@@ -826,6 +832,19 @@ class ReaderActivity : BaseActivity() {
                     },
                     )
 
+                    if (showNovelLexDialog) {
+                        val currentChapter = viewModel.state.readerInfo.chapterUrl.value.ifBlank { viewModel.chapterUrl }
+                        NovelLexDialog(
+                            bookUrl = viewModel.bookUrl,
+                            chapterUrl = currentChapter,
+                            chapterParagraphs = {
+                                viewModel.items.filterIsInstance<ReaderItem.Body>()
+                                    .filter { it.chapterUrl == currentChapter }
+                                    .map { it.text }
+                            },
+                            onDismiss = { showNovelLexDialog = false },
+                        )
+                    }
                     if (viewModel.state.showInvalidChapterDialog.value) {
                         BasicAlertDialog(onDismissRequest = {
                             viewModel.state.showInvalidChapterDialog.value = false
